@@ -27,7 +27,7 @@ docker-compose up -d --build
 
 Sau khi các container đã báo trạng thái Started xanh, chạy lệnh dưới đây để đẩy cấu trúc tệp lược đồ schema.prisma xuống database PostgreSQL cô lập bên trong Docker:
 
-docker exec -it horse_racing_backend npx prisma migrate dev --name init
+docker exec -it horse_racing_backend npx prisma migrate deploy
 
 ### Bước 3: Nạp dữ liệu Master Data (Seed)
 
