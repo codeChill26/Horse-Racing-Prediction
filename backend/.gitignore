@@ -1,0 +1,54 @@
+# =========================================================================
+# 1. THƯ VIỆN VÀ BỘ NHỚ ĐỆM (DEPENDENCIES / CACHE)
+# =========================================================================
+node_modules/
+/jspm_packages/
+.npm/
+.eslintcache/
+.parcel-cache/
+.turbo/
+.nuxt/
+.next/
+
+# =========================================================================
+# 2. BIẾN MÔI TRƯỜNG VÀ BẢO MẬT (ENV / SECRETS)
+# =========================================================================
+# Tuyệt đối không đẩy file chứa mật khẩu DB và mật khẩu ứng dụng Gmail lên Git
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================================================================
+# 3. HỆ THỐNG VÀ TRÌNH SOẠN THẢO (SYSTEM / IDE RÁC)
+# =========================================================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# =========================================================================
+# 4. TỆP VẾT LỖI VÀ NHẬT KÝ (LOGS)
+# =========================================================================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =========================================================================
+# 5. CẤU HÌNH ĐẶC THÙ PRISMA & DOCKER (PRISMA / DOCKER GENERATED)
+# =========================================================================
+# Nếu trong tương lai bạn cấu hình custom đầu ra của Prisma Client thì dòng này sẽ bảo vệ Git
+/src/generated/prisma
+
+# Loại bỏ các file dữ liệu tạm thời hoặc trạng thái nếu chạy Docker cục bộ
+.docker/

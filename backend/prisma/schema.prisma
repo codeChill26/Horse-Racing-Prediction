@@ -1,0 +1,94 @@
+// backend/prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql" 
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Thực thể Người dùng chính (Users)
+model User {
+  userId            Int               @id @default(autoincrement())
+  email             String            @unique
+  passwordHash      String
+  fullName          String
+  phoneNumber       String?
+  avatarUrl         String?
+  roleId            Int
+  isActive          Boolean           @default(true)
+  lockedUntil       DateTime?         // Thời gian tài khoản bị khóa tạm thời
+  licenseNumber     String?           // Dành riêng cho nhóm Jockey
+  weight            Decimal?          // Dành riêng cho nhóm Jockey
+  bio               String?           // Dành riêng cho nhóm Jockey
+  isProfileComplete Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  refreshTokens     RefreshToken[]
+  role              Role              @relation(fields: [roleId], references: [roleId])
+  pointWallet       PointWallet?
+  resetOtp          PasswordResetOtp?
+}
+
+// 2. Thực thể Vai trò hệ thống (Roles)
+model Role {
+  roleId    Int      @id @default(autoincrement())
+  code      String   @unique // 'Admin', 'Referee', 'Horse Owner', 'Jockey', 'Spectator'
+  name      String
+  users     User[]
+}
+
+// 3. Ví điểm (PointWallets)
+model PointWallet {
+  walletId     Int                 @id @default(autoincrement())
+  userId       Int                 @unique
+  balance      Int                 @default(0)       // Số dư ví điểm
+  isFrozen     Int                 @default(0)       // 0: Hoạt động, 1: Bị đóng băng
+  rowVersion   Bytes               @default(dbgenerated("gen_random_bytes(8)")) // binary rowVersion chống Race Condition
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  user               User                @relation(fields: [userId], references: [userId])
+  walletTransactions WalletTransaction[]
+}
+
+// 4. Lịch sử biến động số dư ví điểm (WalletTransactions)
+model WalletTransaction {
+  transactionId Int      @id @default(autoincrement())
+  walletId      Int
+  amount        Int      // Số điểm thay đổi (+/-)
+  balanceAfter  Int      // Số dư ví điểm ngay sau giao dịch
+  referenceType String?  // Loại tham chiếu ngoại bang (nvarchar)
+  referenceId   BigInt?  // ID tham chiếu ngoại bang tương ứng (bigint)
+  type          String   // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED'
+  description   String?  
+  createdAt     DateTime @default(now())
+
+  pointWallet   PointWallet @relation(fields: [walletId], references: [walletId])
+}
+
+// 5. Mã OTP phục vụ luồng Quên mật khẩu (PasswordResetOtps)
+model PasswordResetOtp {
+  otpId      Int      @id @default(autoincrement())
+  userId     Int      @unique
+  code       String
+  expiryDate DateTime
+  isUsed     Boolean  @default(false)
+  createdAt  DateTime @default(now()) // Thời điểm sinh mã OTP vật lý
+
+  user       User     @relation(fields: [userId], references: [userId])
+}
+
+model RefreshToken {
+  tokenId    Int      @id @default(autoincrement())
+  userId     Int
+  token      String   @unique
+  isRevoked  Boolean  @default(false)
+  expiryDate DateTime
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}

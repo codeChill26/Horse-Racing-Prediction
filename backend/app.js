@@ -1,3 +1,4 @@
+// backend/app.js
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -6,6 +7,8 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+// 1. BỔ SUNG: Khai báo file định tuyến Router của cụm Auth
+var authRouter = require('./routes/auth'); 
 
 var app = express();
 
@@ -14,13 +17,15 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.use(logger('dev'));
-app.use(express.json());
+app.use(express.json()); // Đã có sẵn để phân tích req.body từ tab Body của Postman
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+// 2. BỔ SUNG: Kích hoạt tiền tố phân vùng URL mạng cho API Auth của bạn
+app.use('/api/auth', authRouter); 
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
