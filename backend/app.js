@@ -9,6 +9,7 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 // 1. BỔ SUNG: Khai báo file định tuyến Router của cụm Auth
 var authRouter = require('./routes/auth'); 
+var adminUsersRouter = require('./routes/admin/users');
 
 var app = express();
 
@@ -26,6 +27,9 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 // 2. BỔ SUNG: Kích hoạt tiền tố phân vùng URL mạng cho API Auth của bạn
 app.use('/api/auth', authRouter); 
+
+// Admin APIs
+app.use('/api/admin/users', adminUsersRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
