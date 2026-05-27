@@ -15,6 +15,10 @@ async function buildAppWithRole(roleCode) {
   jest.doMock('../src/services/adminUsers', () => {
     return {
       listUsers: jest.fn(),
+      getUserById: jest.fn(),
+      createUser: jest.fn(),
+      updateUser: jest.fn(),
+      deactivateUser: jest.fn(),
       toggleIsActive: jest.fn(),
       changeRole: jest.fn(),
     };
@@ -31,6 +35,93 @@ async function buildAppWithRole(roleCode) {
 }
 
 describe('Admin users routes', () => {
+  test('GET /api/admin/users/:id returns user (ADMIN)', async () => {
+    const { app, adminUsersService } = await buildAppWithRole('ADMIN');
+
+    adminUsersService.getUserById.mockResolvedValue({
+      userId: 10,
+      email: 'u@example.com',
+      fullName: 'User',
+      isActive: true,
+      role: { roleId: 1, code: 'SPECTATOR', name: 'Spectator' },
+    });
+
+    const res = await request(app).get('/api/admin/users/10');
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.userId).toBe(10);
+    expect(adminUsersService.getUserById).toHaveBeenCalledWith(10);
+  });
+
+  test('POST /api/admin/users creates user (ADMIN)', async () => {
+    const { app, adminUsersService } = await buildAppWithRole('ADMIN');
+
+    adminUsersService.createUser.mockResolvedValue({
+      userId: 11,
+      email: 'new@example.com',
+      fullName: 'New',
+      isActive: true,
+      role: { roleId: 1, code: 'SPECTATOR', name: 'Spectator' },
+    });
+
+    const res = await request(app)
+      .post('/api/admin/users')
+      .send({ email: 'new@example.com', password: 'password123', fullName: 'New' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.userId).toBe(11);
+    expect(adminUsersService.createUser).toHaveBeenCalledTimes(1);
+  });
+
+  test('PATCH /api/admin/users/:id updates user (ADMIN)', async () => {
+    const { app, adminUsersService } = await buildAppWithRole('ADMIN');
+
+    adminUsersService.updateUser.mockResolvedValue({
+      userId: 10,
+      email: 'u@example.com',
+      fullName: 'Updated',
+      isActive: true,
+      role: { roleId: 1, code: 'SPECTATOR', name: 'Spectator' },
+    });
+
+    const res = await request(app)
+      .patch('/api/admin/users/10')
+      .send({ fullName: 'Updated' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.fullName).toBe('Updated');
+    expect(adminUsersService.updateUser).toHaveBeenCalledWith(10, expect.any(Object));
+  });
+
+  test('DELETE /api/admin/users/:id deactivates user (ADMIN)', async () => {
+    const { app, adminUsersService } = await buildAppWithRole('ADMIN');
+
+    adminUsersService.deactivateUser.mockResolvedValue({
+      userId: 10,
+      email: 'u@example.com',
+      fullName: 'User',
+      isActive: false,
+      role: { roleId: 1, code: 'SPECTATOR', name: 'Spectator' },
+    });
+
+    const res = await request(app).delete('/api/admin/users/10');
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.isActive).toBe(false);
+    expect(adminUsersService.deactivateUser).toHaveBeenCalledWith(10);
+  });
+
+  test('POST /api/admin/users is forbidden (non-ADMIN)', async () => {
+    const { app, adminUsersService } = await buildAppWithRole('SPECTATOR');
+
+    const res = await request(app)
+      .post('/api/admin/users')
+      .send({ email: 'new@example.com', password: 'password123', fullName: 'New' });
+
+    expect(res.status).toBe(403);
+    expect(adminUsersService.createUser).not.toHaveBeenCalled();
+  });
+
   test('GET /api/admin/users returns list (ADMIN)', async () => {
     const { app, adminUsersService } = await buildAppWithRole('ADMIN');
 
@@ -49,6 +140,17 @@ describe('Admin users routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.users).toHaveLength(1);
     expect(adminUsersService.listUsers).toHaveBeenCalledTimes(1);
+  });
+
+  test('GET /api/admin/users forwards roleCode filter (ADMIN)', async () => {
+    const { app, adminUsersService } = await buildAppWithRole('ADMIN');
+
+    adminUsersService.listUsers.mockResolvedValue([]);
+
+    const res = await request(app).get('/api/admin/users?roleCode=JOCKEY');
+
+    expect(res.status).toBe(200);
+    expect(adminUsersService.listUsers).toHaveBeenCalledWith({ roleCode: 'JOCKEY' });
   });
 
   test('GET /api/admin/users is forbidden (non-ADMIN)', async () => {

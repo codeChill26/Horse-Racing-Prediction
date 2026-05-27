@@ -10,6 +10,7 @@ Mọi người cần đảm bảo máy cá nhân đã cài sẵn:
 
 1. **Docker Desktop** (Bắt buộc phải bật trước khi chạy dự án).
 2. **Postman** (Dùng để import collection và thực hiện test API).
+3. **Swagger UI** (Đã tích hợp sẵn ở Backend để test nhanh trên trình duyệt).
 
 ---
 
@@ -36,6 +37,14 @@ Chạy lệnh này để kích hoạt tệp prisma/seed.js, tự động nạp s
 docker exec -it horse_racing_backend npx prisma db seed
 
 ### Thông tin cấu hình Endpoints
+
+### Swagger UI
+
+Sau khi chạy Docker Compose (backend port 3000), mở:
+
+http://localhost:3000/api-docs
+
+Lưu ý: Các API cần đăng nhập sẽ yêu cầu header `Authorization: Bearer <accessToken>`.
 
 POST /api/auth/register
 POST /api/auth/login

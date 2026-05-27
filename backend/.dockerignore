@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.DS_Store
+
+# Keep secrets out of the image (use docker-compose env_file instead)
+.env
+
+# Local dev/editor
+.vscode
+.idea

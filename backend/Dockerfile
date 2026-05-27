@@ -1,7 +1,7 @@
 # backend/Dockerfile
 
-# 1. Sử dụng Node.js phiên bản Alpine Linux siêu nhẹ để giảm dung lượng Image
-FROM node:20-alpine
+# Prisma + bcrypt thường ổn định hơn trên Debian-slim so với Alpine (musl)
+FROM node:20-bookworm-slim
 
 # 2. Tạo và chỉ định thư mục làm việc mặc định bên trong Container
 WORKDIR /app
@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 4. Cài đặt các thư viện phụ thuộc (Dependencies) được khai báo trong package.json
-RUN npm install
+RUN npm ci
 
 # 5. Sao chép toàn bộ mã nguồn của ứng dụng vào bên trong Container
 COPY . .

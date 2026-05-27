@@ -24,11 +24,12 @@
     "morgan": "~1.9.1",
     "nodemailer": "^8.0.8",
     "pg": "^8.21.0",
-    "redis": "^5.12.1"
+    "redis": "^5.12.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
-    "jest": "^30.0.0",
+    "jest": "^30.4.2",
     "prisma": "^7.8.0",
     "supertest": "^7.1.4",
     "tsx": "^4.22.3",

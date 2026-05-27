@@ -5,6 +5,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+var swaggerUi = require('swagger-ui-express');
+var openapiSpec = require('./src/openapi');
+
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 // 1. BỔ SUNG: Khai báo file định tuyến Router của cụm Auth
@@ -22,6 +25,9 @@ app.use(express.json()); // Đã có sẵn để phân tích req.body từ tab B
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
