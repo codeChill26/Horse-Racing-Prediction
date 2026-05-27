@@ -8,11 +8,11 @@ var logger = require('morgan');
 var swaggerUi = require('swagger-ui-express');
 var openapiSpec = require('./src/openapi');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var indexRouter = require('./src/routes/index');
+var usersRouter = require('./src/routes/users');
 // 1. BỔ SUNG: Khai báo file định tuyến Router của cụm Auth
-var authRouter = require('./routes/auth'); 
-var adminUsersRouter = require('./routes/admin/users');
+var authRouter = require('./src/routes/auth'); 
+var adminUsersRouter = require('./src/routes/admin/users');
 
 var app = express();
 

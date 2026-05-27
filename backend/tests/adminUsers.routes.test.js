@@ -24,7 +24,7 @@ async function buildAppWithRole(roleCode) {
     };
   });
 
-  const router = require('../routes/admin/users');
+  const router = require('../src/routes/admin/users');
   const adminUsersService = require('../src/services/adminUsers');
 
   const app = express();
