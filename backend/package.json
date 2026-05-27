@@ -3,10 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:push": "prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.3",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
@@ -17,11 +23,15 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "~1.9.1",
     "nodemailer": "^8.0.8",
-    "prisma": "^6.19.3",
-    "redis": "^5.12.1"
+    "pg": "^8.21.0",
+    "redis": "^5.12.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
+    "jest": "^30.4.2",
+    "prisma": "^7.8.0",
+    "supertest": "^7.1.4",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3"
   },

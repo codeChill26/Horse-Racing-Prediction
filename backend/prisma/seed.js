@@ -1,6 +1,6 @@
 // backend/prisma/seed.js
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+require("dotenv").config();
+const prisma = require("../src/config/prisma");
 
 async function main() {
   console.log('Starting database seeding process...');

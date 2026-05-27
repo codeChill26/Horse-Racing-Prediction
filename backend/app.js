@@ -5,10 +5,14 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var swaggerUi = require('swagger-ui-express');
+var openapiSpec = require('./src/openapi');
+
+var indexRouter = require('./src/routes/index');
+var usersRouter = require('./src/routes/users');
 // 1. BỔ SUNG: Khai báo file định tuyến Router của cụm Auth
-var authRouter = require('./routes/auth'); 
+var authRouter = require('./src/routes/auth'); 
+var adminUsersRouter = require('./src/routes/admin/users');
 
 var app = express();
 
@@ -22,10 +26,16 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 // 2. BỔ SUNG: Kích hoạt tiền tố phân vùng URL mạng cho API Auth của bạn
 app.use('/api/auth', authRouter); 
+
+// Admin APIs
+app.use('/api/admin/users', adminUsersRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
