@@ -8,6 +8,14 @@ datasource db {
   provider = "postgresql"
 }
 
+enum TournamentStatus {
+  DRAFT
+  OPEN
+  ONGOING
+  FINISHED
+  CANCELLED
+}
+
 
 // 1. Thực thể Người dùng chính (Users)
 model User {
@@ -91,4 +99,31 @@ model RefreshToken {
   createdAt  DateTime @default(now())
 
   user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Tournament {
+  tournamentId Int             @id @default(autoincrement())
+  name         String
+  description  String?
+  status       TournamentStatus @default(DRAFT)
+  cancelReason String?
+  startAt      DateTime?
+  endAt        DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  races        Race[]
+}
+
+model Race {
+  raceId       Int      @id @default(autoincrement())
+  tournamentId Int
+  name         String
+  scheduledAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
+
+  @@index([tournamentId])
 }

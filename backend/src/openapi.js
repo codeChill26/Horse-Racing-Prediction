@@ -7,7 +7,12 @@ module.exports = {
     version: '1.0.0',
   },
   servers: [{ url: 'http://localhost:3000' }],
-  tags: [{ name: 'Auth' }, { name: 'Admin Users' }],
+  tags: [
+    { name: 'Auth' },
+    { name: 'Admin Users' },
+    { name: 'Tournaments' },
+    { name: 'Admin Tournaments' },
+  ],
   components: {
     securitySchemes: {
       bearerAuth: {
@@ -141,9 +146,129 @@ module.exports = {
           password: { type: 'string', nullable: true },
         },
       },
+      Tournament: {
+        type: 'object',
+        properties: {
+          tournamentId: { type: 'integer', example: 1 },
+          name: { type: 'string', example: 'Spring Derby 2026' },
+          description: { type: 'string', nullable: true },
+          status: {
+            type: 'string',
+            enum: ['DRAFT', 'OPEN', 'ONGOING', 'FINISHED', 'CANCELLED'],
+            example: 'OPEN',
+          },
+          cancelReason: { type: 'string', nullable: true },
+          startAt: { type: 'string', format: 'date-time', nullable: true },
+          endAt: { type: 'string', format: 'date-time', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+          _count: {
+            type: 'object',
+            properties: {
+              races: { type: 'integer', example: 0 },
+            },
+          },
+        },
+      },
+      AdminCreateTournamentRequest: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'Spring Derby 2026' },
+          description: { type: 'string', nullable: true },
+          startAt: { type: 'string', format: 'date-time', nullable: true },
+          endAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      AdminUpdateTournamentRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', nullable: true },
+          description: { type: 'string', nullable: true },
+          startAt: { type: 'string', format: 'date-time', nullable: true },
+          endAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      AdminChangeTournamentStatusRequest: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['DRAFT', 'OPEN', 'ONGOING', 'FINISHED', 'CANCELLED'],
+            example: 'OPEN',
+          },
+          cancelReason: { type: 'string', nullable: true, example: 'Bad weather' },
+        },
+      },
+      AdminDeleteTournamentRequest: {
+        type: 'object',
+        properties: {
+          reason: { type: 'string', example: 'Bad weather' },
+        },
+      },
     },
   },
   paths: {
+    '/api/tournaments': {
+      get: {
+        tags: ['Tournaments'],
+        summary: 'List public tournaments',
+        description: 'Returns only OPEN, ONGOING, and FINISHED tournaments. DRAFT tournaments are hidden from public users.',
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    tournaments: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Tournament' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/tournaments/{id}': {
+      get: {
+        tags: ['Tournaments'],
+        summary: 'Get public tournament by id',
+        description: 'DRAFT tournaments are returned as 404 for public users.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '404': {
+            description: 'Not Found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/auth/register': {
       post: {
         tags: ['Auth'],
@@ -685,6 +810,161 @@ module.exports = {
               },
             },
           },
+        },
+      },
+    },
+    '/api/admin/tournaments': {
+      get: {
+        tags: ['Admin Tournaments'],
+        summary: 'List tournaments (admin)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['DRAFT', 'OPEN', 'ONGOING', 'FINISHED', 'CANCELLED'],
+            },
+          },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+      post: {
+        tags: ['Admin Tournaments'],
+        summary: 'Create tournament as DRAFT (admin)',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminCreateTournamentRequest' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Created' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+    '/api/admin/tournaments/{id}': {
+      get: {
+        tags: ['Admin Tournaments'],
+        summary: 'Get tournament by id (admin)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Not Found' },
+        },
+      },
+      patch: {
+        tags: ['Admin Tournaments'],
+        summary: 'Update tournament information (admin)',
+        description: 'FINISHED and CANCELLED tournaments cannot be modified.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminUpdateTournamentRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'OK' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Not Found' },
+          '409': { description: 'Conflict' },
+        },
+      },
+      delete: {
+        tags: ['Admin Tournaments'],
+        summary: 'Delete or cancel tournament (admin)',
+        description: 'Tournaments without races are deleted. Tournaments with races are changed to CANCELLED and require a reason.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminDeleteTournamentRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'OK' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Not Found' },
+          '409': { description: 'Conflict' },
+        },
+      },
+    },
+    '/api/admin/tournaments/{id}/status': {
+      patch: {
+        tags: ['Admin Tournaments'],
+        summary: 'Change tournament lifecycle status (admin)',
+        description: 'Allowed flow: DRAFT -> OPEN -> ONGOING -> FINISHED. Active states may also move to CANCELLED with cancelReason.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminChangeTournamentStatusRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'OK' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Not Found' },
+          '409': { description: 'Conflict' },
         },
       },
     },
