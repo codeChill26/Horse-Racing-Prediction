@@ -1,14 +1,10 @@
 # backend/Dockerfile
 
 # Prisma + bcrypt thường ổn định hơn trên Debian-slim so với Alpine (musl)
-<<<<<<< Updated upstream
-FROM node:20-bookworm-slim
-=======
 FROM node:22-bookworm-slim
 
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
->>>>>>> Stashed changes
 
 WORKDIR /app
 
@@ -21,8 +17,9 @@ RUN npm ci
 # 5. Sao chép toàn bộ mã nguồn của ứng dụng vào bên trong Container
 COPY . .
 
-# 6. Prisma generate chỉ cần URL hợp lệ lúc build (.env bị .dockerignore). Runtime dùng env_file từ compose.
-ARG DIRECT_URL=postgresql://postgres:12345@postgres_db:5432/horse_racing
+# 6. Prisma generate chỉ cần URL hợp lệ lúc build (.env bị .dockerignore).
+# Runtime: DATABASE_URL / DIRECT_URL từ backend/.env (Supabase) qua docker-compose env_file.
+ARG DIRECT_URL=postgresql://user:pass@localhost:5432/postgres
 ENV DIRECT_URL=$DIRECT_URL
 RUN npx prisma generate
 

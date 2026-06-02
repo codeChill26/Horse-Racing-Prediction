@@ -7,16 +7,12 @@ module.exports = {
     version: '1.0.0',
   },
   servers: [{ url: 'http://localhost:3000' }],
-<<<<<<< Updated upstream
   tags: [
     { name: 'Auth' },
     { name: 'Admin Users' },
     { name: 'Tournaments' },
     { name: 'Admin Tournaments' },
   ],
-=======
-  tags: [{ name: 'Auth' }, { name: 'Admin Users' }],
->>>>>>> Stashed changes
   components: {
     securitySchemes: {
       bearerAuth: {
@@ -150,7 +146,6 @@ module.exports = {
           password: { type: 'string', nullable: true },
         },
       },
-<<<<<<< Updated upstream
       Tournament: {
         type: 'object',
         properties: {
@@ -274,11 +269,6 @@ module.exports = {
         },
       },
     },
-=======
-    },
-  },
-  paths: {
->>>>>>> Stashed changes
     '/api/auth/register': {
       post: {
         tags: ['Auth'],
@@ -823,7 +813,6 @@ module.exports = {
         },
       },
     },
-<<<<<<< Updated upstream
     '/api/admin/tournaments': {
       get: {
         tags: ['Admin Tournaments'],
@@ -979,7 +968,5 @@ module.exports = {
         },
       },
     },
-=======
->>>>>>> Stashed changes
   },
 };

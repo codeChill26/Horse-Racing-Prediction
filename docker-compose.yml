@@ -1,3 +1,6 @@
+# DATABASE_URL / DIRECT_URL: lấy từ backend/.env (Supabase).
+# Chỉ bật Postgres local khi cần: docker compose --profile local-db up -d
+
 services:
   backend_app:
     build:
@@ -10,21 +13,17 @@ services:
     env_file:
       - ./backend/.env
     environment:
-<<<<<<< Updated upstream
-      # Override DB URLs to use the local Postgres container (not Supabase)
-      - DATABASE_URL=postgresql://postgres:12345@postgres_db:5432/horse_racing?schema=public
-      - DIRECT_URL=postgresql://postgres:12345@postgres_db:5432/horse_racing?schema=public
-=======
->>>>>>> Stashed changes
+      # Redis vẫn chạy trong Docker; ghi đè URL localhost trong .env nếu có
       - REDIS_URL=redis://redis_cache:6379
       - PORT=3000
     depends_on:
-      postgres_db:
-        condition: service_healthy
       redis_cache:
         condition: service_healthy
 
+  # Postgres local (tùy chọn). Không dùng khi backend nối Supabase qua backend/.env
   postgres_db:
+    profiles:
+      - local-db
     image: postgres:15-alpine
     container_name: horse_racing_postgres
     restart: always
