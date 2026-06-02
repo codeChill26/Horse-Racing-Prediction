@@ -19,7 +19,6 @@ var adminRacesRouter = require('./src/routes/admin/races');
 var tournamentsRouter = require('./src/routes/tournaments');
 var horsesRouter = require('./src/routes/horses');
 var raceEntriesRouter = require('./src/routes/raceEntries');
-var entriesRouter = require('./src/routes/entries');
 
 var app = express();
 
@@ -50,7 +49,7 @@ app.use('/api/admin/races', adminRacesRouter);
 // Public APIs
 app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/horses', horsesRouter);
-app.use('/api/entries', entriesRouter);
+app.use('/api/entries', raceEntriesRouter);
 app.use('/api/races/:raceId/entries', raceEntriesRouter);
 
 // catch 404 and forward to error handler
