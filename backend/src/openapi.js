@@ -825,8 +825,9 @@ module.exports = {
             required: false,
             schema: {
               type: 'string',
-              enum: ['DRAFT', 'OPEN', 'ONGOING', 'FINISHED', 'CANCELLED'],
+              enum: ['ALL', 'DRAFT', 'OPEN', 'ONGOING', 'FINISHED', 'CANCELLED'],
             },
+            description: 'Use ALL or omit this query parameter to return every status.',
           },
         ],
         responses: {

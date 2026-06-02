@@ -1,0 +1,10 @@
+{
+  "name": "horse-racing-prediction",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend run dev"
+  }
+}

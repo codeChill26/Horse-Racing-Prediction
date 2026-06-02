@@ -9,6 +9,7 @@ function normalizeStatus(input) {
   if (!raw) return undefined;
 
   const upper = raw.toUpperCase();
+  if (upper === 'ALL') return undefined;
 
   // Allow both "Draft" and "DRAFT" styles
   if (ALLOWED_STATUSES.includes(upper)) return upper;
