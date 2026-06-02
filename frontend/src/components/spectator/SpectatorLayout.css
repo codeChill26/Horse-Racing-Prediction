@@ -1,0 +1,169 @@
+.spectator-shell {
+  --sp-green-deep: #052e16;
+  --sp-green: #14532d;
+  --sp-gold: #c9a227;
+  --sp-bg: #f4f7f5;
+  --sp-panel: #ffffff;
+  --sp-text: #64748b;
+  --sp-heading: #0f172a;
+  --sp-border: #e2e8f0;
+
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  background: var(--sp-bg);
+  color: var(--sp-text);
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .spectator-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+}
+
+.spectator-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.25rem 1rem;
+  background: linear-gradient(180deg, var(--sp-green-deep) 0%, #0a3d22 100%);
+  color: #f8fafc;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .spectator-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .spectator-sidebar-footer {
+    margin-left: auto;
+  }
+}
+
+.spectator-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.spectator-sidebar-brand strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.spectator-sidebar-brand span {
+  font-size: 0.72rem;
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.spectator-logo {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--sp-gold);
+  font-size: 1.15rem;
+}
+
+.spectator-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .spectator-sidebar-nav {
+    flex-direction: row;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+}
+
+.spectator-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: rgba(248, 250, 252, 0.85);
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.spectator-nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.spectator-nav-link.is-active {
+  background: rgba(201, 162, 39, 0.22);
+  color: var(--sp-gold);
+  font-weight: 600;
+}
+
+.spectator-nav-icon {
+  font-size: 1rem;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.spectator-sidebar-footer {
+  margin-top: auto;
+}
+
+.spectator-btn {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.spectator-btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.spectator-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.spectator-btn--full {
+  width: 100%;
+}
+
+.spectator-shell-content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.spectator-page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.spectator-page-inner {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}

@@ -13,8 +13,11 @@ var usersRouter = require('./src/routes/users');
 // 1. BỔ SUNG: Khai báo file định tuyến Router của cụm Auth
 var authRouter = require('./src/routes/auth'); 
 var adminUsersRouter = require('./src/routes/admin/users');
+<<<<<<< Updated upstream
 var adminTournamentsRouter = require('./src/routes/admin/tournaments');
 var tournamentsRouter = require('./src/routes/tournaments');
+=======
+>>>>>>> Stashed changes
 
 var app = express();
 
@@ -38,10 +41,13 @@ app.use('/api/auth', authRouter);
 
 // Admin APIs
 app.use('/api/admin/users', adminUsersRouter);
+<<<<<<< Updated upstream
 app.use('/api/admin/tournaments', adminTournamentsRouter);
 
 // Public APIs
 app.use('/api/tournaments', tournamentsRouter);
+=======
+>>>>>>> Stashed changes
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

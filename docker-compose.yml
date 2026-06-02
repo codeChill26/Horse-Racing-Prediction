@@ -10,9 +10,12 @@ services:
     env_file:
       - ./backend/.env
     environment:
+<<<<<<< Updated upstream
       # Override DB URLs to use the local Postgres container (not Supabase)
       - DATABASE_URL=postgresql://postgres:12345@postgres_db:5432/horse_racing?schema=public
       - DIRECT_URL=postgresql://postgres:12345@postgres_db:5432/horse_racing?schema=public
+=======
+>>>>>>> Stashed changes
       - REDIS_URL=redis://redis_cache:6379
       - PORT=3000
     depends_on:

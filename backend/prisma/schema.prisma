@@ -8,6 +8,7 @@ datasource db {
   provider = "postgresql"
 }
 
+<<<<<<< Updated upstream
 enum TournamentStatus {
   DRAFT
   OPEN
@@ -16,6 +17,8 @@ enum TournamentStatus {
   CANCELLED
 }
 
+=======
+>>>>>>> Stashed changes
 
 // 1. Thực thể Người dùng chính (Users)
 model User {

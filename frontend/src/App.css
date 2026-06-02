@@ -190,6 +190,17 @@
   text-align: left;
 }
 
+<<<<<<< Updated upstream
+=======
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+>>>>>>> Stashed changes
 .admin-header h1 {
   margin: 0 0 8px;
 }
