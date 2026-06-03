@@ -15,6 +15,7 @@ var authRouter = require('./src/routes/auth');
 var adminUsersRouter = require('./src/routes/admin/users');
 var adminTournamentsRouter = require('./src/routes/admin/tournaments');
 var tournamentsRouter = require('./src/routes/tournaments');
+var invitationsRouter = require('./src/routes/invitations');
 
 var app = express();
 
@@ -43,6 +44,8 @@ app.use('/api/admin/tournaments', adminTournamentsRouter);
 // Public APIs
 app.use('/api/tournaments', tournamentsRouter);
 
+app.use('/api/invitations', invitationsRouter);
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
@@ -58,5 +61,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+
 
 module.exports = app;

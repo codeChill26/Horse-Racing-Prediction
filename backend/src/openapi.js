@@ -968,5 +968,59 @@ module.exports = {
         },
       },
     },
+    '/api/invitations/jockeys': {
+      get: {
+        tags: ['Jockey Invitations'],
+        summary: 'Search validated jockeys with complete profiles',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'name', in: 'query', required: false, schema: { type: 'string' }, description: 'Filter by jockey name' }
+        ],
+        responses: { '200': { description: 'Success' } }
+      }
+    },
+    '/api/invitations': {
+      get: {
+        tags: ['Jockey Invitations'],
+        summary: 'Get inbox or outbox invitations based on user identity',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'status', in: 'query', required: false, schema: { type: 'string', enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED'] }, description: 'Filter by status' }
+        ],
+        responses: { '200': { description: 'Success' } }
+      },
+      post: {
+        tags: ['Jockey Invitations'],
+        summary: 'Horse Owner sends a racing invitation to a Jockey',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/SendInvitationRequest' } } }
+        },
+        responses: { '201': { description: 'Sent successfully' } }
+      }
+    },
+    '/api/invitations/{id}/respond': {
+      put: {
+        tags: ['Jockey Invitations'],
+        summary: 'Jockey accepts or declines an invitation',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RespondInvitationRequest' } } }
+        },
+        responses: { '200': { description: 'Responded successfully' } }
+      }
+    },
+    '/api/invitations/{id}/confirm': {
+      post: {
+        tags: ['Jockey Invitations'],
+        summary: 'Horse Owner finalizes jockey selection and auto-cancels alternatives',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { '200': { description: 'Confirmed successfully' } }
+      }
+    }
   },
 };
