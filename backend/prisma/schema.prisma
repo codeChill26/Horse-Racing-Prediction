@@ -16,6 +16,20 @@ enum TournamentStatus {
   CANCELLED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
+enum HorseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  INACTIVE
+}
 
 // 1. Thực thể Người dùng chính (Users)
 model User {
@@ -39,6 +53,13 @@ model User {
   role              Role              @relation(fields: [roleId], references: [roleId])
   pointWallet       PointWallet?
   resetOtp          PasswordResetOtp?
+
+  horses Horse[] @relation("HorseOwner")
+
+  sentInvitations      JockeyInvitation[] @relation("SentInvitations")
+  receivedInvitations  JockeyInvitation[] @relation("ReceivedInvitations")
+
+  raceEntries RaceEntry[] @relation("JockeyRaceEntries")
 }
 
 // 2. Thực thể Vai trò hệ thống (Roles)
@@ -126,4 +147,73 @@ model Race {
   tournament   Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
 
   @@index([tournamentId])
+
+  invitations JockeyInvitation[]
+  raceEntries RaceEntry[]
 }
+
+model Horse {
+  horseId          Int       @id @default(autoincrement())
+  ownerId          Int
+  name             String
+  breed            String?
+  birthYear        Int?
+  color            String?
+  imageUrl         String?
+  status HorseStatus @default(PENDING)
+  rejectionReason  String?
+  approvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  owner User @relation( "HorseOwner", fields: [ownerId], references: [userId], onDelete: Cascade)
+
+  invitations      JockeyInvitation[]
+  raceEntries      RaceEntry[]
+
+  @@index([ownerId])
+  @@unique([ownerId, name])
+}
+
+model JockeyInvitation {
+  invitationId Int              @id @default(autoincrement())
+  raceId       Int
+  horseId      Int
+  ownerId      Int              
+  jockeyId     Int              
+  status       InvitationStatus @default(PENDING)
+  declineReason String?         
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Quan hệ liên kết (Relationships)
+  race         Race             @relation(fields: [raceId], references: [raceId], onDelete: Cascade)
+  horse        Horse            @relation(fields: [horseId], references: [horseId], onDelete: Cascade)
+  owner        User             @relation("SentInvitations", fields: [ownerId], references: [userId], onDelete: Cascade)
+  jockey       User             @relation("ReceivedInvitations", fields: [jockeyId], references: [userId], onDelete: Cascade)
+
+  @@unique([jockeyId, horseId, raceId]) 
+  @@index([raceId])
+  @@index([horseId])
+  @@index([ownerId])
+  @@index([jockeyId])
+}
+
+model RaceEntry {
+  entryId   Int      @id @default(autoincrement())
+  raceId    Int
+  horseId   Int
+  jockeyId  Int
+  createdAt DateTime @default(now())
+
+  race      Race     @relation(fields: [raceId], references: [raceId], onDelete: Cascade)
+  horse     Horse    @relation(fields: [horseId], references: [horseId], onDelete: Cascade)
+  jockey User @relation("JockeyRaceEntries", fields: [jockeyId], references: [userId], onDelete: Cascade)
+
+  @@unique([raceId, horseId])  
+  @@unique([raceId, jockeyId]) 
+  @@index([raceId])
+  @@index([horseId])
+  @@index([jockeyId])
+}
+

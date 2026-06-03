@@ -3,6 +3,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+        - DIRECT_URL=${DIRECT_URL}
     container_name: horse_racing_backend
     restart: always
     ports:
@@ -10,9 +13,6 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # Override DB URLs to use the local Postgres container (not Supabase)
-      - DATABASE_URL=postgresql://postgres:12345@postgres_db:5432/horse_racing?schema=public
-      - DIRECT_URL=postgresql://postgres:12345@postgres_db:5432/horse_racing?schema=public
       - REDIS_URL=redis://redis_cache:6379
       - PORT=3000
     depends_on:
