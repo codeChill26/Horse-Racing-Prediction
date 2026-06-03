@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/role_labels.dart';
+import '../widgets/login_welcome.dart';
+import 'admin/admin_shell.dart';
+import 'horse_owner/horse_owner_shell.dart';
+import 'jockey/jockey_shell.dart';
 import 'login_screen.dart';
+import 'spectator/spectator_shell.dart';
 
-const roleLabels = {
-  'ADMIN': 'Quản trị viên',
-  'RACE_REFEREE': 'Trọng tài',
-  'HORSE_OWNER': 'Chủ ngựa',
-  'JOCKEY': 'Kỵ sĩ',
-  'SPECTATOR': 'Khán giả',
-};
-
-class RoleHomeScreen extends StatelessWidget {
+/// Chỉ dùng cho vai trò chưa có màn hình (vd. RACE_REFEREE).
+/// ADMIN / SPECTATOR / JOCKEY / HORSE_OWNER được chuyển sang shell tương ứng.
+class RoleHomeScreen extends StatefulWidget {
   const RoleHomeScreen({
     super.key,
     required this.email,
@@ -25,8 +25,53 @@ class RoleHomeScreen extends StatelessWidget {
   final bool showWelcome;
 
   @override
+  State<RoleHomeScreen> createState() => _RoleHomeScreenState();
+}
+
+class _RoleHomeScreenState extends State<RoleHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.showWelcome) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showLoginWelcomeSnackBar(context, roleCode: widget.role);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final roleLabel = roleLabels[role] ?? role ?? 'Người dùng';
+    switch (widget.role?.trim().toUpperCase()) {
+      case 'ADMIN':
+        return AdminShell(showWelcome: widget.showWelcome);
+      case 'SPECTATOR':
+        return SpectatorShell(showWelcome: widget.showWelcome);
+      case 'JOCKEY':
+        return JockeyShell(showWelcome: widget.showWelcome);
+      case 'HORSE_OWNER':
+        return HorseOwnerShell(showWelcome: widget.showWelcome);
+      default:
+        return _UnsupportedRolePlaceholder(
+          email: widget.email,
+          role: widget.role,
+        );
+    }
+  }
+}
+
+class _UnsupportedRolePlaceholder extends StatelessWidget {
+  const _UnsupportedRolePlaceholder({
+    required this.email,
+    required this.role,
+  });
+
+  final String email;
+  final String? role;
+
+  @override
+  Widget build(BuildContext context) {
+    final roleLabel = roleLabelVi(role);
 
     return Scaffold(
       appBar: AppBar(
@@ -53,32 +98,6 @@ class RoleHomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (showWelcome)
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Color(0xFF059669)),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Đăng nhập thành công!',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF065F46),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             Text(
               'Xin chào',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../services/token_storage.dart';
 import 'login_screen.dart';
 import 'role_home_screen.dart';
+import 'admin/admin_shell.dart';
+import 'horse_owner/horse_owner_shell.dart';
+import 'jockey/jockey_shell.dart';
 import 'spectator/spectator_shell.dart';
 
 /// Điều hướng sau đăng nhập / khôi phục phiên theo role.
@@ -15,6 +18,15 @@ class HomeRouter {
     final normalized = role?.trim().toUpperCase();
     if (normalized == 'SPECTATOR') {
       return SpectatorShell(showWelcome: showWelcome);
+    }
+    if (normalized == 'JOCKEY') {
+      return JockeyShell(showWelcome: showWelcome);
+    }
+    if (normalized == 'HORSE_OWNER') {
+      return HorseOwnerShell(showWelcome: showWelcome);
+    }
+    if (normalized == 'ADMIN') {
+      return AdminShell(showWelcome: showWelcome);
     }
     return RoleHomeScreen(
       email: email,

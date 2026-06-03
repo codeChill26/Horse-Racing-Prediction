@@ -3,13 +3,20 @@ import 'package:flutter/material.dart';
 import '../../data/spectator_mock_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/profile_service.dart';
+import '../../screens/tournaments/tournament_view_theme.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format_utils.dart';
+import '../../widgets/tournaments_home_section.dart';
 
 class SpectatorHomeScreen extends StatefulWidget {
-  const SpectatorHomeScreen({super.key, required this.onLogout});
+  const SpectatorHomeScreen({
+    super.key,
+    required this.onLogout,
+    required this.onOpenTournaments,
+  });
 
   final VoidCallback onLogout;
+  final VoidCallback onOpenTournaments;
 
   @override
   State<SpectatorHomeScreen> createState() => _SpectatorHomeScreenState();
@@ -17,6 +24,7 @@ class SpectatorHomeScreen extends StatefulWidget {
 
 class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
   final _profileService = ProfileService();
+  final _tournamentsKey = GlobalKey<TournamentsHomeSectionState>();
   UserProfile? _profile;
   bool _loading = true;
   String? _error;
@@ -25,6 +33,13 @@ class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+  }
+
+  Future<void> _refreshAll() async {
+    await Future.wait([
+      _loadProfile(),
+      _tournamentsKey.currentState?.loadTournaments() ?? Future.value(),
+    ]);
   }
 
   Future<void> _loadProfile() async {
@@ -55,7 +70,7 @@ class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
     final frozen = _profile?.pointWallet?.isFrozen ?? false;
 
     return RefreshIndicator(
-      onRefresh: _loadProfile,
+      onRefresh: _refreshAll,
       color: AppColors.green,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -122,8 +137,15 @@ class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    _ErrorBanner(message: _error!, onRetry: _loadProfile),
+                    _ErrorBanner(message: _error!, onRetry: _refreshAll),
                   ],
+                  const SizedBox(height: 16),
+                  TournamentsHomeSection(
+                    key: _tournamentsKey,
+                    theme: TournamentViewTheme.spectator,
+                    onViewAll: widget.onOpenTournaments,
+                    loading: _loading,
+                  ),
                   const SizedBox(height: 16),
                   _HeroCard(
                     loading: _loading,
@@ -139,13 +161,6 @@ class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   _QuickActionsGrid(),
-                  const SizedBox(height: 24),
-                  _SectionHeader(
-                    title: 'Giải đấu sắp tới',
-                    subtitle: 'Lịch đua — dữ liệu minh họa',
-                  ),
-                  const SizedBox(height: 12),
-                  ...spectatorUpcomingRaces.map(_RaceTile.new),
                   const SizedBox(height: 24),
                   _SectionHeader(
                     title: 'Dự đoán của bạn',
@@ -417,61 +432,6 @@ class _ActionCard extends StatelessWidget {
             child: Text(
               item.tag,
               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.green),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RaceTile extends StatelessWidget {
-  const _RaceTile(this.race);
-
-  final UpcomingRace race;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  race.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.heading,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${race.venue} · ${race.date} · ${race.time}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              race.status,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.green),
             ),
           ),
         ],

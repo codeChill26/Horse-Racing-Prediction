@@ -4,21 +4,21 @@ import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/login_welcome.dart';
 import '../home_router.dart';
+import 'horse_owner_home_screen.dart';
+import 'horse_owner_profile_screen.dart';
 import '../tournaments/public_tournaments_screen.dart';
 import '../tournaments/tournament_view_theme.dart';
-import 'spectator_home_screen.dart';
-import 'spectator_profile_screen.dart';
 
-class SpectatorShell extends StatefulWidget {
-  const SpectatorShell({super.key, this.showWelcome = false});
+class HorseOwnerShell extends StatefulWidget {
+  const HorseOwnerShell({super.key, this.showWelcome = false});
 
   final bool showWelcome;
 
   @override
-  State<SpectatorShell> createState() => _SpectatorShellState();
+  State<HorseOwnerShell> createState() => _HorseOwnerShellState();
 }
 
-class _SpectatorShellState extends State<SpectatorShell> {
+class _HorseOwnerShellState extends State<HorseOwnerShell> {
   int _index = 0;
 
   @override
@@ -27,7 +27,7 @@ class _SpectatorShellState extends State<SpectatorShell> {
     if (widget.showWelcome) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        showLoginWelcomeSnackBar(context, roleCode: 'SPECTATOR');
+        showLoginWelcomeSnackBar(context, roleCode: 'HORSE_OWNER');
       });
     }
   }
@@ -38,17 +38,20 @@ class _SpectatorShellState extends State<SpectatorShell> {
     await HomeRouter.openLogin(context);
   }
 
+  void _goToProfile() => setState(() => _index = 2);
+
   void _goToTournaments() => setState(() => _index = 1);
 
   @override
   Widget build(BuildContext context) {
     final pages = [
-      SpectatorHomeScreen(
+      HorseOwnerHomeScreen(
         onLogout: _logout,
+        onOpenProfile: _goToProfile,
         onOpenTournaments: _goToTournaments,
       ),
-      const PublicTournamentsScreen(theme: TournamentViewTheme.spectator),
-      SpectatorProfileScreen(onLogout: _logout),
+      const PublicTournamentsScreen(theme: TournamentViewTheme.horseOwner),
+      HorseOwnerProfileScreen(onLogout: _logout),
     ];
 
     return Scaffold(
@@ -57,22 +60,22 @@ class _SpectatorShellState extends State<SpectatorShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFFD1FAE5),
+        indicatorColor: AppColors.ownerGold.withValues(alpha: 0.35),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded, color: AppColors.green),
+            selectedIcon: Icon(Icons.home_rounded, color: AppColors.ownerPrimary),
             label: 'Trang chủ',
           ),
           NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events, color: AppColors.green),
+            selectedIcon: Icon(Icons.emoji_events, color: AppColors.ownerPrimary),
             label: 'Giải đấu',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person_rounded, color: AppColors.green),
+            selectedIcon: Icon(Icons.person_rounded, color: AppColors.ownerPrimary),
             label: 'Cá nhân',
           ),
         ],

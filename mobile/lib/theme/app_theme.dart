@@ -4,6 +4,26 @@ class AppColors {
   static const greenDeep = Color(0xFF052E16);
   static const green = Color(0xFF14532D);
   static const gold = Color(0xFFC9A227);
+
+  /// Jockey (khớp frontend JockeyHomePage.css)
+  static const jockeyDeep = Color(0xFF3B0F1A);
+  static const jockeyPrimary = Color(0xFF7F1D1D);
+  static const jockeyAccent = Color(0xFFD4A574);
+  static const jockeyMuted = Color(0xFFF5F0EB);
+
+  /// Horse owner (khớp frontend HorseOwnerHomePage.css)
+  static const ownerDeep = Color(0xFF0C2340);
+  static const ownerPrimary = Color(0xFF1E3A5F);
+  static const ownerTeal = Color(0xFF0F766E);
+  static const ownerGold = Color(0xFFC9A227);
+  static const ownerMuted = Color(0xFFEEF2F7);
+
+  /// Admin dashboard
+  static const adminDeep = Color(0xFF0F172A);
+  static const adminPrimary = Color(0xFF1E293B);
+  static const adminAccent = Color(0xFF6366F1);
+  static const adminBg = Color(0xFFF1F5F9);
+
   static const panel = Color(0xFFFFFFFF);
   static const textMuted = Color(0xFF64748B);
   static const heading = Color(0xFF0F172A);

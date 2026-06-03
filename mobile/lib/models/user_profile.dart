@@ -30,6 +30,10 @@ class UserProfile {
     this.pointWallet,
     this.roleName,
     this.createdAt,
+    this.licenseNumber,
+    this.weight,
+    this.bio,
+    this.isProfileComplete = false,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -39,15 +43,19 @@ class UserProfile {
       userId: json['userId']?.toString(),
       email: json['email']?.toString(),
       fullName: json['fullName']?.toString(),
-      phone: json['phone']?.toString(),
+      phone: json['phoneNumber']?.toString() ?? json['phone']?.toString(),
       isActive: json['isActive'],
       pointWallet: wallet is Map<String, dynamic>
           ? PointWallet.fromJson(wallet)
           : PointWallet.fromJson(null),
       roleName: role is Map<String, dynamic>
-          ? role['roleName']?.toString()
+          ? role['name']?.toString() ?? role['roleName']?.toString()
           : json['roleName']?.toString(),
       createdAt: json['createdAt']?.toString(),
+      licenseNumber: json['licenseNumber']?.toString(),
+      weight: json['weight'] != null ? _jsonToNum(json['weight']) : null,
+      bio: json['bio']?.toString(),
+      isProfileComplete: json['isProfileComplete'] == true,
     );
   }
 
@@ -59,6 +67,10 @@ class UserProfile {
   final PointWallet? pointWallet;
   final String? roleName;
   final String? createdAt;
+  final String? licenseNumber;
+  final num? weight;
+  final String? bio;
+  final bool isProfileComplete;
 
   String get displayFirstName {
     final name = fullName?.trim();
