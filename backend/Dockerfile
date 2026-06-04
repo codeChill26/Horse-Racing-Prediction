@@ -21,7 +21,6 @@ COPY . .
 # Runtime: DATABASE_URL / DIRECT_URL từ backend/.env (Supabase) qua docker-compose env_file.
 ARG DIRECT_URL=postgresql://user:pass@localhost:5432/postgres
 ENV DIRECT_URL=$DIRECT_URL
-RUN npx prisma generate
 
 # 7. Khai báo mở cổng mạng nội bộ 3000 để Express có thể đón nhận các Request gửi tới
 EXPOSE 3000

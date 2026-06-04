@@ -6,6 +6,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+        - DIRECT_URL=${DIRECT_URL}
     container_name: horse_racing_backend
     restart: always
     ports:
