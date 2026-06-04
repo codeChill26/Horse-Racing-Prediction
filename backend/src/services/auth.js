@@ -314,7 +314,8 @@ class AuthService {
     const user = await prisma.user.findUnique({
       where: { userId },
       include: {
-        role: true 
+        role: true,
+        pointWallet: true,
       }
     });
 

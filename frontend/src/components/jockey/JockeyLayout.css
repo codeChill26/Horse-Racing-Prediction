@@ -1,0 +1,169 @@
+.jockey-shell {
+  --jk-deep: #3b0f1a;
+  --jk-primary: #7f1d1d;
+  --jk-accent: #d4a574;
+  --jk-bg: #faf6f2;
+  --jk-panel: #ffffff;
+  --jk-text: #64748b;
+  --jk-heading: #1c1917;
+  --jk-border: #e7e5e4;
+
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  background: var(--jk-bg);
+  color: var(--jk-text);
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .jockey-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+}
+
+.jockey-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.25rem 1rem;
+  background: linear-gradient(165deg, var(--jk-deep) 0%, var(--jk-primary) 55%, #991b1b 100%);
+  color: #fef2f2;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .jockey-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .jockey-sidebar-footer {
+    margin-left: auto;
+  }
+}
+
+.jockey-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.jockey-sidebar-brand strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.jockey-sidebar-brand span {
+  font-size: 0.72rem;
+  color: rgba(254, 242, 242, 0.75);
+}
+
+.jockey-logo {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--jk-accent);
+  font-size: 1.15rem;
+}
+
+.jockey-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .jockey-sidebar-nav {
+    flex-direction: row;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+}
+
+.jockey-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: rgba(254, 242, 242, 0.88);
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.jockey-nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.jockey-nav-link.is-active {
+  background: rgba(212, 165, 116, 0.25);
+  color: var(--jk-accent);
+  font-weight: 600;
+}
+
+.jockey-nav-icon {
+  font-size: 1rem;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.jockey-sidebar-footer {
+  margin-top: auto;
+}
+
+.jockey-btn {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.jockey-btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.jockey-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.jockey-btn--full {
+  width: 100%;
+}
+
+.jockey-shell-content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.jockey-page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.jockey-page-inner {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}

@@ -190,6 +190,14 @@
   text-align: left;
 }
 
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .admin-header h1 {
   margin: 0 0 8px;
 }

@@ -1,0 +1,444 @@
+.jockey-home-content {
+  --jk-deep: #3b0f1a;
+  --jk-primary: #7f1d1d;
+  --jk-accent: #d4a574;
+  --jk-panel: #ffffff;
+  --jk-text: #64748b;
+  --jk-heading: #1c1917;
+  --jk-border: #e7e5e4;
+  --jk-muted: #f5f0eb;
+}
+
+.jockey-toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: min(420px, calc(100vw - 2rem));
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #bbf7d0;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
+  animation: jockey-toast-in 0.35s ease;
+}
+
+@keyframes jockey-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.jockey-toast-icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.jockey-toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.jockey-toast-body strong {
+  display: block;
+  color: #14532d;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.jockey-toast-body p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.jockey-toast-highlight {
+  font-weight: 600;
+  color: var(--jk-primary);
+}
+
+.jockey-toast-close {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.jockey-toast-close:hover {
+  background: #e2e8f0;
+}
+
+.jockey-hero-banner {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+}
+
+.jockey-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+}
+
+.jockey-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(59, 15, 26, 0.92) 0%,
+    rgba(127, 29, 29, 0.78) 45%,
+    rgba(59, 15, 26, 0.55) 100%
+  );
+}
+
+.jockey-hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2.25rem 1.5rem 2rem;
+  color: #fef2f2;
+}
+
+.jockey-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jk-accent);
+}
+
+.jockey-hero-content h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.65rem, 4vw, 2.15rem);
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.jockey-hero-content > p {
+  margin: 0 0 1rem;
+  max-width: 36rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(254, 242, 242, 0.88);
+}
+
+.jockey-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.jockey-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.jockey-badge--role {
+  background: rgba(212, 165, 116, 0.28);
+  border-color: rgba(212, 165, 116, 0.45);
+  color: #fde68a;
+}
+
+.jockey-badge--ok {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(134, 239, 172, 0.45);
+}
+
+.jockey-badge--warn {
+  background: rgba(251, 191, 36, 0.22);
+  border-color: rgba(253, 224, 71, 0.45);
+  color: #fef9c3;
+}
+
+.jockey-alert {
+  padding: 1rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+}
+
+.jockey-alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.jockey-alert--warn {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.jockey-alert--warn p {
+  margin: 0.35rem 0 0.75rem;
+}
+
+.jockey-inline-btn {
+  margin-left: 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+}
+
+.jockey-link-btn {
+  display: inline-block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--jk-primary);
+  text-decoration: none;
+}
+
+.jockey-link-btn:hover {
+  text-decoration: underline;
+}
+
+.jockey-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .jockey-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .jockey-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.jockey-stat-card {
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  background: var(--jk-panel);
+  border: 1px solid var(--jk-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.jockey-stat-card--accent {
+  background: linear-gradient(145deg, var(--jk-deep), var(--jk-primary));
+  border-color: transparent;
+}
+
+.jockey-stat-card--accent .jockey-stat-label,
+.jockey-stat-card--accent .jockey-stat-value {
+  color: #fef2f2;
+}
+
+.jockey-stat-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--jk-text);
+}
+
+.jockey-stat-value {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--jk-heading);
+  word-break: break-word;
+}
+
+.jockey-section {
+  margin-bottom: 1.75rem;
+}
+
+.jockey-section-head {
+  margin-bottom: 1rem;
+}
+
+.jockey-section-head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+  color: var(--jk-heading);
+}
+
+.jockey-section-head p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--jk-text);
+}
+
+.jockey-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .jockey-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .jockey-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.jockey-action-card {
+  padding: 1.1rem;
+  border-radius: 12px;
+  background: var(--jk-panel);
+  border: 1px solid var(--jk-border);
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.jockey-action-card:hover {
+  box-shadow: 0 8px 24px rgba(127, 29, 29, 0.08);
+  transform: translateY(-2px);
+}
+
+.jockey-action-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.jockey-action-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: var(--jk-heading);
+}
+
+.jockey-action-card p {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--jk-text);
+}
+
+.jockey-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--jk-muted);
+  color: var(--jk-primary);
+}
+
+.jockey-assignment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--jk-border);
+  background: var(--jk-panel);
+}
+
+.jockey-assignment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--jk-border);
+}
+
+.jockey-assignment-item:last-child {
+  border-bottom: none;
+}
+
+.jockey-assignment-main h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  color: var(--jk-heading);
+}
+
+.jockey-assignment-horse {
+  font-weight: 600;
+  color: var(--jk-primary) !important;
+}
+
+.jockey-assignment-main p {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--jk-text);
+}
+
+.jockey-assignment-status {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: var(--jk-primary);
+  border: 1px solid #fecaca;
+}
+
+@media (prefers-color-scheme: dark) {
+  .jockey-home-content {
+    --jk-panel: #1c1917;
+    --jk-heading: #fafaf9;
+    --jk-text: #a8a29e;
+    --jk-border: #44403c;
+    --jk-muted: #292524;
+  }
+
+  .jockey-toast {
+    background: #1c1917;
+    border-color: #166534;
+  }
+
+  .jockey-toast-body p {
+    color: #d6d3d1;
+  }
+
+  .jockey-assignment-status {
+    background: #3f1519;
+    border-color: #7f1d1d;
+    color: #fecaca;
+  }
+}

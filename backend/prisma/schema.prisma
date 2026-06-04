@@ -16,21 +16,6 @@ enum TournamentStatus {
   CANCELLED
 }
 
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  CANCELLED
-  EXPIRED
-}
-
-enum HorseStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  INACTIVE
-}
-
 // 1. Thực thể Người dùng chính (Users)
 model User {
   userId            Int               @id @default(autoincrement())
