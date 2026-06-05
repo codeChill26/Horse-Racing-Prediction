@@ -16,18 +16,26 @@ enum TournamentStatus {
   CANCELLED
 }
 
-enum HorseStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 enum RaceEntryStatus {
   PENDING
   APPROVED
   REJECTED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
+enum HorseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  INACTIVE
+}
 
 // 1. Thực thể Người dùng chính (Users)
 model User {
@@ -51,10 +59,11 @@ model User {
   role              Role              @relation(fields: [roleId], references: [roleId])
   pointWallet       PointWallet?
   resetOtp          PasswordResetOtp?
-  ownedHorses       Horse[]           @relation("HorseOwner")
-  reviewedHorses    Horse[]           @relation("HorseReviewer")
-  jockeyEntries      RaceEntry[]       @relation("RaceEntryJockey")
-  reviewedEntries    RaceEntry[]       @relation("RaceEntryReviewer")
+
+  horsesOwned        Horse[]          @relation("HorseOwner")
+  horsesReviewed     Horse[]          @relation("HorseReviewedBy")
+  raceEntriesAsJockey RaceEntry[]     @relation("RaceEntryJockey")
+  raceEntriesReviewed RaceEntry[]     @relation("RaceEntryReviewedBy")
 }
 
 // 2. Thực thể Vai trò hệ thống (Roles)
@@ -150,7 +159,7 @@ model Race {
 }
 
 model Horse {
-  horseId         Int         @id @default(autoincrement())
+  horseId         Int        @id @default(autoincrement())
   ownerId         Int
   name            String
   breed           String?
@@ -162,20 +171,21 @@ model Horse {
   approvedAt      DateTime?
   rejectedAt      DateTime?
   reviewedById    Int?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
-  owner           User        @relation("HorseOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
-  reviewedBy      User?       @relation("HorseReviewer", fields: [reviewedById], references: [userId], onDelete: SetNull)
-  entries         RaceEntry[]
-  results         RaceResult[]
+  owner      User  @relation("HorseOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
+  reviewedBy User? @relation("HorseReviewedBy", fields: [reviewedById], references: [userId], onDelete: SetNull)
+
+  entries    RaceEntry[]
+  results    RaceResult[]
 
   @@index([ownerId])
   @@index([status])
 }
 
 model RaceEntry {
-  entryId         Int             @id @default(autoincrement())
+  entryId         Int            @id @default(autoincrement())
   raceId          Int
   horseId         Int
   jockeyId        Int?
@@ -183,15 +193,16 @@ model RaceEntry {
   rejectionReason String?
   reviewedById    Int?
   reviewedAt      DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  race            Race            @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
-  horse           Horse           @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
-  jockey          User?           @relation("RaceEntryJockey", fields: [jockeyId], references: [userId], onDelete: SetNull)
-  reviewedBy      User?           @relation("RaceEntryReviewer", fields: [reviewedById], references: [userId], onDelete: SetNull)
+  race       Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  horse      Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
+  jockey     User? @relation("RaceEntryJockey", fields: [jockeyId], references: [userId], onDelete: SetNull)
+  reviewedBy User? @relation("RaceEntryReviewedBy", fields: [reviewedById], references: [userId], onDelete: SetNull)
 
   @@unique([raceId, horseId])
+  @@unique([raceId, jockeyId])
   @@index([horseId])
   @@index([jockeyId])
   @@index([status])
@@ -205,8 +216,8 @@ model RaceResult {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  race           Race     @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
-  horse          Horse    @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
+  race  Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  horse Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
 
   @@unique([raceId, horseId])
   @@index([horseId])

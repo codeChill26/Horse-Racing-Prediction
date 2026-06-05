@@ -15,6 +15,10 @@ RUN npm ci
 # 5. Sao chép toàn bộ mã nguồn của ứng dụng vào bên trong Container
 COPY . .
 
+ARG DATABASE_URL
+ARG DIRECT_URL
+ENV DATABASE_URL=$DATABASE_URL
+ENV DIRECT_URL=$DIRECT_URL
 # 6. CRITICAL (BẮT BUỘC): Tạo mã nguồn Prisma Client tương thích trực tiếp với môi trường Linux của Container.
 # Điều này khắc phục triệt để lỗi lệch Engine (PrismaClientInitializationError) khi chạy trên máy cá nhân Windows.
 RUN npx prisma generate
