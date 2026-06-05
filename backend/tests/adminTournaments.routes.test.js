@@ -59,6 +59,17 @@ describe('Admin tournaments routes', () => {
     expect(adminTournamentsService.listTournaments).toHaveBeenCalledWith({ status: 'OPEN' });
   });
 
+  test('GET /api/admin/tournaments treats status=ALL as no filter (ADMIN)', async () => {
+    const { app, adminTournamentsService } = await buildAppWithRole('ADMIN');
+
+    adminTournamentsService.listTournaments.mockResolvedValue([]);
+
+    const res = await request(app).get('/api/admin/tournaments?status=ALL');
+
+    expect(res.status).toBe(200);
+    expect(adminTournamentsService.listTournaments).toHaveBeenCalledWith({ status: undefined });
+  });
+
   test('GET /api/admin/tournaments/:id returns tournament (ADMIN)', async () => {
     const { app, adminTournamentsService } = await buildAppWithRole('ADMIN');
 

@@ -16,6 +16,19 @@ enum TournamentStatus {
   CANCELLED
 }
 
+enum HorseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RaceEntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+
 // 1. Thực thể Người dùng chính (Users)
 model User {
   userId            Int               @id @default(autoincrement())
@@ -38,13 +51,10 @@ model User {
   role              Role              @relation(fields: [roleId], references: [roleId])
   pointWallet       PointWallet?
   resetOtp          PasswordResetOtp?
-
-  horses Horse[] @relation("HorseOwner")
-
-  sentInvitations      JockeyInvitation[] @relation("SentInvitations")
-  receivedInvitations  JockeyInvitation[] @relation("ReceivedInvitations")
-
-  raceEntries RaceEntry[] @relation("JockeyRaceEntries")
+  ownedHorses       Horse[]           @relation("HorseOwner")
+  reviewedHorses    Horse[]           @relation("HorseReviewer")
+  jockeyEntries      RaceEntry[]       @relation("RaceEntryJockey")
+  reviewedEntries    RaceEntry[]       @relation("RaceEntryReviewer")
 }
 
 // 2. Thực thể Vai trò hệ thống (Roles)
@@ -126,79 +136,78 @@ model Race {
   tournamentId Int
   name         String
   scheduledAt  DateTime?
+  registrationOpen Boolean @default(false)
+  registrationOpenedAt DateTime?
+  registrationClosedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   tournament   Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
+  entries      RaceEntry[]
+  results      RaceResult[]
 
   @@index([tournamentId])
-
-  invitations JockeyInvitation[]
-  raceEntries RaceEntry[]
 }
 
 model Horse {
-  horseId          Int       @id @default(autoincrement())
-  ownerId          Int
-  name             String
-  breed            String?
-  birthYear        Int?
-  color            String?
-  imageUrl         String?
-  status HorseStatus @default(PENDING)
-  rejectionReason  String?
-  approvedAt       DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  horseId         Int         @id @default(autoincrement())
+  ownerId         Int
+  name            String
+  breed           String?
+  dateOfBirth     DateTime?
+  sex             String?
+  color           String?
+  status          HorseStatus @default(PENDING)
+  rejectionReason String?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  reviewedById    Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  owner User @relation( "HorseOwner", fields: [ownerId], references: [userId], onDelete: Cascade)
-
-  invitations      JockeyInvitation[]
-  raceEntries      RaceEntry[]
+  owner           User        @relation("HorseOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
+  reviewedBy      User?       @relation("HorseReviewer", fields: [reviewedById], references: [userId], onDelete: SetNull)
+  entries         RaceEntry[]
+  results         RaceResult[]
 
   @@index([ownerId])
-  @@unique([ownerId, name])
-}
-
-model JockeyInvitation {
-  invitationId Int              @id @default(autoincrement())
-  raceId       Int
-  horseId      Int
-  ownerId      Int              
-  jockeyId     Int              
-  status       InvitationStatus @default(PENDING)
-  declineReason String?         
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-
-  // Quan hệ liên kết (Relationships)
-  race         Race             @relation(fields: [raceId], references: [raceId], onDelete: Cascade)
-  horse        Horse            @relation(fields: [horseId], references: [horseId], onDelete: Cascade)
-  owner        User             @relation("SentInvitations", fields: [ownerId], references: [userId], onDelete: Cascade)
-  jockey       User             @relation("ReceivedInvitations", fields: [jockeyId], references: [userId], onDelete: Cascade)
-
-  @@unique([jockeyId, horseId, raceId]) 
-  @@index([raceId])
-  @@index([horseId])
-  @@index([ownerId])
-  @@index([jockeyId])
+  @@index([status])
 }
 
 model RaceEntry {
-  entryId   Int      @id @default(autoincrement())
-  raceId    Int
-  horseId   Int
-  jockeyId  Int
-  createdAt DateTime @default(now())
+  entryId         Int             @id @default(autoincrement())
+  raceId          Int
+  horseId         Int
+  jockeyId        Int?
+  status          RaceEntryStatus @default(PENDING)
+  rejectionReason String?
+  reviewedById    Int?
+  reviewedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  race      Race     @relation(fields: [raceId], references: [raceId], onDelete: Cascade)
-  horse     Horse    @relation(fields: [horseId], references: [horseId], onDelete: Cascade)
-  jockey User @relation("JockeyRaceEntries", fields: [jockeyId], references: [userId], onDelete: Cascade)
+  race            Race            @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  horse           Horse           @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
+  jockey          User?           @relation("RaceEntryJockey", fields: [jockeyId], references: [userId], onDelete: SetNull)
+  reviewedBy      User?           @relation("RaceEntryReviewer", fields: [reviewedById], references: [userId], onDelete: SetNull)
 
-  @@unique([raceId, horseId])  
-  @@unique([raceId, jockeyId]) 
-  @@index([raceId])
+  @@unique([raceId, horseId])
   @@index([horseId])
   @@index([jockeyId])
+  @@index([status])
 }
 
+model RaceResult {
+  resultId       Int      @id @default(autoincrement())
+  raceId         Int
+  horseId        Int
+  finishPosition Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  race           Race     @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  horse          Horse    @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
+
+  @@unique([raceId, horseId])
+  @@index([horseId])
+}
