@@ -66,6 +66,19 @@ body {
   box-sizing: border-box;
 }
 
+#root:has(.register-page),
+#root:has(.login-page),
+#root:has(.spectator-shell),
+#root:has(.jockey-shell),
+#root:has(.owner-shell),
+#root:has(.admin-shell) {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: none;
+  text-align: left;
+}
+
 h1,
 h2 {
   font-family: var(--heading);
