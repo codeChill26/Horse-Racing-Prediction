@@ -19,6 +19,7 @@ var adminRacesRouter = require('./src/routes/admin/races');
 var tournamentsRouter = require('./src/routes/tournaments');
 var horsesRouter = require('./src/routes/horses');
 var raceEntriesRouter = require('./src/routes/raceEntries');
+var invitationsRouter = require('./src/routes/invitations');
 
 var app = express();
 
@@ -52,6 +53,8 @@ app.use('/api/horses', horsesRouter);
 app.use('/api/entries', raceEntriesRouter);
 app.use('/api/races/:raceId/entries', raceEntriesRouter);
 
+app.use('/api/invitations', invitationsRouter);
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
@@ -67,5 +70,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+
 
 module.exports = app;
