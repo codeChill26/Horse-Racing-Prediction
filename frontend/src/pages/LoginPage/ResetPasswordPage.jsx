@@ -1,193 +1,258 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { resetPassword } from '../../api/auth'
-import './LoginPage.css'
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { resetPassword } from '../../api/auth';
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
+import './LoginPage.css';
 
 function validateForm({ email, otpCode, newPassword, confirmPassword }) {
-  if (!email?.includes('@')) return 'Email không hợp lệ.'
-  if (!otpCode || otpCode.length !== 6) return 'Mã OTP phải đúng 6 chữ số.'
-  if (!/^\d{6}$/.test(otpCode)) return 'Mã OTP chỉ gồm số.'
-  if (!newPassword || newPassword.length < 8) return 'Mật khẩu mới phải có ít nhất 8 ký tự.'
-  if (newPassword !== confirmPassword) return 'Mật khẩu xác nhận không khớp.'
-  return null
+  if (!email?.includes('@')) return 'Email không hợp lệ.';
+  if (!otpCode || otpCode.length !== 6) return 'Mã OTP phải đúng 6 chữ số.';
+  if (!/^\d{6}$/.test(otpCode)) return 'Mã OTP chỉ gồm số.';
+  if (!newPassword || newPassword.length < 8) return 'Mật khẩu mới phải có ít nhất 8 ký tự.';
+  if (newPassword !== confirmPassword) return 'Mật khẩu xác nhận không khớp.';
+  return null;
 }
 
 export default function ResetPasswordPage() {
-  const location = useLocation()
-  const [email, setEmail] = useState(() => location.state?.email || '')
-  const [otpCode, setOtpCode] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [done, setDone] = useState(false)
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [email, setEmail] = useState(() => location.state?.email || '');
+  const [otpCode, setOtpCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
 
   const onOtpChange = (value) => {
-    setError('')
-    setOtpCode(value.replace(/\D/g, '').slice(0, 6))
-  }
+    setError('');
+    setOtpCode(value.replace(/\D/g, '').slice(0, 6));
+  };
 
   const onSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
 
-    const clientError = validateForm({ email, otpCode, newPassword, confirmPassword })
+    const clientError = validateForm({ email, otpCode, newPassword, confirmPassword });
     if (clientError) {
-      setError(clientError)
-      return
+      setError(clientError);
+      return;
     }
 
-    setSubmitting(true)
+    setSubmitting(true);
     try {
       await resetPassword({
         email: email.trim(),
         otpCode,
         newPassword,
         confirmPassword,
-      })
-      setDone(true)
+      });
+      setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
-    <div className="login-page">
-      <aside className="login-visual">
-        <img
-          className="login-visual-img"
-          src="/images/horse-racing-hero.jpg"
-          alt="Ngựa đua trên đường đua"
-          loading="eager"
-        />
-        <div className="login-visual-overlay" />
-        <div className="login-visual-content">
-          <p className="login-eyebrow">Xác minh OTP</p>
-          <h1>Đặt mật khẩu mới</h1>
-          <p>Nhập mã 6 số từ email và mật khẩu mới (tối thiểu 8 ký tự).</p>
+    <div className="flex-grow flex items-center justify-center p-6 sm:p-12 background-glow min-h-[calc(100vh-160px)] relative">
+      {/* Auth Background Decorative Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20 z-0">
+        <div className="absolute -top-[10%] -left-[10%] w-[45%] h-[45%] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[45%] h-[45%] rounded-full bg-secondary/15 blur-[120px]" />
+      </div>
+
+      <main className="w-full max-w-[440px] flex flex-col items-center relative z-10">
+        {/* Brand Identity */}
+        <div className="mb-8 text-center">
+          <button
+            onClick={() => navigate('/')}
+            className="font-serif text-4xl text-primary font-bold tracking-tight mb-2 hover:opacity-90 active:scale-98 transition-all bg-transparent border-none cursor-pointer"
+          >
+            GrandStride
+          </button>
+          <p className="font-serif text-2xl text-on-surface font-semibold tracking-wide">
+            Đặt Lại Mật Khẩu
+          </p>
+          <p className="text-xs text-on-surface-variant mt-1.5 font-medium uppercase tracking-widest text-primary/80">
+            Xác Minh OTP & Khôi Phục
+          </p>
         </div>
-      </aside>
 
-      <section className="login-panel">
-        <header className="login-panel-header">
-          <div className="login-brand-mark" aria-hidden="true">
-            ✉
-          </div>
-          <div>
-            <h2>Đổi mật khẩu</h2>
-            <p>Mã OTP từ Gmail · hiệu lực 10 phút</p>
-          </div>
-        </header>
-
-        {done ? (
-          <div className="login-alert login-alert--success" role="status">
-            <strong>Đổi mật khẩu thành công!</strong>
-            <p>Bạn có thể đăng nhập bằng mật khẩu mới ngay bây giờ.</p>
-            <Link className="login-btn login-btn--primary" to="/login" state={{ email: email.trim() }}>
-              Đăng nhập
-            </Link>
-          </div>
-        ) : (
-          <form className="login-form" onSubmit={onSubmit} noValidate>
-            <label className="login-field">
-              <span>Email</span>
-              <input
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="user@example.com"
-                value={email}
-                onChange={(e) => {
-                  setError('')
-                  setEmail(e.target.value)
-                }}
-                required
-              />
-            </label>
-
-            <label className="login-field">
-              <span>Mã OTP (6 số)</span>
-              <input
-                type="text"
-                name="otpCode"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="123456"
-                className="login-otp-input"
-                value={otpCode}
-                onChange={(e) => onOtpChange(e.target.value)}
-                maxLength={6}
-                required
-              />
-            </label>
-
-            <label className="login-field">
-              <span>Mật khẩu mới</span>
-              <div className="login-input-wrap">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="newPassword"
-                  autoComplete="new-password"
-                  placeholder="Tối thiểu 8 ký tự"
-                  value={newPassword}
-                  onChange={(e) => {
-                    setError('')
-                    setNewPassword(e.target.value)
-                  }}
-                  required
-                  minLength={8}
-                />
-                <button
-                  type="button"
-                  className="login-toggle-pw"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                >
-                  {showPassword ? 'Ẩn' : 'Hiện'}
-                </button>
+        {/* Login Card */}
+        <div className="login-card w-full rounded-xl p-6 sm:p-8 md:p-10 flex flex-col gap-6">
+          {done ? (
+            <div className="flex flex-col gap-4 text-center">
+              <div className="text-sm bg-primary/10 border border-primary/30 text-primary rounded-lg p-4 font-semibold">
+                Đổi mật khẩu thành công!
               </div>
-            </label>
+              <p className="text-xs text-on-surface-variant">
+                Bạn có thể đăng nhập bằng mật khẩu mới ngay bây giờ.
+              </p>
+              <button
+                type="button"
+                className="w-full bg-secondary text-on-secondary/95 py-3 rounded-lg font-semibold uppercase tracking-wider text-xs hover:brightness-110 active:scale-[0.98] transition-all duration-200 mt-2 shadow-lg shadow-secondary/10 flex items-center justify-center gap-2 cursor-pointer"
+                onClick={() => navigate('/login', { state: { email: email.trim() } })}
+              >
+                Đăng nhập ngay
+              </button>
+            </div>
+          ) : (
+            <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+              {error ? (
+                <div className="text-xs bg-error/15 border border-error/30 text-error rounded-lg p-3 font-semibold">
+                  {error}
+                </div>
+              ) : null}
 
-            <label className="login-field">
-              <span>Xác nhận mật khẩu mới</span>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                autoComplete="new-password"
-                placeholder="Nhập lại mật khẩu"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setError('')
-                  setConfirmPassword(e.target.value)
-                }}
-                required
-              />
-            </label>
-
-            {error ? (
-              <div className="login-alert login-alert--error" role="alert">
-                {error}
+              {/* Email Field */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold tracking-wider uppercase text-on-surface-variant" htmlFor="email">
+                  Địa chỉ Email
+                </label>
+                <div className="relative group input-focus-gold transition-all duration-250 border border-outline-variant/30 rounded-lg bg-surface-container flex items-center px-3">
+                  <Mail className="w-5 h-5 text-on-surface-variant/70 mr-3 shrink-0" />
+                  <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => {
+                      setError('');
+                      setEmail(e.target.value);
+                    }}
+                    placeholder="champion@grandstride.com"
+                    required
+                    className="bg-transparent border-none text-on-surface focus:outline-none w-full py-3 text-sm placeholder:text-on-surface-variant/30"
+                  />
+                </div>
               </div>
-            ) : null}
 
-            <button className="login-btn login-btn--primary" type="submit" disabled={submitting}>
-              {submitting ? 'Đang xử lý…' : 'Đặt lại mật khẩu'}
-            </button>
-          </form>
-        )}
+              {/* OTP Field */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold tracking-wider uppercase text-on-surface-variant" htmlFor="otpCode">
+                  Mã xác minh OTP (6 chữ số)
+                </label>
+                <div className="relative group input-focus-gold transition-all duration-250 border border-outline-variant/30 rounded-lg bg-surface-container flex items-center px-3">
+                  <Lock className="w-5 h-5 text-on-surface-variant/70 mr-3 shrink-0" />
+                  <input
+                    id="otpCode"
+                    type="text"
+                    name="otpCode"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otpCode}
+                    onChange={(e) => onOtpChange(e.target.value)}
+                    placeholder="123456"
+                    maxLength={6}
+                    required
+                    className="bg-transparent border-none text-on-surface focus:outline-none w-full py-3 text-sm placeholder:text-on-surface-variant/30 font-mono tracking-widest"
+                  />
+                </div>
+              </div>
 
-        <footer className="login-footer">
-          <Link className="login-link" to="/forgot-password" state={{ email: email.trim() }}>
-            Gửi lại mã OTP
-          </Link>
-          <Link className="login-link-quiet" to="/login">
-            ← Đăng nhập
-          </Link>
-        </footer>
-      </section>
+              {/* New Password Field */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold tracking-wider uppercase text-on-surface-variant" htmlFor="newPassword">
+                  Mật khẩu mới (tối thiểu 8 ký tự)
+                </label>
+                <div className="relative group input-focus-gold transition-all duration-250 border border-outline-variant/30 rounded-lg bg-surface-container flex items-center px-3">
+                  <Lock className="w-5 h-5 text-on-surface-variant/70 mr-3 shrink-0" />
+                  <input
+                    id="newPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    name="newPassword"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setError('');
+                      setNewPassword(e.target.value);
+                    }}
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    className="bg-transparent border-none text-on-surface focus:outline-none w-full py-3 text-sm placeholder:text-on-surface-variant/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="focus:outline-none text-on-surface-variant/70 hover:text-secondary p-1 bg-transparent border-none cursor-pointer"
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold tracking-wider uppercase text-on-surface-variant" htmlFor="confirmPassword">
+                  Xác nhận mật khẩu mới
+                </label>
+                <div className="relative group input-focus-gold transition-all duration-250 border border-outline-variant/30 rounded-lg bg-surface-container flex items-center px-3">
+                  <Lock className="w-5 h-5 text-on-surface-variant/70 mr-3 shrink-0" />
+                  <input
+                    id="confirmPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setError('');
+                      setConfirmPassword(e.target.value);
+                    }}
+                    placeholder="••••••••"
+                    required
+                    className="bg-transparent border-none text-on-surface focus:outline-none w-full py-3 text-sm placeholder:text-on-surface-variant/30"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-secondary text-on-secondary/95 py-3 rounded-lg font-semibold uppercase tracking-wider text-xs hover:brightness-110 active:scale-[0.98] transition-all duration-200 mt-2 shadow-lg shadow-secondary/10 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-on-secondary" />
+                    Đang Đặt Lại...
+                  </>
+                ) : (
+                  <>Đặt lại mật khẩu</>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* Footer Link */}
+          <div className="text-center pt-2 border-t border-outline-variant/10">
+            <p className="text-xs text-on-surface-variant">
+              Không nhận được mã?{' '}
+              <Link
+                to="/forgot-password"
+                state={{ email: email.trim() }}
+                className="text-secondary font-bold hover:underline"
+              >
+                Gửi lại mã OTP
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Atmospheric Back-to-login */}
+        <button
+          onClick={() => navigate('/login')}
+          className="mt-6 flex items-center gap-2 text-on-surface-variant/70 hover:text-primary transition-colors duration-300 cursor-pointer bg-transparent border-none"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-[10px] uppercase font-semibold tracking-wider">Quay lại đăng nhập</span>
+        </button>
+      </main>
     </div>
-  )
+  );
 }
