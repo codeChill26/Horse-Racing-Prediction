@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const oddsService = require('./odds');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -176,7 +177,7 @@ class RaceEntriesService {
       return { race: updatedRace, autoRejectedCount: 0 };
     }
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const updatedRace = await tx.race.update({
         where: { raceId },
         data: {
@@ -197,6 +198,17 @@ class RaceEntriesService {
 
       return { race: updatedRace, autoRejectedCount: autoRejected.count };
     });
+
+    try {
+      const oddsCalculated = await oddsService.calculateAllOddsForRace(raceId);
+      result.oddsCalculatedCount = oddsCalculated.length;
+    } catch (oddsError) {
+      console.error(`[ODDS ERROR] Failed to calculate odds for race #${raceId}:`, oddsError.message);
+      result.oddsCalculatedCount = 0;
+      result.oddsError = oddsError.message;
+    }
+
+    return result;
   }
 }
 

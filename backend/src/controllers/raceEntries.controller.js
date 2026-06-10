@@ -1,4 +1,5 @@
 const raceEntriesService = require('../services/raceEntries');
+const oddsService = require('../services/odds');
 const validator = require('../dto/raceEntry.dto');
 
 async function createEntry(req, res) {
@@ -43,8 +44,19 @@ async function setRegistrationGate(req, res) {
   }
 }
 
+async function getRaceOdds(req, res) {
+  try {
+    const raceId = validator.parseRaceId(req.params);
+    const odds = await oddsService.getRaceOdds(raceId);
+    return res.status(200).json({ odds });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   createEntry,
   reviewEntry,
   setRegistrationGate,
+  getRaceOdds,
 };

@@ -12,6 +12,10 @@ module.exports = {
     { name: 'Admin Users' },
     { name: 'Tournaments' },
     { name: 'Admin Tournaments' },
+    { name: 'Predictions' },
+    { name: 'Wallet' },
+    { name: 'Admin Wallet' },
+    { name: 'Admin Races' },
   ],
   components: {
     securitySchemes: {
@@ -205,6 +209,79 @@ module.exports = {
         type: 'object',
         properties: {
           reason: { type: 'string', example: 'Bad weather' },
+        },
+      },
+      PlaceBetRequest: {
+        type: 'object',
+        required: ['raceId', 'entryIds', 'betAmount'],
+        properties: {
+          raceId: { type: 'integer', example: 1 },
+          entryIds: {
+            type: 'array',
+            items: { type: 'integer' },
+            minItems: 3,
+            maxItems: 3,
+            example: [1, 2, 3],
+            description: 'Array of exactly 3 distinct approved RaceEntry IDs',
+          },
+          betAmount: { type: 'integer', example: 50, minimum: 10 },
+        },
+      },
+      Prediction: {
+        type: 'object',
+        properties: {
+          predictionId: { type: 'integer' },
+          spectatorId: { type: 'integer' },
+          raceId: { type: 'integer' },
+          entryId1: { type: 'integer' },
+          entryId2: { type: 'integer' },
+          entryId3: { type: 'integer' },
+          betAmount: { type: 'integer' },
+          oddsAvgAtBet: { type: 'number' },
+          status: { type: 'string', enum: ['PENDING', 'WON', 'PARTIAL_WON', 'LOST', 'REFUNDED'] },
+          payout: { type: 'integer', nullable: true },
+          settledAt: { type: 'string', format: 'date-time', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      PublishResponse: {
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          race: { type: 'object' },
+          settledCount: { type: 'integer' },
+        },
+      },
+      WalletResponse: {
+        type: 'object',
+        properties: {
+          walletId: { type: 'integer' },
+          userId: { type: 'integer' },
+          balance: { type: 'integer' },
+          isFrozen: { type: 'integer' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      WalletTransaction: {
+        type: 'object',
+        properties: {
+          transactionId: { type: 'integer' },
+          walletId: { type: 'integer' },
+          amount: { type: 'integer' },
+          balanceAfter: { type: 'integer' },
+          referenceType: { type: 'string', nullable: true },
+          type: { type: 'string' },
+          description: { type: 'string', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      AdminAdjustBalanceRequest: {
+        type: 'object',
+        required: ['amount', 'reason'],
+        properties: {
+          amount: { type: 'integer', example: 100, description: 'Positive=deposit, Negative=withdraw' },
+          reason: { type: 'string', example: 'Compensation for race cancellation' },
         },
       },
     },
@@ -1022,6 +1099,193 @@ module.exports = {
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         responses: { '200': { description: 'Confirmed successfully' } }
       }
-    }
+    },
+
+    // ---- Prediction Endpoints ----
+
+    '/api/predictions': {
+      post: {
+        tags: ['Predictions'],
+        summary: 'Spectator places a Top 3 bet',
+        description: 'Select 3 different approved entries. Minimum 10 points, maximum 50% of wallet balance. Odds locked at bet time.',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/PlaceBetRequest' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Bet placed successfully' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Not Found' },
+          '409': { description: 'Conflict' },
+        },
+      },
+      get: {
+        tags: ['Predictions'],
+        summary: 'List my predictions',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/predictions/{id}': {
+      get: {
+        tags: ['Predictions'],
+        summary: 'Get prediction detail',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Not Found' },
+        },
+      },
+    },
+    '/api/predictions/{id}/cancel': {
+      put: {
+        tags: ['Predictions'],
+        summary: 'Cancel a PENDING prediction (100% refund)',
+        description: 'Only allowed if the race is still SCHEDULED.',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'Cancelled and refunded' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '409': { description: 'Conflict - race already started or prediction already settled' },
+        },
+      },
+    },
+
+    // ---- Admin Race Publish/Unpublish ----
+
+    '/api/admin/races/{id}/publish': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Publish race results and trigger settlement engine',
+        description: 'Auto-settles all PENDING predictions for this race. Computes payouts based on correct picks.',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'Published and settled', content: { 'application/json': { schema: { $ref: '#/components/schemas/PublishResponse' } } } },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '409': { description: 'Already published or missing results' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/unpublish': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Unpublish race results and rollback settlement',
+        description: 'Reverses all payouts, refunds original bet amounts, resets predictions to PENDING.',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'Unpublished and rolled back' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '409': { description: 'Not published yet' },
+        },
+      },
+    },
+
+    // ---- Wallet Endpoints ----
+
+    '/api/wallet': {
+      get: {
+        tags: ['Wallet'],
+        summary: 'Get my wallet balance and status',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { wallet: { $ref: '#/components/schemas/WalletResponse' } } } } } },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Wallet not found' },
+        },
+      },
+    },
+    '/api/wallet/transactions': {
+      get: {
+        tags: ['Wallet'],
+        summary: 'Get my transaction history (paginated)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20 } },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+
+    // ---- Admin Wallet Endpoints ----
+
+    '/api/admin/wallets/{userId}/adjust': {
+      post: {
+        tags: ['Admin Wallet'],
+        summary: 'Admin manually deposit or withdraw points',
+        description: 'Reason is required. Withdrawals check for sufficient balance.',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminAdjustBalanceRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Balance adjusted' },
+          '400': { description: 'Bad Request / Insufficient balance' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'User wallet not found' },
+          '409': { description: 'Wallet frozen' },
+        },
+      },
+    },
+    '/api/admin/wallets/transactions': {
+      get: {
+        tags: ['Admin Wallet'],
+        summary: 'Admin view all wallet transactions',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20 } },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+    '/api/admin/wallets/{userId}/transactions': {
+      get: {
+        tags: ['Admin Wallet'],
+        summary: 'Admin view transactions for a specific user',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20 } },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
   },
 };

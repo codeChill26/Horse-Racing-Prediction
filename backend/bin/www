@@ -7,6 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('horsesracingprediction-prm:server');
 var http = require('http');
+var { startScheduler } = require('../src/services/scheduler');
 
 /**
  * Get port from environment and store in Express.
@@ -28,6 +29,9 @@ var server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+// Start background scheduler (weekly bonus etc.)
+startScheduler();
 
 /**
  * Normalize a port into a number, string, or false.

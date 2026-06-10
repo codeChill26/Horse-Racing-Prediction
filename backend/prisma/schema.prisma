@@ -37,6 +37,21 @@ enum HorseStatus {
   INACTIVE
 }
 
+enum RaceStatus {
+  SCHEDULED
+  ONGOING
+  FINISHED
+  CANCELLED
+}
+
+enum PredictionStatus {
+  PENDING
+  WON
+  PARTIAL_WON
+  LOST
+  REFUNDED
+}
+
 // 1. Thực thể Người dùng chính (Users)
 model User {
   userId            Int               @id @default(autoincrement())
@@ -64,6 +79,9 @@ model User {
   horsesReviewed     Horse[]          @relation("HorseReviewedBy")
   raceEntriesAsJockey RaceEntry[]     @relation("RaceEntryJockey")
   raceEntriesReviewed RaceEntry[]     @relation("RaceEntryReviewedBy")
+  sentInvitations    JockeyInvitation[] @relation("JockeyInvitationSender")
+  receivedInvitations JockeyInvitation[] @relation("JockeyInvitationReceiver")
+  predictions        Prediction[]
 }
 
 // 2. Thực thể Vai trò hệ thống (Roles)
@@ -96,7 +114,7 @@ model WalletTransaction {
   balanceAfter  Int      // Số dư ví điểm ngay sau giao dịch
   referenceType String?  // Loại tham chiếu ngoại bang (nvarchar)
   referenceId   BigInt?  // ID tham chiếu ngoại bang tương ứng (bigint)
-  type          String   // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED'
+  type          String   // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED', 'BET_REFUND', 'BET_WIN', 'BET_WIN_REVERSAL', 'WEEKLY_BONUS', 'ADMIN_ADJUSTMENT'
   description   String?  
   createdAt     DateTime @default(now())
 
@@ -145,6 +163,9 @@ model Race {
   tournamentId Int
   name         String
   scheduledAt  DateTime?
+  registrationDeadline DateTime?
+  status       RaceStatus @default(SCHEDULED)
+  publishedAt  DateTime?
   registrationOpen Boolean @default(false)
   registrationOpenedAt DateTime?
   registrationClosedAt DateTime?
@@ -154,6 +175,9 @@ model Race {
   tournament   Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
   entries      RaceEntry[]
   results      RaceResult[]
+  invitations  JockeyInvitation[]
+  predictions  Prediction[]
+  odds         Odds[]
 
   @@index([tournamentId])
 }
@@ -164,6 +188,8 @@ model Horse {
   name            String
   breed           String?
   dateOfBirth     DateTime?
+  birthYear       Int?
+  imageUrl        String?
   sex             String?
   color           String?
   status          HorseStatus @default(PENDING)
@@ -179,7 +205,9 @@ model Horse {
 
   entries    RaceEntry[]
   results    RaceResult[]
+  invitations JockeyInvitation[]
 
+  @@unique([ownerId, name])
   @@index([ownerId])
   @@index([status])
 }
@@ -201,6 +229,11 @@ model RaceEntry {
   jockey     User? @relation("RaceEntryJockey", fields: [jockeyId], references: [userId], onDelete: SetNull)
   reviewedBy User? @relation("RaceEntryReviewedBy", fields: [reviewedById], references: [userId], onDelete: SetNull)
 
+  pickedAs1    Prediction[] @relation("Pick1")
+  pickedAs2    Prediction[] @relation("Pick2")
+  pickedAs3    Prediction[] @relation("Pick3")
+  odds         Odds[]
+
   @@unique([raceId, horseId])
   @@unique([raceId, jockeyId])
   @@index([horseId])
@@ -221,4 +254,70 @@ model RaceResult {
 
   @@unique([raceId, horseId])
   @@index([horseId])
+}
+
+model JockeyInvitation {
+  invitationId  Int              @id @default(autoincrement())
+  ownerId       Int
+  jockeyId      Int
+  horseId       Int
+  raceId        Int
+  status        InvitationStatus @default(PENDING)
+  declineReason String?
+  createdAt     DateTime         @default(now())
+
+  owner  User  @relation("JockeyInvitationSender", fields: [ownerId], references: [userId])
+  jockey User  @relation("JockeyInvitationReceiver", fields: [jockeyId], references: [userId])
+  horse  Horse @relation(fields: [horseId], references: [horseId])
+  race   Race  @relation(fields: [raceId], references: [raceId])
+
+  @@unique([jockeyId, horseId, raceId])
+  @@index([ownerId])
+  @@index([jockeyId])
+  @@index([horseId])
+  @@index([raceId])
+}
+
+model Odds {
+  oddsId         Int      @id @default(autoincrement())
+  raceId         Int
+  entryId        Int      @unique
+  horseStrength  Decimal  @default(0)
+  jockeyStrength Decimal?
+  totalStrength  Decimal  @default(0)
+  oddsRaw        Decimal  @default(1.0)
+  oddsFinal      Decimal  @default(1.0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  race  Race      @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  entry RaceEntry @relation(fields: [entryId], references: [entryId], onDelete: Restrict)
+
+  @@index([raceId])
+}
+
+model Prediction {
+  predictionId Int      @id @default(autoincrement())
+  spectatorId  Int
+  raceId       Int
+  entryId1     Int
+  entryId2     Int
+  entryId3     Int
+  betAmount    Int
+  oddsAvgAtBet Decimal  @default(1.0)
+  status       PredictionStatus @default(PENDING)
+  payout       Int?
+  settledAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  spectator User      @relation(fields: [spectatorId], references: [userId])
+  race      Race      @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  pick1     RaceEntry @relation("Pick1", fields: [entryId1], references: [entryId])
+  pick2     RaceEntry @relation("Pick2", fields: [entryId2], references: [entryId])
+  pick3     RaceEntry @relation("Pick3", fields: [entryId3], references: [entryId])
+
+  @@index([spectatorId])
+  @@index([raceId])
+  @@index([status])
 }
