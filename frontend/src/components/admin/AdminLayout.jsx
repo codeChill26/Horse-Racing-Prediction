@@ -12,9 +12,17 @@ import { X, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function AdminLayout() {
   const location = useLocation();
-  const currentTitle = location.pathname === "/admin/users" 
-    ? "Quản lý người dùng" 
-    : "Báo cáo phân tích tổng quan";
+  const adminTitles = {
+    "/admin": "Báo cáo phân tích tổng quan",
+    "/admin/users": "Quản lý người dùng",
+    "/admin/tournaments": "Quản lý giải đấu",
+    "/admin/horses": "Danh sách ngựa",
+    "/admin/races": "Quản lý chặng đua",
+    "/admin/discrepancies": "Xử lý sai lệch",
+    "/admin/violations": "Vi phạm kỷ luật",
+    "/admin/points": "Quản lý ví điểm",
+  };
+  const currentTitle = adminTitles[location.pathname] ?? "Bảng điều khiển Admin";
   const [globalSearchValue, setGlobalSearchValue] = useState("");
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [formData, setFormData] = useState({

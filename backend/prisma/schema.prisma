@@ -28,6 +28,15 @@ enum RaceEntryStatus {
   REJECTED
 }
 
+enum JockeyInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+
+  @@map("InvitationStatus")
+}
+
 
 // 1. Thực thể Người dùng chính (Users)
 model User {
@@ -55,6 +64,8 @@ model User {
   reviewedHorses    Horse[]           @relation("HorseReviewer")
   jockeyEntries      RaceEntry[]       @relation("RaceEntryJockey")
   reviewedEntries    RaceEntry[]       @relation("RaceEntryReviewer")
+  sentInvitations    JockeyInvitation[] @relation("InvitationOwner")
+  receivedInvitations JockeyInvitation[] @relation("InvitationJockey")
 }
 
 // 2. Thực thể Vai trò hệ thống (Roles)
@@ -145,6 +156,7 @@ model Race {
   tournament   Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
   entries      RaceEntry[]
   results      RaceResult[]
+  invitations  JockeyInvitation[]
 
   @@index([tournamentId])
 }
@@ -169,6 +181,7 @@ model Horse {
   reviewedBy      User?       @relation("HorseReviewer", fields: [reviewedById], references: [userId], onDelete: SetNull)
   entries         RaceEntry[]
   results         RaceResult[]
+  invitations     JockeyInvitation[]
 
   @@index([ownerId])
   @@index([status])
@@ -192,7 +205,30 @@ model RaceEntry {
   reviewedBy      User?           @relation("RaceEntryReviewer", fields: [reviewedById], references: [userId], onDelete: SetNull)
 
   @@unique([raceId, horseId])
+  @@unique([raceId, jockeyId])
   @@index([horseId])
+  @@index([jockeyId])
+  @@index([status])
+}
+
+model JockeyInvitation {
+  invitationId  Int                    @id @default(autoincrement())
+  ownerId       Int
+  jockeyId      Int
+  horseId       Int
+  raceId        Int
+  status        JockeyInvitationStatus @default(PENDING)
+  declineReason String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  owner  User  @relation("InvitationOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
+  jockey User  @relation("InvitationJockey", fields: [jockeyId], references: [userId], onDelete: Restrict)
+  horse  Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
+  race   Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+
+  @@unique([jockeyId, horseId, raceId])
+  @@index([ownerId])
   @@index([jockeyId])
   @@index([status])
 }

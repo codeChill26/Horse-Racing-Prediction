@@ -16,6 +16,7 @@ import {
   Gavel,
   Wallet
 } from "lucide-react";
+import "./DashboardAdmin.css";
 import {
   AreaChart,
   Area,
@@ -94,24 +95,22 @@ export default function Dashboard() {
   return (
     <>
       {/* Welcome banner with stats counter */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
+      <div className="adm-dash__hero select-none">
         <div>
-          <h2 className="font-serif font-black text-2xl text-on-surface tracking-tight uppercase">
-            Hệ Thống Kiểm Soát GrandStride
-          </h2>
-          <p className="font-sans text-xs text-on-surface-variant font-medium mt-1">
+          <h2 className="adm-dash__title">Hệ Thống Kiểm Soát GrandStride</h2>
+          <p className="adm-dash__subtitle">
             Theo dõi thời gian thực, quản lý giải đấu và xét duyệt thẩm phán trường đua chuyên nghiệp.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-[#161B22] border border-[#30363D] py-2 px-4 rounded-xl text-xs font-sans text-on-surface-variant font-medium">
-          <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+        <div className="adm-dash__sync-badge">
+          <span className="adm-dash__sync-dot" />
           ĐỒNG BỘ MÁY CHỦ BÁO CÁO: <span className="font-mono text-secondary">HOẠT ĐỘNG</span>
         </div>
       </div>
 
       {loading ? (
-        <div className="h-96 flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+        <div className="adm-dash__loading">
+          <div className="adm-dash__spinner" />
         </div>
       ) : (
         <div className="space-y-8 animate-fadeIn">

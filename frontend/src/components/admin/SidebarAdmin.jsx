@@ -61,43 +61,44 @@ export default function SidebarAdmin({ onOpenRegisterHorseModal }) {
 
   const menuItems = [
     {
-      path: "/",
+      path: "/admin",
       label: "Tổng Quan",
-      icon: TrendingUp
+      icon: TrendingUp,
+      end: true,
     },
     {
-      path: "/users",
+      path: "/admin/users",
       label: "Người Dùng",
       icon: Users
     },
     {
-      path: "/horses",
+      path: "/admin/horses",
       label: "Danh Sách Ngựa",
       icon: Award,
       badge: pendingHorsesCount > 0 ? pendingHorsesCount : null
     },
     {
-      path: "/tournaments",
+      path: "/admin/tournaments",
       label: "Giải Đấu",
       icon: Trophy
     },
     {
-      path: "/races",
+      path: "/admin/races",
       label: "Chặng Đua",
       icon: Flag
     },
     {
-      path: "/discrepancies",
+      path: "/admin/discrepancies",
       label: "Xử Lý Sai Lệch",
       icon: AlertTriangle
     },
     {
-      path: "/violations",
+      path: "/admin/violations",
       label: "Vi Phạm Kỷ Luật",
       icon: Gavel
     },
     {
-      path: "/points",
+      path: "/admin/points",
       label: "Quản Lý Ví Điểm",
       icon: Wallet
     }
@@ -132,7 +133,9 @@ export default function SidebarAdmin({ onOpenRegisterHorseModal }) {
       {/* Navigation items list */}
       <nav className="flex-1 flex flex-col gap-1.5 px-1 overflow-y-auto no-scrollbar">
         {menuItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = item.end
+            ? location.pathname === item.path || location.pathname === `${item.path}/`
+            : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
           const IconComponent = item.icon;
 
           return (

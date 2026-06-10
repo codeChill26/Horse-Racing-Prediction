@@ -3,29 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { listAdminUsers, toggleAdminUserActive, createAdminUser } from "../api/admin";
 import { userRepository } from "../repositories/userRepository";
 
 export const userService = {
     async getUsersList() {
-        return await userRepository.getAll();
+        return listAdminUsers();
     },
 
     async createRefereeUser(name, email, certification) {
         if (!name || !email) {
             throw new Error("Tên và Email là bắt buộc");
         }
-        return await userRepository.createUser({
-            userName: name,
-            userEmail: email,
-            userRole: "Referee",
-            status: "Active",
-            certification: certification
+        return createAdminUser({
+            fullName: name,
+            email,
+            password: "ChangeMe123",
+            roleCode: "RACE_REFEREE",
+            bio: certification || undefined,
         });
     },
 
-    async lockUnlockUser(id, currentStatus) {
-        const nextStatus = currentStatus === "Active" ? "Locked" : "Active";
-        return await userRepository.updateUserStatus(id, nextStatus);
+    async lockUnlockUser(id) {
+        return toggleAdminUserActive(id);
     },
 
     async getSpectatorWalletDetails() {

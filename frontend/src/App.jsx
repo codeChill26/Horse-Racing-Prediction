@@ -18,6 +18,8 @@ import SpectatorProfilePage from "./pages/spectator/SpectatorProfilePage";
 import LandingDashboard from "./pages/Dashboard/LandingDashboard";
 import AuthLayout from "./layouts/AuthLayout";
 import DashboardAdmin from "./pages/admin/DashboardAdmin";
+import AdminTournamentsPage from "./pages/admin/AdminTournamentsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
 function App() {
   return (
@@ -39,6 +41,8 @@ function App() {
           }
         >
           <Route index element={<DashboardAdmin />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="tournaments" element={<AdminTournamentsPage />} />
         </Route>
         <Route
           path="/spectator"
