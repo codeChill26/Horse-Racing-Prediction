@@ -156,11 +156,28 @@ model Tournament {
   updatedAt    DateTime        @updatedAt
 
   races        Race[]
+  legs         Leg[]
+}
+
+model Leg {
+  legId        Int      @id @default(autoincrement())
+  tournamentId Int
+  name         String
+  legOrder     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
+  races      Race[]
+
+  @@unique([tournamentId, legOrder])
+  @@index([tournamentId])
 }
 
 model Race {
   raceId       Int      @id @default(autoincrement())
   tournamentId Int
+  legId        Int?
   name         String
   scheduledAt  DateTime?
   registrationDeadline DateTime?
@@ -173,6 +190,7 @@ model Race {
   updatedAt    DateTime @updatedAt
 
   tournament   Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
+  leg          Leg?       @relation(fields: [legId], references: [legId], onDelete: SetNull)
   entries      RaceEntry[]
   results      RaceResult[]
   invitations  JockeyInvitation[]
@@ -180,6 +198,7 @@ model Race {
   odds         Odds[]
 
   @@index([tournamentId])
+  @@index([legId])
 }
 
 model Horse {
