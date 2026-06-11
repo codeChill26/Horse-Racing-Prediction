@@ -23,10 +23,13 @@ class JockeyInvitationService {
   // TASK 2: API gửi lời mời (Horse Owner -> Jockey)
   async sendInvitation(ownerId, data) {
     // Kiểm tra Race có đang mở đăng ký hay không (Tránh gửi vào Race đã đóng/kết thúc)
-    const race = await prisma.race.findUnique({ where: { raceId: data.raceId } });
+    const race = await prisma.race.findUnique({
+      where: { raceId: data.raceId },
+      select: { raceId: true, registrationOpen: true },
+    });
     if (!race) throw new Error('Race not found');
-    if (new Date() >= new Date(race.registrationDeadline)) {
-      throw new Error('Cannot send invitation. This race registration deadline has passed (Expired).');
+    if (!race.registrationOpen) {
+      throw new Error('Cannot send invitation. This race registration gate is closed.');
     }
 
     // Kiểm tra xem lời mời trỏ tới cặp này đã tồn tại chưa (Ràng buộc Unique)
@@ -95,9 +98,8 @@ class JockeyInvitationService {
     if (!invitation || invitation.ownerId !== ownerId) throw new Error('Invitation not found or unauthorized');
     if (invitation.status !== 'ACCEPTED') throw new Error('You can only confirm a Jockey who has ACCEPTED your invitation');
 
-    // Kiểm tra thời hạn đóng đăng ký của Race
-    if (new Date() >= new Date(invitation.race.registrationDeadline)) {
-      throw new Error('The registration deadline for this race has passed. Action denied.');
+    if (!invitation.race.registrationOpen) {
+      throw new Error('The registration gate for this race is closed. Action denied.');
     }
 
     // Kích hoạt Database Transaction toàn cục (Atomic operation) để thực thi chuỗi logic phức tạp

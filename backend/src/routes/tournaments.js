@@ -10,6 +10,9 @@ const tournamentsController = require('../controllers/tournaments.controller');
 // GET /api/tournaments
 router.get('/', tournamentsController.listPublicTournaments);
 
+// GET /api/tournaments/:id/races
+router.get('/:id/races', tournamentsController.listPublicRacesByTournamentId);
+
 // GET /api/tournaments/:id
 router.get('/:id', tournamentsController.getPublicTournamentById);
 

@@ -1,377 +1,859 @@
-.spectator-home-content {
-  --sp-green-deep: #052e16;
-  --sp-green: #14532d;
-  --sp-gold: #c9a227;
-  --sp-bg: #f1f5f9;
-  --sp-panel: #ffffff;
-  --sp-text: #64748b;
-  --sp-heading: #0f172a;
-  --sp-border: #e2e8f0;
-}
+/* ============================================
+   SPECTATOR HOME PAGE - Dark Theme (Admin Colors)
+   ============================================ */
 
-.spectator-home-intro {
-  margin-bottom: 1.25rem;
-}
-
-.spectator-home-intro h1 {
-  margin: 0 0 0.35rem;
-  font-size: 1.5rem;
-  color: var(--sp-heading);
-}
-
-.spectator-home-intro p {
-  margin: 0;
-  font-size: 0.92rem;
-  color: var(--sp-text);
-}
-
-.spectator-main {
-  width: 100%;
-}
-
-.spectator-btn {
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.5rem 0.9rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-.spectator-btn--ghost {
-  background: #fff;
-  border: 1px solid var(--sp-border);
-  color: var(--sp-heading);
-}
-
-.spectator-btn--ghost:hover:not(:disabled) {
-  border-color: var(--sp-green);
-}
-
-.spectator-alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding: 0.85rem 1rem;
-  border-radius: 10px;
-  margin-bottom: 1rem;
-}
-
-.spectator-alert--error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-}
-
-.spectator-hero {
+/* ============ HERO ============ */
+.sp-hero {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 1.25rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   padding: 1.75rem;
   border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(5, 46, 22, 0.94), rgba(20, 83, 45, 0.88)),
-    url('/images/horse-racing-hero.jpg') center / cover no-repeat;
-  color: #f8fafc;
-  box-shadow: 0 16px 40px rgba(5, 46, 22, 0.2);
+  background: #161b22;
+  border: 1px solid #30363d;
+  position: relative;
+  overflow: hidden;
+}
+
+.sp-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: 40px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(141, 214, 166, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.sp-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 195, 100, 0.05) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
-  .spectator-hero {
+  .sp-hero {
     grid-template-columns: 1fr;
   }
 }
 
-.spectator-eyebrow {
-  font-family: var(--mono);
-  font-size: 0.72rem;
+.sp-hero__text {
+  position: relative;
+  z-index: 1;
+}
+
+.sp-hero__eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--sp-gold);
+  color: #8dd6a6;
   margin: 0 0 0.5rem;
 }
 
-.spectator-hero h1 {
-  margin: 0 0 0.65rem;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  color: #fff;
+.sp-hero__title {
+  margin: 0 0 0.6rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  font-weight: 800;
+  color: #dae3ee;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.spectator-hero-text > p {
+.sp-hero__subtitle {
   margin: 0;
-  max-width: 42ch;
-  line-height: 1.55;
-  font-size: 0.92rem;
-  color: rgba(248, 250, 252, 0.88);
+  max-width: 44ch;
+  line-height: 1.6;
+  font-size: 0.875rem;
+  color: #bfc9bf;
 }
 
-.spectator-wallet-card {
-  align-self: center;
-  padding: 1.25rem 1.35rem;
+/* Wallet Card */
+.sp-wallet-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.25rem 1.5rem;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(8px);
+  background: rgba(141, 214, 166, 0.06);
+  border: 1px solid rgba(141, 214, 166, 0.2);
+  gap: 0.5rem;
 }
 
-.spectator-wallet-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(248, 250, 252, 0.75);
+.sp-wallet-card__icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.spectator-wallet-balance {
-  margin: 0 0 0.5rem;
-  font-size: 2rem;
+.sp-wallet-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sp-wallet-card__label {
+  font-size: 0.7rem;
   font-weight: 700;
-  color: var(--sp-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #89d2a2;
+}
+
+.sp-wallet-card__balance {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #8dd6a6;
+  letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
-.spectator-wallet-balance span {
-  font-size: 1rem;
-  font-weight: 500;
-  color: rgba(248, 250, 252, 0.85);
+.sp-wallet-card__balance span:first-child {
+  font-size: 2rem;
 }
 
-.spectator-wallet-hint,
-.spectator-wallet-warn {
-  margin: 0;
-  font-size: 0.78rem;
-  color: rgba(248, 250, 252, 0.8);
-}
-
-.spectator-wallet-warn {
-  color: #fecaca;
-}
-
-.spectator-section {
-  margin-bottom: 2rem;
-}
-
-.spectator-section-head {
-  margin-bottom: 1rem;
-}
-
-.spectator-section-head--spaced {
-  margin-top: 1.5rem;
-}
-
-.spectator-section-head h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.15rem;
-  color: var(--sp-heading);
-}
-
-.spectator-section-head p {
-  margin: 0;
+.sp-wallet-card__unit {
+  font-family: 'Inter', sans-serif;
   font-size: 0.85rem;
+  font-weight: 500;
+  color: #bfc9bf;
 }
 
-.spectator-actions-grid {
+.sp-wallet-card__hint {
+  font-size: 0.72rem;
+  color: #8b949e;
+}
+
+/* ============ ALERT ============ */
+.sp-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sp-alert--error {
+  background: rgba(255, 180, 171, 0.1);
+  border: 1px solid rgba(255, 180, 171, 0.25);
+  color: #ffb4ab;
+}
+
+.sp-alert--success {
+  background: rgba(141, 214, 166, 0.1);
+  border: 1px solid rgba(141, 214, 166, 0.25);
+  color: #89d2a2;
+}
+
+/* ============ STATS ROW ============ */
+.sp-stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 @media (max-width: 900px) {
-  .spectator-actions-grid {
+  .sp-stats-row {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 480px) {
-  .spectator-actions-grid {
+  .sp-stats-row {
     grid-template-columns: 1fr;
   }
 }
 
-.spectator-action-card {
-  position: relative;
-  padding: 1.15rem;
+.sp-stat-card {
+  background: #161b22;
+  border: 1px solid #30363d;
   border-radius: 12px;
-  background: var(--sp-panel);
-  border: 1px solid var(--sp-border);
-  transition: box-shadow 0.2s, transform 0.15s;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
 }
 
-.spectator-action-card:hover {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-  transform: translateY(-2px);
+.sp-stat-card:hover {
+  background: #1c2128;
+  border-color: rgba(141, 214, 166, 0.2);
+  transform: translateY(-1px);
 }
 
-.spectator-action-icon {
-  font-size: 1.5rem;
-  line-height: 1;
+.sp-stat-card__accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
 }
 
-.spectator-action-card h3 {
-  margin: 0.65rem 0 0.25rem;
-  font-size: 0.95rem;
-  color: var(--sp-heading);
+.sp-stat-card__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
 }
 
-.spectator-action-card p {
-  margin: 0 0 0.75rem;
-  font-size: 0.8rem;
-  line-height: 1.4;
+.sp-stat-card__body {
+  min-width: 0;
 }
 
-.spectator-tag {
-  display: inline-block;
-  font-size: 0.68rem;
+.sp-stat-card__label {
+  margin: 0;
+  font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  background: rgba(20, 83, 45, 0.1);
-  color: var(--sp-green);
+  color: #8b949e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.spectator-columns {
+.sp-stat-card__value {
+  margin: 0.15rem 0 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #dae3ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============ MAIN GRID ============ */
+.sp-main-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 1.5rem;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
 }
 
-@media (max-width: 900px) {
-  .spectator-columns {
+@media (max-width: 1024px) {
+  .sp-main-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.spectator-race-list {
-  list-style: none;
+/* ============ SECTIONS ============ */
+.sp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sp-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #30363d;
+}
+
+.sp-section__title {
   margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.sp-section__subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.775rem;
+  color: #8b949e;
+}
+
+.sp-btn-link {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #8dd6a6;
+  background: none;
+  border: none;
+  cursor: pointer;
   padding: 0;
+  white-space: nowrap;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.sp-btn-link:hover {
+  color: #89d2a2;
+}
+
+/* ============ RACE CARDS ============ */
+.sp-races-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.sp-race-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.sp-race-card:hover {
+  border-color: rgba(230, 195, 100, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.sp-race-card__thumb {
+  position: relative;
+  height: 130px;
+  overflow: hidden;
+  background: #182028;
+}
+
+.sp-race-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+  transition: opacity 0.3s, transform 0.4s;
+}
+
+.sp-race-card:hover .sp-race-card__img {
+  opacity: 0.7;
+  transform: scale(1.03);
+}
+
+.sp-race-card__status-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(141, 214, 166, 0.2);
+  border: 1px solid rgba(141, 214, 166, 0.4);
+  color: #8dd6a6;
+  backdrop-filter: blur(4px);
+}
+
+.sp-race-card__countdown {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(22, 27, 34, 0.8);
+  border: 1px solid #30363d;
+  color: #dae3ee;
+  backdrop-filter: blur(4px);
+}
+
+.sp-race-card__body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.sp-race-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sp-race-card__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #dae3ee;
+  line-height: 1.3;
+  transition: color 0.15s;
+}
+
+.sp-race-card:hover .sp-race-card__title {
+  color: #8dd6a6;
+}
+
+.sp-race-card__info {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.sp-race-card__odds {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: #182028;
+  border: 1px solid #30363d;
+}
+
+.sp-race-card__odds-label {
+  font-size: 0.72rem;
+  color: #8b949e;
+}
+
+.sp-race-card__odds-value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #e6c364;
+}
+
+/* ============ BUTTONS ============ */
+.sp-btn {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sp-btn--bet {
+  background: #e6c364;
+  color: #3d2e00;
+  border-color: #785d00;
+}
+
+.sp-btn--bet:hover:not(:disabled) {
+  background: #fdd977;
+}
+
+.sp-btn--bet:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sp-btn--ghost {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #bfc9bf;
+}
+
+.sp-btn--ghost:hover:not(:disabled) {
+  border-color: #8dd6a6;
+  color: #8dd6a6;
+}
+
+.sp-btn--ghost-sm {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.65rem;
+  background: transparent;
+  border: 1px solid rgba(255, 180, 171, 0.3);
+  color: #ffb4ab;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sp-btn--ghost-sm:hover {
+  background: rgba(255, 180, 171, 0.1);
+}
+
+/* ============ LOADING ============ */
+.sp-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8b949e;
+}
+
+.sp-spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 1rem;
+  border: 2px solid #30363d;
+  border-top-color: #8dd6a6;
+  border-radius: 50%;
+  animation: sp-spin 0.8s linear infinite;
+}
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============ LEADERBOARD ============ */
+.sp-leaderboard {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sp-leaderboard__item {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #21262d;
+  transition: background 0.15s;
+}
+
+.sp-leaderboard__item:last-child {
+  border-bottom: none;
+}
+
+.sp-leaderboard__item:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.sp-leaderboard__item:hover {
+  background: rgba(141, 214, 166, 0.04);
+}
+
+.sp-leaderboard__rank {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sp-leaderboard__name {
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: #dae3ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-leaderboard__pts {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #8b949e;
+  white-space: nowrap;
+}
+
+/* ============ BETTING MODAL ============ */
+.sp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+  animation: sp-fadeIn 0.2s ease-out;
+}
+
+.sp-modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.sp-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #30363d;
+  position: sticky;
+  top: 0;
+  background: #161b22;
+  z-index: 1;
+}
+
+.sp-modal__eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8dd6a6;
+}
+
+.sp-modal__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.sp-modal__close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.sp-modal__close:hover {
+  background: #30363d;
+  color: #dae3ee;
+}
+
+.sp-modal__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sp-modal__balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: rgba(141, 214, 166, 0.06);
+  border: 1px solid rgba(141, 214, 166, 0.2);
+}
+
+.sp-modal__balance-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.sp-modal__balance-value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #8dd6a6;
+}
+
+.sp-modal__balance-value span {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #8b949e;
+  margin-left: 0.25rem;
+}
+
+.sp-modal__section {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
 }
 
-.spectator-race-item {
+.sp-modal__section-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.sp-modal__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #8b949e;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.sp-modal__footer {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #30363d;
+}
+
+@keyframes sp-fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Horse selection */
+.sp-horse-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sp-horse-card {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.1rem;
-  border-radius: 12px;
-  background: var(--sp-panel);
-  border: 1px solid var(--sp-border);
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #182028;
+  border: 1px solid #30363d;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-align: left;
 }
 
-.spectator-race-item h3 {
-  margin: 0 0 0.25rem;
-  font-size: 0.92rem;
-  color: var(--sp-heading);
+.sp-horse-card:hover {
+  background: #1c2128;
+  border-color: rgba(141, 214, 166, 0.25);
 }
 
-.spectator-race-item p {
-  margin: 0;
-  font-size: 0.8rem;
+.sp-horse-card.is-selected {
+  background: rgba(141, 214, 166, 0.08);
+  border-color: rgba(141, 214, 166, 0.5);
 }
 
-.spectator-race-status {
-  flex-shrink: 0;
-  font-size: 0.72rem;
+.sp-horse-card__info {
+  min-width: 0;
+}
+
+.sp-horse-card__name {
+  margin: 0 0 0.2rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  padding: 0.25rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(201, 162, 39, 0.15);
-  color: #92400e;
+  color: #dae3ee;
 }
 
-.spectator-empty-card {
-  text-align: center;
-  padding: 2rem 1rem;
-  border-radius: 12px;
-  background: var(--sp-panel);
-  border: 1px dashed var(--sp-border);
-}
-
-.spectator-empty-icon {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.spectator-empty-card p {
-  margin: 0 0 0.75rem;
-  color: var(--sp-text);
-}
-
-.spectator-leaderboard {
-  list-style: none;
+.sp-horse-card__jockey {
   margin: 0;
-  padding: 0;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--sp-border);
-  background: var(--sp-panel);
+  font-size: 0.72rem;
+  color: #8b949e;
 }
 
-.spectator-leaderboard li {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--sp-border);
+.sp-horse-card__odds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
 }
 
-.spectator-leaderboard li:last-child {
-  border-bottom: none;
-}
-
-.spectator-leaderboard .rank {
-  width: 1.75rem;
-  height: 1.75rem;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  font-size: 0.8rem;
+.sp-horse-card__odds-num {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
   font-weight: 700;
-  background: var(--sp-bg);
-  color: var(--sp-green);
+  color: #e6c364;
 }
 
-.spectator-leaderboard li:first-child .rank {
-  background: var(--sp-gold);
-  color: var(--sp-green-deep);
+.sp-horse-card__odds-label {
+  font-size: 0.65rem;
+  color: #8b949e;
 }
 
-.spectator-leaderboard .name {
-  font-weight: 500;
-  color: var(--sp-heading);
-  font-size: 0.9rem;
+/* Amount input */
+.sp-amount-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #182028;
+  border: 1px solid #30363d;
+  transition: border-color 0.2s;
 }
 
-.spectator-leaderboard .pts {
+.sp-amount-input-wrap:focus-within {
+  border-color: #8dd6a6;
+  box-shadow: 0 0 0 3px rgba(141, 214, 166, 0.1);
+}
+
+.sp-amount-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #dae3ee;
+  min-width: 0;
+}
+
+.sp-amount-input::placeholder {
+  color: #8b949e;
+  font-weight: 400;
+}
+
+.sp-amount-unit {
   font-size: 0.8rem;
-  color: var(--sp-text);
+  color: #8b949e;
+  flex-shrink: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  .spectator-home-content {
-    --sp-panel: #1a1d26;
-    --sp-heading: #f3f4f6;
-    --sp-text: #9ca3af;
-    --sp-border: #2e303a;
-  }
+/* Bet summary */
+.sp-bet-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #182028;
+  border: 1px solid #30363d;
+}
 
-  .spectator-btn--ghost {
-    background: #1a1d26;
-  }
+.sp-bet-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.825rem;
+  color: #bfc9bf;
+}
 
-  .spectator-race-status {
-    color: #fcd34d;
-  }
+.sp-bet-summary__row--win {
+  padding-top: 0.5rem;
+  border-top: 1px solid #30363d;
+}
+
+.sp-odds-highlight {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e6c364;
+}
+
+.sp-win-amount {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #8dd6a6;
 }
