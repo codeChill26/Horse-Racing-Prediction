@@ -13,4 +13,7 @@ router.post('/', authMiddleware, horseOwnerOnly, raceEntriesController.createEnt
 // PUT /api/entries/:id/status
 router.put('/:id/status', authMiddleware, adminOnly, raceEntriesController.reviewEntry);
 
+// GET /api/races/:raceId/odds - Get calculated odds for a race
+router.get('/odds', raceEntriesController.getRaceOdds);
+
 module.exports = router;
