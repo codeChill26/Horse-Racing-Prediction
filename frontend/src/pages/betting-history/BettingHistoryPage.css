@@ -1,0 +1,240 @@
+/* ============================================
+   BETTING HISTORY PAGE - Dark Theme (Admin Colors)
+   ============================================ */
+
+/* ============ SUMMARY ============ */
+.bh-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .bh-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .bh-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bh-summary__card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bh-summary__label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.bh-summary__value {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.bh-summary__value--win {
+  color: #8dd6a6;
+}
+
+.bh-summary__value--lost {
+  color: #ffb4ab;
+}
+
+/* ============ TABS ============ */
+.bh-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid #30363d;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.bh-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #8b949e;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  margin-bottom: -1px;
+}
+
+.bh-tab:hover {
+  color: #dae3ee;
+}
+
+.bh-tab.is-active {
+  color: #8dd6a6;
+  border-bottom-color: #8dd6a6;
+  font-weight: 600;
+}
+
+.bh-tab__count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(139, 148, 158, 0.15);
+  color: #8b949e;
+}
+
+.bh-tab.is-active .bh-tab__count {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+}
+
+/* ============ TABLE ============ */
+.bh-table-wrap {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.bh-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.bh-table thead tr {
+  background: #182028;
+  border-bottom: 1px solid #30363d;
+}
+
+.bh-table th {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+  white-space: nowrap;
+}
+
+.bh-table__row {
+  border-bottom: 1px solid #21262d;
+  transition: background 0.15s;
+}
+
+.bh-table__row:last-child {
+  border-bottom: none;
+}
+
+.bh-table__row:hover {
+  background: rgba(141, 214, 166, 0.03);
+}
+
+.bh-table td {
+  padding: 0.9rem 1rem;
+  font-size: 0.875rem;
+  color: #dae3ee;
+  vertical-align: middle;
+}
+
+.bh-table__num {
+  color: #8b949e !important;
+  font-size: 0.8rem !important;
+  font-weight: 600;
+}
+
+.bh-table__race {
+  font-weight: 600;
+  color: #dae3ee !important;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bh-table__horse {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bh-table__horse-name {
+  font-weight: 600;
+  color: #dae3ee;
+}
+
+.bh-table__jockey {
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+.bh-table__odds {
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-weight: 700;
+  color: #e6c364 !important;
+}
+
+.bh-table__amount {
+  font-weight: 600;
+  color: #dae3ee !important;
+}
+
+.bh-table__status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.bh-table__win-amount {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #8dd6a6;
+}
+
+.bh-table__date {
+  color: #8b949e !important;
+  font-size: 0.8rem !important;
+  white-space: nowrap;
+}
+
+/* ============ BADGE ============ */
+.sp-badge--won {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+  border: 1px solid rgba(141, 214, 166, 0.3);
+}
+
+.sp-badge--lost {
+  background: rgba(255, 180, 171, 0.12);
+  color: #ffb4ab;
+  border: 1px solid rgba(255, 180, 171, 0.25);
+}
+
+.sp-badge--pending {
+  background: rgba(230, 195, 100, 0.12);
+  color: #e6c364;
+  border: 1px solid rgba(230, 195, 100, 0.25);
+}
