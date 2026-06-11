@@ -21,6 +21,11 @@ import DashboardAdmin from "./pages/admin/DashboardAdmin";
 import AdminTournamentsPage from "./pages/admin/AdminTournamentsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
+// New spectator pages
+import TournamentsPage from "./pages/tournaments/TournamentsPage";
+import BettingHistoryPage from "./pages/betting-history/BettingHistoryPage";
+import StatisticsPage from "./pages/statistics/StatisticsPage";
+
 function App() {
   return (
     <BrowserRouter>
@@ -53,6 +58,9 @@ function App() {
           }
         >
           <Route index element={<SpectatorHomePage />} />
+          <Route path="tournaments" element={<TournamentsPage />} />
+          <Route path="betting-history" element={<BettingHistoryPage />} />
+          <Route path="statistics" element={<StatisticsPage />} />
           <Route path="profile" element={<SpectatorProfilePage />} />
         </Route>
         <Route

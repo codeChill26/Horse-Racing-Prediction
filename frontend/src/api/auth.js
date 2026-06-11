@@ -99,6 +99,18 @@ export async function resetPassword(payload) {
   return data
 }
 
+export async function updateMyProfile(accessToken, payload) {
+  const res = await fetch('/api/auth/profile', {
+    method: 'PUT',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) await readJsonError(res, 'Cập nhật hồ sơ thất bại')
+  const data = await res.json()
+  return data?.user ?? data
+}
+
 export async function registerUser(payload) {
   const res = await fetch('/api/auth/register', {
     method: 'POST',

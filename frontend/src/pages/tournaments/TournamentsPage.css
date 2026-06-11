@@ -1,0 +1,418 @@
+/* ============================================
+   TOURNAMENTS PAGE - Dark Theme (Admin Colors)
+   ============================================ */
+
+/* ============ PAGE HEADER ============ */
+.sp-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.sp-page-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8dd6a6;
+}
+
+.sp-page-title {
+  margin: 0 0 0.35rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #dae3ee;
+  letter-spacing: -0.02em;
+}
+
+.sp-page-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #8b949e;
+}
+
+/* ============ SEARCH ============ */
+.sp-search-wrap {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.sp-search-icon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: #8b949e;
+  pointer-events: none;
+}
+
+.sp-search-input {
+  width: 100%;
+  padding: 0.7rem 0.85rem 0.7rem 2.6rem;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: #dae3ee;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.sp-search-input:focus {
+  border-color: #8dd6a6;
+  box-shadow: 0 0 0 3px rgba(141, 214, 166, 0.1);
+}
+
+.sp-search-input::placeholder {
+  color: #8b949e;
+}
+
+.sp-search-clear {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.sp-search-clear:hover {
+  color: #dae3ee;
+}
+
+/* ============ GRID ============ */
+.t-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+/* ============ BADGE ============ */
+.sp-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sp-badge--live {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+  border: 1px solid rgba(141, 214, 166, 0.3);
+}
+
+.sp-badge--upcoming {
+  background: rgba(230, 195, 100, 0.15);
+  color: #e6c364;
+  border: 1px solid rgba(230, 195, 100, 0.3);
+}
+
+.sp-badge--finished {
+  background: rgba(139, 148, 158, 0.1);
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+/* ============ CARD ============ */
+.t-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.t-card:hover {
+  border-color: rgba(141, 214, 166, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.t-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.t-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.t-card__icon {
+  width: 1rem;
+  height: 1rem;
+  color: #e6c364;
+  flex-shrink: 0;
+}
+
+.t-card__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #dae3ee;
+  line-height: 1.3;
+}
+
+.t-card__desc {
+  margin: 0;
+  font-size: 0.825rem;
+  color: #8b949e;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.t-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.t-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #bfc9bf;
+}
+
+.t-card__meta-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #8b949e;
+  flex-shrink: 0;
+}
+
+.t-card__meta-label {
+  color: #8b949e;
+}
+
+.t-card__prize {
+  color: #e6c364;
+  font-weight: 600;
+}
+
+.t-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #21262d;
+}
+
+.t-card__stats {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+.t-card__dot {
+  color: #30363d;
+}
+
+.t-card__link {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #8dd6a6;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+
+.t-card__link:hover {
+  color: #89d2a2;
+}
+
+/* ============ MODAL ============ */
+.sp-modal--lg {
+  max-width: 600px;
+}
+
+.sp-modal__header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.t-modal__desc {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  color: #bfc9bf;
+  line-height: 1.6;
+}
+
+.t-modal__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .t-modal__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.t-modal__stat {
+  background: #182028;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 0.85rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.t-modal__stat-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.t-modal__stat-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b949e;
+}
+
+.t-modal__stat-value {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.t-modal__races-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.t-modal__races-list {
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.t-modal__race-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #21262d;
+}
+
+.t-modal__race-item:last-child {
+  border-bottom: none;
+}
+
+.t-modal__race-name {
+  margin: 0 0 0.15rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #dae3ee;
+}
+
+.t-modal__race-date {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+/* ============ EMPTY STATE ============ */
+.sp-empty {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: #161b22;
+  border: 1px dashed #30363d;
+  border-radius: 14px;
+}
+
+.sp-empty__icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.sp-empty__title {
+  margin: 0 0 0.35rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.sp-empty__desc {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  color: #8b949e;
+}
+
+/* ============ LOADING ============ */
+.sp-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8b949e;
+}
+
+.sp-spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 1rem;
+  border: 2px solid #30363d;
+  border-top-color: #8dd6a6;
+  border-radius: 50%;
+  animation: sp-spin 0.8s linear infinite;
+}
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 640px) {
+  .t-grid {
+    grid-template-columns: 1fr;
+  }
+}
