@@ -30,6 +30,13 @@ enum InvitationStatus {
   EXPIRED
 }
 
+enum JockeyInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
 enum HorseStatus {
   PENDING
   APPROVED
@@ -252,8 +259,8 @@ model JockeyInvitation {
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
 
-  owner  User  @relation("InvitationOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
-  jockey User  @relation("InvitationJockey", fields: [jockeyId], references: [userId], onDelete: Restrict)
+  owner  User  @relation("JockeyInvitationSender", fields: [ownerId], references: [userId], onDelete: Restrict)
+  jockey User  @relation("JockeyInvitationReceiver", fields: [jockeyId], references: [userId], onDelete: Restrict)
   horse  Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
   race   Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
 
@@ -276,28 +283,6 @@ model RaceResult {
 
   @@unique([raceId, horseId])
   @@index([horseId])
-}
-
-model JockeyInvitation {
-  invitationId  Int              @id @default(autoincrement())
-  ownerId       Int
-  jockeyId      Int
-  horseId       Int
-  raceId        Int
-  status        InvitationStatus @default(PENDING)
-  declineReason String?
-  createdAt     DateTime         @default(now())
-
-  owner  User  @relation("JockeyInvitationSender", fields: [ownerId], references: [userId])
-  jockey User  @relation("JockeyInvitationReceiver", fields: [jockeyId], references: [userId])
-  horse  Horse @relation(fields: [horseId], references: [horseId])
-  race   Race  @relation(fields: [raceId], references: [raceId])
-
-  @@unique([jockeyId, horseId, raceId])
-  @@index([ownerId])
-  @@index([jockeyId])
-  @@index([horseId])
-  @@index([raceId])
 }
 
 model Odds {
