@@ -252,7 +252,7 @@ class _JockeyInvitationsScreenState extends State<JockeyInvitationsScreen> {
                               physics: const AlwaysScrollableScrollPhysics(),
                               padding: const EdgeInsets.all(16),
                               itemCount: _invitations.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              separatorBuilder: (_, _) => const SizedBox(height: 10),
                               itemBuilder: (context, i) {
                                 final inv = _invitations[i];
                                 return _InvitationCard(

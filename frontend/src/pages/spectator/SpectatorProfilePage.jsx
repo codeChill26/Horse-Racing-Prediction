@@ -4,9 +4,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getMyProfile, updateMyProfile } from '../../api/auth'
 import { getAccessToken } from '../../utils/token'
+import { RoleBadge, StatusBadge } from '../../components/ui/Badges'
 import './SpectatorProfilePage.css'
 
 function getInitials(name) {
@@ -36,8 +37,105 @@ function InfoRow({ label, value, mono }) {
   )
 }
 
+// ====== POINT WALLET MODAL ======
+function PointWalletModal({ wallet, userName, onClose }) {
+  const transactions = wallet?.transactions || []
+  const totalIn = transactions
+    .filter(t => (t.amount || 0) > 0)
+    .reduce((s, t) => s + (t.amount || 0), 0)
+  const totalOut = transactions
+    .filter(t => (t.amount || 0) < 0)
+    .reduce((s, t) => s + Math.abs(t.amount || 0), 0)
+
+  return (
+    <div className="sp-modal-overlay" onClick={onClose}>
+      <div className="sp-modal sp-modal--lg" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sp-modal__header">
+          <div>
+            <p className="sp-modal__eyebrow">Ví điểm</p>
+            <h3 className="sp-modal__title">Chi tiết ví điểm</h3>
+          </div>
+          <button type="button" className="sp-modal__close" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="sp-modal__body">
+          {/* Balance Hero */}
+          <div className="pwm-balance-card">
+            <div className="pwm-balance-card__icon">💰</div>
+            <div className="pwm-balance-card__info">
+              <span className="pwm-balance-card__label">Số dư khả dụng</span>
+              <div className="pwm-balance-card__balance">
+                {Number(wallet?.balance ?? 0).toLocaleString('vi-VN')}
+                <span> điểm</span>
+              </div>
+            </div>
+            {wallet?.isFrozen && (
+              <span className="pwm-wallet-frozen-badge">VÍ ĐÓNG BĂNG</span>
+            )}
+          </div>
+
+          {/* Summary row */}
+          <div className="pwm-summary">
+            <div className="pwm-summary__card pwm-summary__card--in">
+              <p className="pwm-summary__label">Tổng nạp</p>
+              <p className="pwm-summary__value">+{totalIn.toLocaleString('vi-VN')}</p>
+            </div>
+            <div className="pwm-summary__card pwm-summary__card--out">
+              <p className="pwm-summary__label">Tổng tiêu</p>
+              <p className="pwm-summary__value">-{totalOut.toLocaleString('vi-VN')}</p>
+            </div>
+            <div className="pwm-summary__card pwm-summary__card--net">
+              <p className="pwm-summary__label">Hiện có</p>
+              <p className="pwm-summary__value">{Number(wallet?.balance ?? 0).toLocaleString('vi-VN')}</p>
+            </div>
+          </div>
+
+          {/* Transaction Log */}
+          <div className="pwm-tx-section">
+            <p className="pwm-tx-section__label">Lịch sử giao dịch gần đây</p>
+            {transactions.length > 0 ? (
+              <div className="pwm-tx-list">
+                {transactions.map((tx, idx) => {
+                  const isPositive = (tx.amount || 0) > 0
+                  return (
+                    <div key={tx.transactionId || idx} className="pwm-tx-item">
+                      <div className="pwm-tx-item__icon">
+                        {isPositive ? '↓' : '↑'}
+                      </div>
+                      <div className="pwm-tx-item__info">
+                        <p className="pwm-tx-item__reason">{tx.reason || (isPositive ? 'Nạp điểm' : 'Chi tiêu')}</p>
+                        <p className="pwm-tx-item__date">{formatDateTime(tx.createdAt)}</p>
+                      </div>
+                      <span className={`pwm-tx-item__amount ${isPositive ? 'is-positive' : 'is-negative'}`}>
+                        {isPositive ? '+' : ''}{Number(tx.amount || 0).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="pwm-empty">
+                <p>Chưa có giao dịch nào.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sp-modal__footer">
+          <button type="button" className="sp-btn sp-btn--ghost" onClick={onClose}>
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ====== MAIN COMPONENT ======
 export default function SpectatorProfilePage() {
-  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -45,6 +143,7 @@ export default function SpectatorProfilePage() {
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState({ type: '', text: '' })
   const [formData, setFormData] = useState({ fullName: '', phoneNumber: '', bio: '' })
+  const [showWallet, setShowWallet] = useState(false)
   const avatarInputRef = useRef(null)
 
   const loadProfile = useCallback(async () => {
@@ -59,7 +158,11 @@ export default function SpectatorProfilePage() {
     try {
       const data = await getMyProfile(token)
       setUser(data)
-      setFormData({ fullName: data.fullName || '', phoneNumber: data.phoneNumber || '', bio: data.bio || '' })
+      setFormData({
+        fullName: data.fullName || '',
+        phoneNumber: data.phoneNumber || '',
+        bio: data.bio || '',
+      })
     } catch (e) {
       setUser(null)
       setError(e instanceof Error ? e.message : String(e))
@@ -84,7 +187,11 @@ export default function SpectatorProfilePage() {
 
   const startEditing = () => {
     if (!user) return
-    setFormData({ fullName: user.fullName || '', phoneNumber: user.phoneNumber || '', bio: user.bio || '' })
+    setFormData({
+      fullName: user.fullName || '',
+      phoneNumber: user.phoneNumber || '',
+      bio: user.bio || '',
+    })
     setEditing(true)
     setSaveMsg({ type: '', text: '' })
   }
@@ -177,84 +284,99 @@ export default function SpectatorProfilePage() {
 
         {user && (
           <>
-            {/* Hero Card */}
+            {/* Hero Card: Left = User Info | Right = Point Wallet */}
             <section className="sp-profile-hero">
-              {/* Avatar */}
-              <div className="sp-profile-avatar-wrap">
-                <div className="sp-profile-avatar-container">
-                  {formData._avatarPreview || user.avatarUrl ? (
-                    <img
-                      src={formData._avatarPreview || user.avatarUrl}
-                      alt=""
-                      className="sp-profile-avatar-img"
+
+              {/* LEFT: Avatar + User Info */}
+              <div className="sp-profile-hero__left">
+                {/* Avatar */}
+                <div className="sp-profile-avatar-wrap">
+                  <div className="sp-profile-avatar-container">
+                    {formData._avatarPreview || user.avatarUrl ? (
+                      <img
+                        src={formData._avatarPreview || user.avatarUrl}
+                        alt=""
+                        className="sp-profile-avatar-img"
+                      />
+                    ) : (
+                      <span className="sp-profile-avatar-fallback">{getInitials(user.fullName)}</span>
+                    )}
+                    {editing && (
+                      <button
+                        type="button"
+                        className="sp-profile-avatar-edit"
+                        onClick={() => avatarInputRef.current?.click()}
+                        title="Đổi ảnh đại diện"
+                      >
+                        📷
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="sp-profile-hidden-input"
+                    onChange={handleAvatarChange}
+                  />
+                </div>
+
+                {/* User info body */}
+                <div className="sp-profile-body">
+                  {editing ? (
+                    <input
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      className="sp-profile-name-input"
+                      placeholder="Họ và tên"
                     />
                   ) : (
-                    <span className="sp-profile-avatar-fallback">{getInitials(user.fullName)}</span>
+                    <h2 className="sp-profile-name">{user.fullName}</h2>
                   )}
-                  {editing && (
-                    <button
-                      type="button"
-                      className="sp-profile-avatar-edit"
-                      onClick={() => avatarInputRef.current?.click()}
-                      title="Đổi ảnh đại diện"
-                    >
-                      📷
-                    </button>
-                  )}
-                </div>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sp-profile-hidden-input"
-                  onChange={handleAvatarChange}
-                />
-              </div>
-
-              {/* Body */}
-              <div className="sp-profile-body">
-                {editing ? (
-                  <input
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    className="sp-profile-name-input"
-                    placeholder="Họ và tên"
-                  />
-                ) : (
-                  <h2>{user.fullName}</h2>
-                )}
-                <p className="sp-profile-email">{user.email}</p>
-                <div className="sp-profile-badges">
-                  <span className="sp-profile-badge sp-profile-badge--role">
-                    {user.role?.name || 'Khán giả'}
-                  </span>
-                  <span className="sp-profile-badge">
-                    {user.role?.code || 'SPECTATOR'}
-                  </span>
-                  <span className={`sp-profile-badge ${user.isActive ? 'sp-profile-badge--active' : 'sp-profile-badge--inactive'}`}>
-                    {user.isActive ? 'Đang hoạt động' : 'Đã khóa'}
-                  </span>
-                  {user.isProfileComplete && (
-                    <span className="sp-profile-badge sp-profile-badge--complete">Hồ sơ đầy đủ</span>
-                  )}
+                  <p className="sp-profile-email">{user.email}</p>
+                  <div className="sp-profile-badges">
+                    <RoleBadge role={user.role?.code || user.role?.name || 'SPECTATOR'} label={user.role?.name} />
+                    <span className="sp-profile-badge">
+                      {user.role?.code || 'SPECTATOR'}
+                    </span>
+                    <StatusBadge
+                      status={user.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      label={user.isActive ? 'Đang hoạt động' : 'Đã khóa'}
+                    />
+                    {user.isProfileComplete && (
+                      <span className="sp-profile-badge sp-profile-badge--complete">Hồ sơ đầy đủ</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Wallet */}
-              {user.pointWallet != null ? (
-                <aside className="sp-profile-wallet">
-                  <span className="sp-profile-wallet-label">Ví điểm</span>
-                  <strong className="sp-profile-wallet-balance">
+              {/* RIGHT: Point Wallet */}
+              {user.pointWallet != null && (
+                <button
+                  type="button"
+                  className="sp-profile-hero__wallet"
+                  onClick={() => setShowWallet(true)}
+                  title="Xem chi tiết ví điểm"
+                >
+                  <div className="sp-profile-wallet__header">
+                    <span className="sp-profile-wallet__label">Ví điểm</span>
+                    <span className="sp-profile-wallet__chevron">›</span>
+                  </div>
+                  <div className="sp-profile-wallet__balance">
                     {Number(balance ?? 0).toLocaleString('vi-VN')}
-                  </strong>
-                  <span className="sp-profile-wallet-unit">điểm</span>
-                  {walletFrozen && <span className="sp-profile-wallet-frozen">Ví đóng băng</span>}
-                </aside>
-              ) : null}
+                    <span className="sp-profile-wallet__unit"> điểm</span>
+                  </div>
+                  {walletFrozen ? (
+                    <span className="sp-profile-wallet-frozen">Ví đóng băng</span>
+                  ) : (
+                    <span className="sp-profile-wallet__hint">Nhấn để xem chi tiết</span>
+                  )}
+                </button>
+              )}
             </section>
 
-            {/* Grid */}
+            {/* Info Grid */}
             <div className="sp-profile-grid">
 
               {/* Thông tin liên hệ */}
@@ -331,6 +453,15 @@ export default function SpectatorProfilePage() {
           </>
         )}
       </div>
+
+      {/* Point Wallet Modal */}
+      {showWallet && user?.pointWallet && (
+        <PointWalletModal
+          wallet={user.pointWallet}
+          userName={user.fullName}
+          onClose={() => setShowWallet(false)}
+        />
+      )}
     </div>
   )
 }

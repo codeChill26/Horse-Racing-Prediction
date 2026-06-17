@@ -1,0 +1,432 @@
+/* Admin — Danh sách ngựa (Horse List) */
+
+.ahl-page {
+  --ahl-card: #161b22;
+  --ahl-border: #30363d;
+  --ahl-text: #dae3ee;
+  --ahl-muted: #8b949e;
+  --ahl-primary: #8dd6a6;
+  --ahl-warn: #e6c364;
+  --ahl-danger: #f85149;
+  --ahl-radius: 14px;
+}
+
+.ahl-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ahl-page__title {
+  margin: 0;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ahl-text);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ahl-page__desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ahl-muted);
+}
+
+.ahl-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .ahl-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ahl-stat {
+  background: var(--ahl-card);
+  border: 1px solid var(--ahl-border);
+  border-radius: var(--ahl-radius);
+  padding: 0.9rem 1rem;
+}
+
+.ahl-stat__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ahl-muted);
+}
+
+.ahl-stat__value {
+  margin-top: 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ahl-text);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.ahl-stat__value--ok {
+  color: var(--ahl-primary);
+}
+
+.ahl-stat__value--warn {
+  color: var(--ahl-warn);
+}
+
+.ahl-stat__value--err {
+  color: var(--ahl-danger);
+}
+
+.ahl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.ahl-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.ahl-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ahl-muted);
+  pointer-events: none;
+}
+
+.ahl-search {
+  width: 100%;
+  background: var(--ahl-card);
+  border: 1px solid var(--ahl-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem 0.55rem 2.15rem;
+  color: var(--ahl-text);
+  font-size: 0.8rem;
+}
+
+.ahl-search:focus {
+  outline: none;
+  border-color: var(--ahl-primary);
+}
+
+.ahl-select {
+  background: var(--ahl-card);
+  border: 1px solid var(--ahl-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  color: var(--ahl-text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.ahl-select:focus {
+  outline: none;
+  border-color: var(--ahl-primary);
+}
+
+.ahl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ahl-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ahl-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--ahl-border);
+  color: var(--ahl-muted);
+}
+
+.ahl-btn--ghost:hover:not(:disabled) {
+  color: var(--ahl-text);
+  border-color: var(--ahl-muted);
+}
+
+.ahl-alert--error {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: #ff7b72;
+  margin-bottom: 1rem;
+}
+
+.ahl-panel {
+  background: var(--ahl-card);
+  border: 1px solid var(--ahl-border);
+  border-radius: var(--ahl-radius);
+  overflow: hidden;
+}
+
+.ahl-table-wrap {
+  overflow-x: auto;
+}
+
+.ahl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.ahl-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--ahl-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.65rem;
+  border-bottom: 1px solid var(--ahl-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ahl-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.7);
+  color: var(--ahl-text);
+  vertical-align: middle;
+}
+
+.ahl-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ahl-table tr:hover td {
+  background: rgba(141, 214, 166, 0.04);
+}
+
+.ahl-name {
+  font-weight: 700;
+  color: var(--ahl-text);
+}
+
+.ahl-meta {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--ahl-muted);
+}
+
+.ahl-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 1px solid var(--ahl-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ahl-muted);
+}
+
+.ahl-badge--approved {
+  color: var(--ahl-primary);
+  border-color: rgba(141, 214, 166, 0.35);
+  background: rgba(141, 214, 166, 0.1);
+}
+
+.ahl-badge--pending {
+  color: var(--ahl-warn);
+  border-color: rgba(230, 195, 100, 0.35);
+  background: rgba(230, 195, 100, 0.1);
+}
+
+.ahl-badge--rejected {
+  color: #ff7b72;
+  border-color: rgba(248, 81, 73, 0.35);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.ahl-badge--inactive {
+  color: var(--ahl-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ahl-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.ahl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--ahl-border);
+  background: transparent;
+  color: var(--ahl-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.ahl-icon-btn:hover:not(:disabled) {
+  color: var(--ahl-text);
+  border-color: var(--ahl-muted);
+}
+
+.ahl-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ahl-icon-btn--ok:hover:not(:disabled) {
+  color: var(--ahl-primary);
+  border-color: rgba(141, 214, 166, 0.5);
+  background: rgba(141, 214, 166, 0.1);
+}
+
+.ahl-icon-btn--err:hover:not(:disabled) {
+  color: #ff7b72;
+  border-color: rgba(248, 81, 73, 0.5);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.ahl-empty,
+.ahl-loading {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--ahl-muted);
+  font-size: 0.85rem;
+}
+
+.ahl-spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--ahl-border);
+  border-top-color: var(--ahl-primary);
+  animation: ahl-spin 0.8s linear infinite;
+}
+
+@keyframes ahl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal */
+.ahl-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(6, 15, 22, 0.82);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ahl-modal {
+  width: 100%;
+  max-width: 30rem;
+  background: var(--ahl-card);
+  border: 1px solid var(--ahl-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.ahl-modal__bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--ahl-primary), var(--ahl-warn), var(--ahl-primary));
+}
+
+.ahl-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--ahl-border);
+}
+
+.ahl-modal__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ahl-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.ahl-modal__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  color: var(--ahl-muted);
+}
+
+.ahl-modal__close {
+  border: none;
+  background: transparent;
+  color: var(--ahl-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.ahl-modal__close:hover {
+  color: var(--ahl-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ahl-modal__body {
+  padding: 1.1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ahl-detail-row {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed rgba(48, 54, 61, 0.6);
+  font-size: 0.78rem;
+}
+
+.ahl-detail-row:last-child {
+  border-bottom: none;
+}
+
+.ahl-detail-row__label {
+  color: var(--ahl-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.ahl-detail-row__value {
+  color: var(--ahl-text);
+}

@@ -142,12 +142,12 @@
   to { transform: rotate(360deg); }
 }
 
-/* ============ HERO CARD ============ */
+/* ============ HERO CARD - SPLIT LAYOUT ============ */
 .sp-profile-hero {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 1.5rem;
-  align-items: center;
+  align-items: stretch;
   padding: 1.75rem;
   margin-bottom: 1.5rem;
   border-radius: 16px;
@@ -172,6 +172,11 @@
 @media (max-width: 720px) {
   .sp-profile-hero {
     grid-template-columns: 1fr;
+  }
+
+  .sp-profile-hero__left {
+    flex-direction: column;
+    align-items: center;
     text-align: center;
   }
 
@@ -183,9 +188,18 @@
     justify-content: center;
   }
 
-  .sp-profile-wallet {
+  .sp-profile-hero__wallet {
     margin: 0 auto;
+    width: 100%;
   }
+}
+
+/* LEFT side: Avatar + User Info */
+.sp-profile-hero__left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 0;
 }
 
 /* Avatar */
@@ -242,24 +256,46 @@
   display: none;
 }
 
-/* Hero body */
+/* User info body */
 .sp-profile-body {
   min-width: 0;
 }
 
-.sp-profile-body h2 {
+.sp-profile-name {
   margin: 0 0 0.3rem;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 1.4rem;
   font-weight: 700;
   color: #dae3ee;
   letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.sp-profile-name-input {
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  outline: none;
+  width: 100%;
+  max-width: 320px;
+  transition: border-color 0.2s;
   font-family: 'Playfair Display', Georgia, serif;
+}
+
+.sp-profile-name-input:focus {
+  border-color: #e6c364;
 }
 
 .sp-profile-email {
   margin: 0 0 0.75rem;
   font-size: 0.875rem;
   color: #8b949e;
+  word-break: break-all;
 }
 
 .sp-profile-badges {
@@ -304,51 +340,373 @@
   border-color: rgba(59, 130, 246, 0.2);
 }
 
-/* Wallet */
-.sp-profile-wallet {
-  text-align: center;
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
+/* ============ RIGHT SIDE: POINT WALLET (clickable) ============ */
+.sp-profile-hero__wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 14px;
   background: rgba(141, 214, 166, 0.06);
   border: 1px solid rgba(141, 214, 166, 0.2);
-  min-width: 120px;
+  cursor: pointer;
+  text-align: right;
+  min-width: 200px;
+  max-width: 240px;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
   position: relative;
   z-index: 1;
 }
 
-.sp-profile-wallet-label {
-  display: block;
+.sp-profile-hero__wallet:hover {
+  background: rgba(141, 214, 166, 0.1);
+  border-color: rgba(141, 214, 166, 0.35);
+  transform: translateY(-1px);
+}
+
+.sp-profile-wallet__header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.sp-profile-wallet__label {
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #89d2a2;
-  margin-bottom: 0.3rem;
 }
 
-.sp-profile-wallet-balance {
-  display: block;
+.sp-profile-wallet__chevron {
+  font-size: 1rem;
+  color: #8dd6a6;
+  font-weight: 700;
+}
+
+.sp-profile-wallet__balance {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 1.6rem;
   font-weight: 800;
   color: #8dd6a6;
   line-height: 1.1;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-.sp-profile-wallet-unit {
-  display: block;
-  font-size: 0.78rem;
+.sp-profile-wallet__unit {
+  font-size: 0.8rem;
+  font-weight: 500;
   color: #8b949e;
-  margin-top: 0.15rem;
+}
+
+.sp-profile-wallet__hint {
+  font-size: 0.7rem;
+  color: #8b949e;
+  white-space: nowrap;
 }
 
 .sp-profile-wallet-frozen {
-  display: block;
-  margin-top: 0.3rem;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #ffb4ab;
+}
+
+/* ============ MODAL (shared) ============ */
+.sp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+  animation: sp-fadeIn 0.2s ease-out;
+}
+
+.sp-modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.sp-modal--lg {
+  max-width: 580px;
+}
+
+.sp-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #30363d;
+  position: sticky;
+  top: 0;
+  background: #161b22;
+  z-index: 1;
+}
+
+.sp-modal__eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8dd6a6;
+}
+
+.sp-modal__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.sp-modal__close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.sp-modal__close:hover {
+  background: #30363d;
+  color: #dae3ee;
+}
+
+.sp-modal__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sp-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #30363d;
+}
+
+@keyframes sp-fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ POINT WALLET MODAL ============ */
+.pwm-balance-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 14px;
+  background: rgba(141, 214, 166, 0.06);
+  border: 1px solid rgba(141, 214, 166, 0.2);
+  position: relative;
+}
+
+.pwm-balance-card__icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.pwm-balance-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwm-balance-card__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b949e;
+  margin-bottom: 0.3rem;
+}
+
+.pwm-balance-card__balance {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #8dd6a6;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  word-break: break-all;
+}
+
+.pwm-balance-card__balance span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #8b949e;
+}
+
+.pwm-wallet-frozen-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(255, 180, 171, 0.15);
+  color: #ffb4ab;
+  border: 1px solid rgba(255, 180, 171, 0.3);
+}
+
+.pwm-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.pwm-summary__card {
+  background: #182028;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 0.85rem;
+  text-align: center;
+}
+
+.pwm-summary__label {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.pwm-summary__value {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.pwm-summary__card--in .pwm-summary__value { color: #8dd6a6; }
+.pwm-summary__card--out .pwm-summary__value { color: #ffb4ab; }
+.pwm-summary__card--net .pwm-summary__value { color: #e6c364; }
+
+.pwm-tx-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pwm-tx-section__label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.pwm-tx-list {
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pwm-tx-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #21262d;
+  transition: background 0.15s;
+}
+
+.pwm-tx-item:last-child {
+  border-bottom: none;
+}
+
+.pwm-tx-item:hover {
+  background: rgba(141, 214, 166, 0.03);
+}
+
+.pwm-tx-item__icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pwm-tx-item.is-positive .pwm-tx-item__icon {
+  background: rgba(141, 214, 166, 0.12);
+  color: #8dd6a6;
+}
+
+.pwm-tx-item.is-negative .pwm-tx-item__icon {
+  background: rgba(255, 180, 171, 0.1);
+  color: #ffb4ab;
+}
+
+.pwm-tx-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwm-tx-item__reason {
+  margin: 0 0 0.15rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #dae3ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwm-tx-item__date {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #8b949e;
+}
+
+.pwm-tx-item__amount {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.pwm-tx-item__amount.is-positive { color: #8dd6a6; }
+.pwm-tx-item__amount.is-negative { color: #ffb4ab; }
+
+.pwm-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #8b949e;
+  font-size: 0.875rem;
+  border: 1px dashed #30363d;
+  border-radius: 10px;
 }
 
 /* ============ INFO GRID ============ */
@@ -505,24 +863,4 @@
 
 .sp-profile-field-textarea::placeholder {
   color: #8b949e;
-}
-
-.sp-profile-name-input {
-  font: inherit;
-  font-size: 1.3rem;
-  font-weight: 700;
-  padding: 0.45rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  outline: none;
-  width: 100%;
-  max-width: 320px;
-  transition: border-color 0.2s;
-  font-family: 'Playfair Display', Georgia, serif;
-}
-
-.sp-profile-name-input:focus {
-  border-color: #e6c364;
 }

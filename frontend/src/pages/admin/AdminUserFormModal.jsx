@@ -4,7 +4,12 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { X, UserPlus } from "lucide-react";
+import {
+  AdminModal,
+  AdminModalSection,
+  AdminModalField,
+  AdminModalAlert,
+} from "../../components/ui/AdminModal";
 import {
   createAdminUser,
   getAdminUserById,
@@ -12,6 +17,7 @@ import {
   changeAdminUserRole,
 } from "../../api/admin";
 import { ROLE_CODES, roleLabelVi } from "../../utils/roleLabels";
+import { RoleBadge } from "../../components/ui/Badges";
 import "./AdminUsersPage.css";
 
 export default function AdminUserFormModal({ userId, onClose, onSaved }) {
@@ -72,7 +78,8 @@ export default function AdminUserFormModal({ userId, onClose, onSaved }) {
     try {
       if (!isEdit) {
         if (!form.email.includes("@")) throw new Error("Email không hợp lệ");
-        if (form.password.length < 8) throw new Error("Mật khẩu phải có ít nhất 8 ký tự");
+        if (form.password.length < 8)
+          throw new Error("Mật khẩu phải có ít nhất 8 ký tự");
         if (!form.fullName.trim()) throw new Error("Họ tên là bắt buộc");
 
         const payload = {
@@ -81,11 +88,13 @@ export default function AdminUserFormModal({ userId, onClose, onSaved }) {
           fullName: form.fullName.trim(),
           roleCode: form.roleCode,
         };
-        if (form.phoneNumber.trim()) payload.phoneNumber = form.phoneNumber.trim();
+        if (form.phoneNumber.trim())
+          payload.phoneNumber = form.phoneNumber.trim();
 
         await createAdminUser(payload);
       } else {
-        if (!form.fullName.trim()) throw new Error("Họ tên không được để trống");
+        if (!form.fullName.trim())
+          throw new Error("Họ tên không được để trống");
         if (form.password && form.password.length < 8) {
           throw new Error("Mật khẩu mới phải có ít nhất 8 ký tự");
         }
@@ -112,85 +121,130 @@ export default function AdminUserFormModal({ userId, onClose, onSaved }) {
     }
   };
 
+  const footer = (
+    <>
+      <button
+        type="button"
+        className="adm-u-btn adm-u-btn--ghost"
+        onClick={onClose}
+        disabled={saving}
+      >
+        Hủy
+      </button>
+      <button
+        type="submit"
+        form="adm-u-form"
+        className="adm-u-btn adm-u-btn--primary"
+        disabled={saving}
+      >
+        {saving
+          ? "Đang lưu..."
+          : isEdit
+          ? "Lưu thay đổi"
+          : "Tạo người dùng"}
+      </button>
+    </>
+  );
+
   return (
-    <div className="adm-u-modal-backdrop" role="presentation" onClick={onClose}>
-      <div className="adm-u-modal" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
-        <div className="adm-u-modal__bar" />
-        <header className="adm-u-modal__header">
-          <div>
-            <h2 className="adm-u-modal__title">
-              <UserPlus size={16} style={{ display: "inline", marginRight: 6, verticalAlign: -2 }} />
-              {isEdit ? `Chỉnh sửa #${userId}` : "Tạo người dùng"}
-            </h2>
-            <p className="adm-u-modal__subtitle">API /api/admin/users</p>
-          </div>
-          <button type="button" className="adm-u-modal__close" onClick={onClose} aria-label="Đóng">
-            <X size={18} />
-          </button>
-        </header>
+    <AdminModal
+      size="md"
+      accent="primary"
+      title={isEdit ? `Chỉnh sửa người dùng #${userId}` : "Tạo người dùng"}
+      subtitle={
+        isEdit
+          ? "Cập nhật thông tin cá nhân, vai trò và mật khẩu."
+          : "Tạo tài khoản mới cho hệ thống. Ví điểm sẽ tự động được tạo cho vai trò Khán giả."
+      }
+      onClose={onClose}
+      footer={footer}
+    >
+      {loading ? (
+        <div className="adm-u-loading">
+          <div className="adm-u-spinner" />
+        </div>
+      ) : (
+        <form id="adm-u-form" onSubmit={handleSubmit}>
+          {error && <AdminModalAlert type="error">{error}</AdminModalAlert>}
 
-        {loading ? (
-          <div className="adm-u-loading">
-            <div className="adm-u-spinner" />
-          </div>
-        ) : (
-          <form className="adm-u-modal__body" onSubmit={handleSubmit}>
-            {error && <div className="adm-u-alert--error">{error}</div>}
+          <AdminModalSection
+            title="Thông tin tài khoản"
+            description="Email dùng để đăng nhập, không thể thay đổi sau khi tạo."
+          >
+            <div className="gs-modal-section gs-modal-section--grid">
+              <AdminModalField label="Email" required={!isEdit}>
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  disabled={isEdit}
+                  required={!isEdit}
+                  placeholder="user@example.com"
+                />
+              </AdminModalField>
 
-            <label className="adm-u-field">
-              <span className="adm-u-field__label">Email {isEdit ? "" : "*"}</span>
-              <input
-                className="adm-u-field__input"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                disabled={isEdit}
+              <AdminModalField
+                label={isEdit ? "Mật khẩu mới" : "Mật khẩu"}
                 required={!isEdit}
-              />
-            </label>
+                hint={isEdit ? "Để trống nếu không muốn đổi." : "Tối thiểu 8 ký tự."}
+              >
+                <input
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  required={!isEdit}
+                  minLength={isEdit ? undefined : 8}
+                  placeholder={isEdit ? "••••••••" : "Tối thiểu 8 ký tự"}
+                />
+              </AdminModalField>
+            </div>
+          </AdminModalSection>
 
-            <label className="adm-u-field">
-              <span className="adm-u-field__label">
-                {isEdit ? "Mật khẩu mới (tùy chọn)" : "Mật khẩu *"}
-              </span>
-              <input
-                className="adm-u-field__input"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required={!isEdit}
-                minLength={isEdit ? undefined : 8}
-                placeholder={isEdit ? "Để trống nếu không đổi" : "Tối thiểu 8 ký tự"}
-              />
-            </label>
+          <AdminModalSection
+            title="Thông tin cá nhân"
+            description="Họ tên và số điện thoại sẽ hiển thị trong bảng quản lý."
+          >
+            <div className="gs-modal-section gs-modal-section--grid">
+              <AdminModalField label="Họ và tên" required>
+                <input
+                  name="fullName"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  required
+                  placeholder="Nguyễn Văn A"
+                />
+              </AdminModalField>
 
-            <label className="adm-u-field">
-              <span className="adm-u-field__label">Họ và tên *</span>
-              <input
-                className="adm-u-field__input"
-                name="fullName"
-                value={form.fullName}
-                onChange={handleChange}
-                required
-              />
-            </label>
+              <AdminModalField label="Số điện thoại">
+                <input
+                  name="phoneNumber"
+                  value={form.phoneNumber}
+                  onChange={handleChange}
+                  placeholder="0xxx xxx xxx"
+                />
+              </AdminModalField>
+            </div>
+          </AdminModalSection>
 
-            <label className="adm-u-field">
-              <span className="adm-u-field__label">Số điện thoại</span>
-              <input
-                className="adm-u-field__input"
-                name="phoneNumber"
-                value={form.phoneNumber}
-                onChange={handleChange}
-              />
-            </label>
-
-            <label className="adm-u-field">
-              <span className="adm-u-field__label">Vai trò</span>
+          <AdminModalSection
+            title="Phân quyền"
+            description={
+              isEdit
+                ? "Đổi vai trò sẽ thay đổi quyền truy cập ngay lập tức."
+                : "Chọn vai trò phù hợp với nghiệp vụ của người dùng."
+            }
+          >
+            <AdminModalField
+              label="Vai trò"
+              hint={
+                isEdit
+                  ? `Vai trò hiện tại: ${roleLabelVi(initialRoleCode)}`
+                  : undefined
+              }
+            >
               <select
-                className="adm-u-field__input"
                 name="roleCode"
                 value={form.roleCode}
                 onChange={handleChange}
@@ -201,19 +255,15 @@ export default function AdminUserFormModal({ userId, onClose, onSaved }) {
                   </option>
                 ))}
               </select>
-            </label>
+            </AdminModalField>
 
-            <footer className="adm-u-modal__footer">
-              <button type="button" className="adm-u-btn adm-u-btn--ghost" onClick={onClose} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="adm-u-btn adm-u-btn--primary" disabled={saving}>
-                {saving ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo người dùng"}
-              </button>
-            </footer>
-          </form>
-        )}
-      </div>
-    </div>
+            <div className="adm-u-role-preview">
+              <span className="adm-u-role-preview__label">Xem trước:</span>
+              <RoleBadge role={form.roleCode} />
+            </div>
+          </AdminModalSection>
+        </form>
+      )}
+    </AdminModal>
   );
 }

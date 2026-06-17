@@ -277,6 +277,17 @@
   cursor: not-allowed;
 }
 
+.adm-t-icon-btn--danger:hover:not(:disabled) {
+  color: #ff7b72;
+  border-color: rgba(248, 81, 73, 0.5);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.adm-t-na {
+  color: var(--adm-border);
+  font-size: 0.85rem;
+}
+
 .adm-t-status-select {
   max-width: 9rem;
   background: #0d1117;
