@@ -9,6 +9,10 @@ import RegisterPage from "./pages/registerPage/RegisterPage";
 import HorseOwnerLayout from "./components/horseOwner/HorseOwnerLayout";
 import HorseOwnerHomePage from "./pages/horseOwner/HorseOwnerHomePage";
 import HorseOwnerProfilePage from "./pages/horseOwner/HorseOwnerProfilePage";
+import HorseOwnerHorseManagementPage from "./pages/horseOwner/HorseOwnerHorseManagementPage";
+import HorseOwnerInviteJockeyPage from "./pages/horseOwner/HorseOwnerInviteJockeyPage";
+import HorseOwnerSchedulePage from "./pages/horseOwner/HorseOwnerSchedulePage";
+import HorseOwnerTournamentPage from "./pages/horseOwner/HorseOwnerTournamentPage";
 import JockeyLayout from "./components/jockey/JockeyLayout";
 import JockeyHomePage from "./pages/jockey/JockeyHomePage";
 import JockeyProfilePage from "./pages/jockey/JockeyProfilePage";
@@ -94,6 +98,10 @@ function App() {
         >
           <Route index element={<HorseOwnerHomePage />} />
           <Route path="profile" element={<HorseOwnerProfilePage />} />
+          <Route path="horses" element={<HorseOwnerHorseManagementPage />} />
+          <Route path="invite-jockey" element={<HorseOwnerInviteJockeyPage />} />
+          <Route path="schedule" element={<HorseOwnerSchedulePage />} />
+          <Route path="tournaments" element={<HorseOwnerTournamentPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

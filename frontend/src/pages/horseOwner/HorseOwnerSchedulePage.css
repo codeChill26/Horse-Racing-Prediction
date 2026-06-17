@@ -1,0 +1,197 @@
+/* ============================================
+   HORSE OWNER SCHEDULE - Dark Theme
+   ============================================ */
+
+.oh-schedule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.oh-schedule-list--nested {
+  margin-top: 0.5rem;
+}
+
+.oh-schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 12px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.oh-schedule-row:hover {
+  border-color: var(--ho-primary-border, rgba(141, 214, 166, 0.4));
+  transform: translateY(-1px);
+}
+
+.oh-schedule-row__date {
+  width: 3.4rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.4rem;
+  background: var(--ho-gold-dim, rgba(230, 195, 100, 0.12));
+  border: 1px solid var(--ho-gold-border, rgba(230, 195, 100, 0.4));
+  border-radius: 10px;
+  color: var(--ho-gold, #e6c364);
+}
+
+.oh-schedule-row__day {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.oh-schedule-row__month {
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.oh-schedule-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.oh-schedule-row__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.oh-schedule-row__head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  line-height: 1.2;
+}
+
+.oh-schedule-row__registered {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--ho-primary-dim, rgba(141, 214, 166, 0.12));
+  color: var(--ho-primary, #8dd6a6);
+  border: 1px solid var(--ho-primary-border, rgba(141, 214, 166, 0.4));
+}
+
+.oh-schedule-row__meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.oh-schedule-row__meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.oh-schedule-row__horses {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ho-text-secondary, #bfc9bf);
+}
+
+.oh-schedule-row__horses strong {
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+.oh-schedule-row__action {
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .oh-schedule-row {
+    flex-wrap: wrap;
+  }
+  .oh-schedule-row__date {
+    width: 3rem;
+  }
+  .oh-schedule-row__action {
+    width: 100%;
+    text-align: right;
+  }
+}
+
+/* === TIMELINE === */
+.oh-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.oh-timeline__group {
+  position: relative;
+}
+
+.oh-timeline__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ho-gold, #e6c364);
+  background: var(--ho-gold-dim, rgba(230, 195, 100, 0.12));
+  border: 1px solid var(--ho-gold-border, rgba(230, 195, 100, 0.4));
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+/* === ENTRY LIST (in detail modal) === */
+.oh-entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.oh-entry-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  border: 1px solid var(--ho-border, #30363d);
+  font-size: 0.85rem;
+  color: var(--ho-text-primary, #dae3ee);
+  font-weight: 600;
+}
+
+.oh-entry-list li > svg {
+  color: var(--ho-text-muted, #8b949e);
+  flex-shrink: 0;
+}
+
+.oh-entry-list li > .gs-status-badge {
+  margin-left: auto;
+}

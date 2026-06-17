@@ -1,11 +1,16 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { LogOut, LayoutDashboard, UserCircle2, PawPrint, Send, CalendarDays, Trophy } from 'lucide-react'
 import { logoutUser } from '../../api/auth'
 import { clearAuthTokens, getAccessToken, getRefreshToken } from '../../utils/token'
 import './HorseOwnerLayout.css'
 
 const NAV_ITEMS = [
-  { to: '/horse-owner', label: 'Trang chủ', icon: '🏠', end: true },
-  { to: '/horse-owner/profile', label: 'Hồ sơ chủ ngựa', icon: '👤', end: false },
+  { to: '/horse-owner', label: 'Trang chủ', icon: LayoutDashboard, end: true },
+  { to: '/horse-owner/horses', label: 'Quản lí ngựa', icon: PawPrint, end: false },
+  { to: '/horse-owner/invite-jockey', label: 'Mời kỵ sĩ', icon: Send, end: false },
+  { to: '/horse-owner/schedule', label: 'Lịch thi đấu', icon: CalendarDays, end: false },
+  { to: '/horse-owner/tournaments', label: 'Giải đấu', icon: Trophy, end: false },
+  { to: '/horse-owner/profile', label: 'Cá nhân', icon: UserCircle2, end: false },
 ]
 
 export default function HorseOwnerLayout() {
@@ -32,28 +37,36 @@ export default function HorseOwnerLayout() {
           </span>
           <div>
             <strong>Horse Racing</strong>
-            <span>Chủ ngựa</span>
+            <span>Chủ ngựa · Owner</span>
           </div>
         </div>
 
         <nav className="owner-sidebar-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `owner-nav-link${isActive ? ' is-active' : ''}`}
-            >
-              <span className="owner-nav-icon" aria-hidden="true">
-                {item.icon}
-              </span>
-              {item.label}
-            </NavLink>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `owner-nav-link${isActive ? ' is-active' : ''}`
+                }
+              >
+                <Icon className="owner-nav-icon" size={16} />
+                <span>{item.label}</span>
+              </NavLink>
+            )
+          })}
         </nav>
 
         <div className="owner-sidebar-footer">
-          <button type="button" className="owner-btn owner-btn--ghost owner-btn--full" onClick={onLogout}>
+          <button
+            type="button"
+            className="owner-btn owner-btn--ghost owner-btn--full"
+            onClick={onLogout}
+          >
+            <LogOut size={14} />
             Đăng xuất
           </button>
         </div>

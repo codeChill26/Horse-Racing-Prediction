@@ -1,46 +1,36 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Horse Owner Profile Page
+ * - Hiển thị thông tin tài khoản, thông tin chủ ngựa, ví PTS
+ * - Cho phép chỉnh sửa fullName (backend chỉ hỗ trợ fullName qua PUT /api/auth/profile)
+ */
+
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getMyProfile } from '../../api/auth'
+import { AlertCircle, RefreshCcw, X, ArrowLeft } from 'lucide-react'
+import { getMyProfile, updateMyProfile } from '../../api/auth'
 import { getAccessToken } from '../../utils/token'
-import '../../components/horseOwner/HorseOwnerLayout.css'
+import { horseService } from '../../services/horseService'
+import { Skeleton } from '../../components/ui/Skeleton'
+import {
+  OwnerHeroCard,
+  OwnerInfoCard,
+  OwnerAccountCard,
+  OwnerWalletCard,
+} from '../../components/horseOwner/OwnerProfileCard'
 import './HorseOwnerProfilePage.css'
-
-function initials(name) {
-  if (!name?.trim()) return '?'
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(-2)
-    .map((w) => w[0]?.toUpperCase())
-    .join('')
-}
-
-function formatDateTime(value) {
-  if (!value) return '—'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function ProfileRow({ label, value }) {
-  return (
-    <div className="owner-profile-row">
-      <dt>{label}</dt>
-      <dd>{value ?? '—'}</dd>
-    </div>
-  )
-}
 
 export default function HorseOwnerProfilePage() {
   const [user, setUser] = useState(null)
+  const [horses, setHorses] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingHorses, setLoadingHorses] = useState(true)
   const [error, setError] = useState('')
+  const [errorHorses, setErrorHorses] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState(null)
 
   const loadProfile = useCallback(async () => {
     const token = getAccessToken()
@@ -49,94 +39,180 @@ export default function HorseOwnerProfilePage() {
       setLoading(false)
       return
     }
-
     setLoading(true)
     setError('')
     try {
       const data = await getMyProfile(token)
       setUser(data)
     } catch (e) {
-      setUser(null)
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }
   }, [])
 
+  const loadHorses = useCallback(async () => {
+    setLoadingHorses(true)
+    setErrorHorses('')
+    try {
+      const data = await horseService.getMyHorses()
+      setHorses(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setErrorHorses(e instanceof Error ? e.message : String(e))
+      setHorses([])
+    } finally {
+      setLoadingHorses(false)
+    }
+  }, [])
+
   useEffect(() => {
     loadProfile()
-  }, [loadProfile])
+    loadHorses()
+  }, [loadProfile, loadHorses])
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return
+    const t = window.setTimeout(() => setToast(null), 4000)
+    return () => window.clearTimeout(t)
+  }, [toast])
+
+  const ownerStats = {
+    totalHorses: horses.length,
+    activeHorses: horses.filter((h) => h.status === 'APPROVED').length,
+    pendingHorses: horses.filter((h) => h.status === 'PENDING').length,
+    tournamentCount: 0, // TODO: tích hợp API số giải tham gia nếu backend cung cấp
+  }
+
+  const handleSaveProfile = async (form) => {
+    const token = getAccessToken()
+    if (!token) {
+      setToast({ type: 'error', text: 'Phiên đăng nhập hết hạn' })
+      return
+    }
+    setSaving(true)
+    try {
+      // Backend PUT /api/auth/profile hiện chỉ hỗ trợ fullName (cùng với password)
+      // Phone, address, avatarUrl: TODO tích hợp khi backend bổ sung
+      const updated = await updateMyProfile(token, { fullName: form.fullName })
+      setUser((prev) => ({ ...prev, ...updated }))
+      setToast({ type: 'success', text: 'Cập nhật hồ sơ thành công' })
+    } catch (e) {
+      setToast({ type: 'error', text: e instanceof Error ? e.message : String(e) })
+      throw e
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="owner-page">
+      {toast ? (
+        <div className={`owner-toast owner-toast--${toast.type}`} role="status">
+          <span className="owner-toast-icon" aria-hidden="true">
+            {toast.type === 'success' ? '✓' : '!'}
+          </span>
+          <div className="owner-toast-body">
+            <p>{toast.text}</p>
+          </div>
+          <button
+            type="button"
+            className="owner-toast-close"
+            onClick={() => setToast(null)}
+            aria-label="Đóng thông báo"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ) : null}
+
       <div className="owner-page-inner owner-profile-page">
         <header className="owner-profile-header">
           <div>
-            <p className="owner-eyebrow owner-eyebrow--dark">Hồ sơ chủ trại</p>
+            <p className="owner-profile-eyebrow">Hồ sơ chủ ngựa</p>
             <h1>Thông tin chủ ngựa</h1>
-            <p className="owner-profile-subtitle">Quản lý tài khoản & liên hệ giải đấu</p>
+            <p className="owner-profile-subtitle">
+              Quản lý tài khoản, ngựa sở hữu và thông tin liên hệ giải đấu
+            </p>
           </div>
-          <button type="button" className="owner-refresh-btn" onClick={loadProfile} disabled={loading}>
-            {loading ? 'Đang tải…' : 'Làm mới'}
-          </button>
+          <div className="owner-profile-header__actions">
+            <Link to="/horse-owner" className="op-back-link">
+              <ArrowLeft size={14} /> Về trang chủ
+            </Link>
+            <button
+              type="button"
+              className="ho-btn ho-btn--ghost"
+              onClick={() => {
+                loadProfile()
+                loadHorses()
+              }}
+              disabled={loading || loadingHorses}
+            >
+              <RefreshCcw size={14} /> {loading ? 'Đang tải…' : 'Làm mới'}
+            </button>
+          </div>
         </header>
 
         {error ? (
-          <div className="owner-alert owner-alert--error" role="alert">
-            {error}
+          <div className="ho-alert ho-alert--error" role="alert">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+            <button type="button" className="ho-btn ho-btn--ghost" onClick={loadProfile}>
+              <RefreshCcw size={12} /> Thử lại
+            </button>
           </div>
         ) : null}
 
         {loading && !user ? (
-          <p className="owner-profile-loading">Đang tải hồ sơ…</p>
+          <ProfileSkeleton />
         ) : user ? (
           <>
-            <section className="owner-profile-hero-card">
-              <span className="owner-profile-avatar" aria-hidden="true">
-                {initials(user.fullName)}
-              </span>
-              <div>
-                <h2>{user.fullName}</h2>
-                <p>{user.email}</p>
-                <span className="owner-profile-badge">Chủ ngựa · HORSE_OWNER</span>
-              </div>
-            </section>
+            <OwnerHeroCard user={user} />
 
             <div className="owner-profile-grid">
-              <section className="owner-profile-card">
-                <h3>Liên hệ</h3>
-                <dl>
-                  <ProfileRow label="Email" value={user.email} />
-                  <ProfileRow label="Số điện thoại" value={user.phoneNumber} />
-                  <ProfileRow label="Avatar URL" value={user.avatarUrl} />
-                </dl>
-              </section>
-
-              <section className="owner-profile-card">
-                <h3>Tài khoản</h3>
-                <dl>
-                  <ProfileRow label="User ID" value={user.userId} />
-                  <ProfileRow label="Vai trò" value={user.role?.code || 'HORSE_OWNER'} />
-                  <ProfileRow label="Trạng thái" value={user.isActive ? 'Hoạt động' : 'Không hoạt động'} />
-                  <ProfileRow label="Hồ sơ đầy đủ" value={user.isProfileComplete ? 'Có' : 'Không'} />
-                  <ProfileRow label="Ngày tạo" value={formatDateTime(user.createdAt)} />
-                  <ProfileRow label="Cập nhật" value={formatDateTime(user.updatedAt)} />
-                </dl>
-              </section>
+              <OwnerAccountCard user={user} editable onSave={handleSaveProfile} saving={saving} />
+              <OwnerInfoCard owner={user} stats={ownerStats} loading={loadingHorses} />
             </div>
 
+            <div className="owner-profile-grid">
+              <OwnerWalletCard wallet={null} loading={false} />
+            </div>
+
+            {errorHorses ? (
+              <div className="ho-alert ho-alert--error" role="alert">
+                <AlertCircle size={16} />
+                <span>{errorHorses}</span>
+                <button type="button" className="ho-btn ho-btn--ghost" onClick={loadHorses}>
+                  <RefreshCcw size={12} /> Thử lại
+                </button>
+              </div>
+            ) : null}
+
             {user.bio ? (
-              <section className="owner-profile-card owner-profile-card--full">
-                <h3>Giới thiệu</h3>
-                <p className="owner-profile-bio">{user.bio}</p>
+              <section className="op-card">
+                <header className="op-card__head">
+                  <div>
+                    <h3>Giới thiệu</h3>
+                    <p>Mô tả ngắn về bản thân / trang trại</p>
+                  </div>
+                </header>
+                <p className="op-bio">{user.bio}</p>
               </section>
             ) : null}
           </>
         ) : null}
+      </div>
+    </div>
+  )
+}
 
-        <p className="owner-profile-back">
-          <Link to="/horse-owner">← Về trang chủ</Link>
-        </p>
+function ProfileSkeleton() {
+  return (
+    <div className="owner-profile-skeleton">
+      <Skeleton className="owner-profile-skeleton__hero" />
+      <div className="owner-profile-grid">
+        <Skeleton className="owner-profile-skeleton__card" />
+        <Skeleton className="owner-profile-skeleton__card" />
       </div>
     </div>
   )

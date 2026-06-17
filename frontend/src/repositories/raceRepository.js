@@ -32,6 +32,19 @@ export const raceRepository = {
     return data?.races ?? [];
   },
 
+  /**
+   * Lấy chặng đua của 1 tournament
+   * GET /api/tournaments/:id/races
+   */
+  async getRacesByTournament(tournamentId) {
+    const res = await fetch(`/api/tournaments/${tournamentId}/races`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) await readError(res, "Không tải được danh sách chặng đua");
+    const data = await res.json();
+    return data?.races ?? [];
+  },
+
   async createRace(raceData) {
     const res = await fetch(`/api/admin/races`, {
       method: "POST",
@@ -49,6 +62,24 @@ export const raceRepository = {
     if (!res.ok) await readError(res, "Không tải được danh sách đơn đăng ký");
     const data = await res.json();
     return data?.entries ?? [];
+  },
+
+  /**
+   * Horse Owner đăng ký ngựa của họ vào một race.
+   * POST /api/races/:raceId/entries
+   * body: { horseId, jockeyId }
+   */
+  async createEntry({ raceId, horseId, jockeyId = null }) {
+    const body = { horseId };
+    if (jockeyId) body.jockeyId = jockeyId;
+    const res = await fetch(`/api/races/${raceId}/entries`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) await readError(res, "Đăng ký ngựa vào chặng thất bại");
+    const data = await res.json();
+    return data?.entry ?? data;
   },
 
   async updateEntryStatus(entryId, status, reason = null) {

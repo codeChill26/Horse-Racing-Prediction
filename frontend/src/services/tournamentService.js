@@ -10,6 +10,14 @@ export const tournamentService = {
     return tournamentRepository.getAll(status ?? "ALL");
   },
 
+  /**
+   * Public tournament list (OPEN / ONGOING / FINISHED) — dùng cho các role khác
+   * ngoài Admin. Sử dụng trang Horse Owner / Spectator trang chủ.
+   */
+  async getPublicTournaments() {
+    return tournamentRepository.getPublicTournaments();
+  },
+
   async getTournamentById(id) {
     return tournamentRepository.getById(id);
   },

@@ -26,6 +26,30 @@
   --gs-danger: #f85149;
   --gs-radius: 14px;
 
+  /* === Horse Owner tokens (đồng bộ với Admin/Spectator dark theme) === */
+  --ho-bg: #0b141c;
+  --ho-surface-lowest: #060f16;
+  --ho-surface-low: #141c24;
+  --ho-surface: #182028;
+  --ho-surface-high: #222b33;
+  --ho-surface-highest: #2d363e;
+  --ho-text-primary: #dae3ee;
+  --ho-text-secondary: #bfc9bf;
+  --ho-text-muted: #8b949e;
+  --ho-primary: #8dd6a6;
+  --ho-primary-dim: rgba(141, 214, 166, 0.12);
+  --ho-primary-border: rgba(141, 214, 166, 0.4);
+  --ho-primary-strong: #0a5c36;
+  --ho-gold: #e6c364;
+  --ho-gold-dim: rgba(230, 195, 100, 0.12);
+  --ho-gold-border: rgba(230, 195, 100, 0.4);
+  --ho-card: #161b22;
+  --ho-border: #30363d;
+  --ho-error: #ffb4ab;
+  --ho-error-dim: rgba(255, 180, 171, 0.12);
+  --ho-radius: 14px;
+  --ho-sidebar-width: 240px;
+
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;

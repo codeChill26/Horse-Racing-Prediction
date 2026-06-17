@@ -10,6 +10,14 @@ export const horseService = {
     return await horseRepository.getAll();
   },
 
+  /**
+   * Lấy danh sách ngựa của chủ ngựa đang đăng nhập.
+   * Endpoint: GET /api/horses/mine
+   */
+  async getMyHorses() {
+    return await horseRepository.getMine();
+  },
+
   async getPendingCount() {
     const list = await horseRepository.getAll();
     return list.filter((h) => h.status === "Pending").length;
@@ -39,5 +47,22 @@ export const horseService = {
       stableInfo: horseData.stableInfo || "",
       imageUrl: horseData.imageUrl || ""
     });
-  }
+  },
+
+  /**
+   * Đăng ký ngựa mới (chuẩn theo backend DTO):
+   *   POST /api/horses
+   *   body: { name, breed?, dateOfBirth?, sex?, color? }
+   */
+  async registerNewHorseDirect({ name, breed, dateOfBirth, sex, color }) {
+    if (!name || !name.trim()) {
+      throw new Error("Tên ngựa là bắt buộc");
+    }
+    const payload = { name: name.trim() };
+    if (breed) payload.breed = breed;
+    if (dateOfBirth) payload.dateOfBirth = dateOfBirth;
+    if (sex) payload.sex = sex;
+    if (color) payload.color = color;
+    return await horseRepository.create(payload);
+  },
 };

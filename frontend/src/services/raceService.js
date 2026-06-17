@@ -6,11 +6,16 @@
 import { raceRepository } from "../repositories/raceRepository";
 
 export const raceService = {
-    async getRacesList() {
-        return await raceRepository.getAll();
-    },
+  async getRacesList() {
+    return await raceRepository.getAll();
+  },
 
-    async createNewRace(raceData) {
+  async getRacesByTournament(tournamentId) {
+    if (!tournamentId) return [];
+    return await raceRepository.getRacesByTournament(tournamentId);
+  },
+
+  async createNewRace(raceData) {
         if (!raceData.raceName || !raceData.tournamentName) {
             throw new Error("Tên chặng đua và giải đấu liên kết là bắt buộc");
         }
@@ -31,6 +36,15 @@ export const raceService = {
 
     async executeCloseRegistration() {
         return await raceRepository.closeRegistration();
+    },
+
+    /**
+     * Horse Owner đăng ký ngựa của họ vào race.
+     */
+    async registerHorseForRace({ raceId, horseId, jockeyId = null }) {
+        if (!raceId) throw new Error("Vui lòng chọn chặng đua");
+        if (!horseId) throw new Error("Vui lòng chọn ngựa");
+        return await raceRepository.createEntry({ raceId, horseId, jockeyId });
     },
 
     async getDiscrepancyDetails() {

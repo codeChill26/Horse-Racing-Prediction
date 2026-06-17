@@ -1,14 +1,12 @@
+/* ============================================
+   HORSE OWNER PROFILE PAGE - Dark Theme (đồng bộ Admin/Spectator)
+   ============================================ */
+
 .owner-profile-page {
-  --ow-deep: #0c2340;
-  --ow-primary: #1e3a5f;
-  --ow-teal: #0f766e;
-  --ow-gold: #c9a227;
-  --ow-panel: #ffffff;
-  --ow-text: #64748b;
-  --ow-heading: #0f172a;
-  --ow-border: #e2e8f0;
+  padding-top: 1.5rem;
 }
 
+/* === HEADER === */
 .owner-profile-header {
   display: flex;
   align-items: flex-start;
@@ -18,170 +16,98 @@
   flex-wrap: wrap;
 }
 
+.owner-profile-eyebrow {
+  margin: 0 0 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ho-primary);
+}
+
 .owner-profile-header h1 {
-  margin: 0.25rem 0 0.35rem;
-  font-size: 1.5rem;
-  color: var(--ow-heading);
+  margin: 0 0 0.3rem;
+  font-size: clamp(1.5rem, 3.5vw, 1.85rem);
+  font-weight: 700;
+  color: var(--ho-text-primary);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  line-height: 1.2;
 }
 
 .owner-profile-subtitle {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--ow-text);
+  font-size: 0.88rem;
+  color: var(--ho-text-muted);
 }
 
-.owner-refresh-btn {
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--ow-border);
-  background: var(--ow-panel);
-  color: var(--ow-heading);
-  cursor: pointer;
-}
-
-.owner-refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.owner-profile-loading {
-  color: var(--ow-text);
-}
-
-.owner-profile-hero-card {
+.owner-profile-header__actions {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  padding: 1.35rem 1.5rem;
-  margin-bottom: 1.25rem;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--ow-deep) 0%, var(--ow-primary) 55%, var(--ow-teal) 100%);
-  color: #f8fafc;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.owner-profile-avatar {
-  width: 4rem;
-  height: 4rem;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  font-size: 1.1rem;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(201, 162, 39, 0.5);
-  color: var(--ow-gold);
-}
-
-.owner-profile-hero-card h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-.owner-profile-hero-card > div > p {
-  margin: 0 0 0.65rem;
-  font-size: 0.88rem;
-  opacity: 0.88;
-}
-
-.owner-profile-badge {
-  display: inline-block;
-  font-size: 0.75rem;
+.op-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(201, 162, 39, 0.28);
-  color: #fde68a;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--ho-border);
+  background: transparent;
+  color: var(--ho-text-secondary);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
 }
 
+.op-back-link:hover {
+  background: var(--ho-surface-high);
+  color: var(--ho-text-primary);
+}
+
+/* === GRID === */
 .owner-profile-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .owner-profile-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.owner-profile-card {
-  padding: 1.15rem 1.25rem;
-  border-radius: 12px;
-  background: var(--ow-panel);
-  border: 1px solid var(--ow-border);
-}
-
-.owner-profile-card--full {
-  margin-top: 1rem;
-}
-
-.owner-profile-card h3 {
-  margin: 0 0 1rem;
-  font-size: 1rem;
-  color: var(--ow-heading);
-}
-
-.owner-profile-row {
-  display: grid;
-  grid-template-columns: 9rem 1fr;
-  gap: 0.5rem 1rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--ow-border);
-  font-size: 0.88rem;
-}
-
-.owner-profile-row:last-child {
-  border-bottom: none;
-}
-
-.owner-profile-row dt {
-  margin: 0;
-  font-weight: 600;
-  color: var(--ow-text);
-}
-
-.owner-profile-row dd {
-  margin: 0;
-  color: var(--ow-heading);
-  word-break: break-word;
-}
-
-.owner-profile-bio {
+/* === BIO === */
+.op-bio {
   margin: 0;
   font-size: 0.9rem;
-  line-height: 1.55;
-  color: var(--ow-text);
+  line-height: 1.6;
+  color: var(--ho-text-secondary);
+  padding: 0.6rem 0.7rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--ho-border);
+  border-radius: 10px;
 }
 
-.owner-profile-back {
-  margin: 1.5rem 0 0;
-  font-size: 0.9rem;
+/* === LOADING SKELETON === */
+.owner-profile-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.owner-profile-back a {
-  color: var(--ow-teal);
-  font-weight: 600;
-  text-decoration: none;
+.owner-profile-skeleton__hero {
+  height: 140px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-radius: 16px;
 }
 
-.owner-profile-back a:hover {
-  text-decoration: underline;
-}
-
-@media (prefers-color-scheme: dark) {
-  .owner-profile-page {
-    --ow-panel: #1e293b;
-    --ow-heading: #f8fafc;
-    --ow-text: #94a3b8;
-    --ow-border: #334155;
-  }
-
-  .owner-refresh-btn {
-    background: #0f172a;
-  }
+.owner-profile-skeleton__card {
+  height: 320px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-radius: 14px;
 }
