@@ -20,6 +20,11 @@ import AuthLayout from "./layouts/AuthLayout";
 import DashboardAdmin from "./pages/admin/DashboardAdmin";
 import AdminTournamentsPage from "./pages/admin/AdminTournamentsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminHorseListPage from "./pages/admin/AdminHorseListPage";
+import AdminRaceStagePage from "./pages/admin/AdminRaceStagePage";
+import AdminDeviationPage from "./pages/admin/AdminDeviationPage";
+import AdminViolationPage from "./pages/admin/AdminViolationPage";
+import AdminWalletPointPage from "./pages/admin/AdminWalletPointPage";
 
 // New spectator pages
 import TournamentsPage from "./pages/tournaments/TournamentsPage";
@@ -48,6 +53,11 @@ function App() {
           <Route index element={<DashboardAdmin />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="tournaments" element={<AdminTournamentsPage />} />
+          <Route path="horses" element={<AdminHorseListPage />} />
+          <Route path="races" element={<AdminRaceStagePage />} />
+          <Route path="discrepancies" element={<AdminDeviationPage />} />
+          <Route path="violations" element={<AdminViolationPage />} />
+          <Route path="points" element={<AdminWalletPointPage />} />
         </Route>
         <Route
           path="/spectator"

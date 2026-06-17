@@ -2,6 +2,181 @@
    TOURNAMENTS PAGE - Dark Theme (Admin Colors)
    ============================================ */
 
+/* ============ SHARED BUTTONS ============ */
+.sp-btn {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sp-btn--ghost {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #bfc9bf;
+}
+
+.sp-btn--ghost:hover:not(:disabled) {
+  border-color: #8dd6a6;
+  color: #8dd6a6;
+}
+
+.sp-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ============ SHARED TABS ============ */
+.bh-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid #30363d;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.bh-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #8b949e;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  margin-bottom: -1px;
+}
+
+.bh-tab:hover {
+  color: #dae3ee;
+}
+
+.bh-tab.is-active {
+  color: #8dd6a6;
+  border-bottom-color: #8dd6a6;
+  font-weight: 600;
+}
+
+.bh-tab__count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(139, 148, 158, 0.15);
+  color: #8b949e;
+}
+
+.bh-tab.is-active .bh-tab__count {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+}
+
+/* ============ SHARED MODAL ============ */
+.sp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+  animation: sp-fadeIn 0.2s ease-out;
+}
+
+.sp-modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.sp-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #30363d;
+  position: sticky;
+  top: 0;
+  background: #161b22;
+  z-index: 1;
+}
+
+.sp-modal__eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8dd6a6;
+}
+
+.sp-modal__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.sp-modal__close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.sp-modal__close:hover {
+  background: #30363d;
+  color: #dae3ee;
+}
+
+.sp-modal__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sp-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #30363d;
+}
+
+@keyframes sp-fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ============ PAGE HEADER ============ */
 .sp-page-header {
   margin-bottom: 1.5rem;
@@ -18,7 +193,7 @@
 
 .sp-page-title {
   margin: 0 0 0.35rem;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1.6rem;
   font-weight: 800;
   color: #dae3ee;
@@ -169,7 +344,7 @@
 
 .t-card__title {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 0.95rem;
   font-weight: 700;
   color: #dae3ee;
@@ -256,13 +431,199 @@
 
 /* ============ MODAL ============ */
 .sp-modal--lg {
-  max-width: 600px;
+  max-width: 720px;
+}
+
+.sp-modal--xl {
+  max-width: 1100px;
 }
 
 .sp-modal__header-right {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.t-modal__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: #bfc9bf;
+}
+
+.t-modal__meta svg {
+  color: #8dd6a6;
+}
+
+.t-modal__dot {
+  color: #30363d;
+  margin: 0 0.2rem;
+}
+
+.t-modal__race-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  font-size: 0.7rem;
+  color: #8b949e;
+  margin-top: 0.2rem;
+}
+
+.t-modal__race-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.t-modal__race-meta svg {
+  color: #8dd6a6;
+}
+
+.t-modal__race-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.t-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.t-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.t-btn--gold {
+  background: linear-gradient(135deg, #e6c364, #b6924e);
+  color: #161b22;
+}
+
+.t-btn--gold:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.t-btn--ghost {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #8b949e;
+}
+
+.t-btn--ghost:hover:not(:disabled) {
+  color: #dae3ee;
+  border-color: #8b949e;
+}
+
+.t-modal__horse-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+@media (max-width: 640px) {
+  .t-modal__horse-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.t-modal__horse-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(13, 17, 23, 0.5);
+  border: 1px solid #30363d;
+  border-radius: 10px;
+}
+
+.t-modal__horse-gate {
+  flex-shrink: 0;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e6c364, #b6924e);
+  color: #161b22;
+  border-radius: 8px;
+  font-weight: 800;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.t-modal__horse-name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #dae3ee;
+}
+
+.t-modal__horse-jockey,
+.t-modal__horse-form {
+  margin: 0.1rem 0 0;
+  font-size: 0.7rem;
+  color: #8b949e;
+}
+
+/* === Wallet mini === */
+.sp-wallet-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.85rem;
+  background: linear-gradient(
+    135deg,
+    rgba(230, 195, 100, 0.12),
+    rgba(141, 214, 166, 0.08)
+  );
+  border: 1px solid rgba(230, 195, 100, 0.35);
+  border-radius: 12px;
+  color: #e6c364;
+}
+
+.sp-wallet-mini__label {
+  margin: 0;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+  font-weight: 700;
+}
+
+.sp-wallet-mini__value {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #e6c364;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.sp-alert__close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.sp-alert__close:hover {
+  opacity: 1;
 }
 
 .t-modal__desc {
@@ -313,7 +674,7 @@
 
 .t-modal__stat-value {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 0.95rem;
   font-weight: 700;
   color: #dae3ee;
@@ -377,7 +738,7 @@
 
 .sp-empty__title {
   margin: 0 0 0.35rem;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1.1rem;
   font-weight: 700;
   color: #dae3ee;

@@ -96,7 +96,7 @@ export default function Dashboard() {
     <>
       {/* Welcome banner with stats counter */}
       <div className="adm-dash__hero select-none">
-        <div>
+        <div className="adm-dash__hero-left">
           <h2 className="adm-dash__title">Hệ Thống Kiểm Soát GrandStride</h2>
           <p className="adm-dash__subtitle">
             Theo dõi thời gian thực, quản lý giải đấu và xét duyệt thẩm phán trường đua chuyên nghiệp.

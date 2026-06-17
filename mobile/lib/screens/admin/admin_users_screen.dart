@@ -322,7 +322,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _roleFilter.isEmpty ? '' : _roleFilter,
+                          initialValue: _roleFilter.isEmpty ? '' : _roleFilter,
                           decoration: InputDecoration(
                             labelText: 'Vai trò',
                             filled: true,

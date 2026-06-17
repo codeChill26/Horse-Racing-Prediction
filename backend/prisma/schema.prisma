@@ -86,8 +86,8 @@ model User {
   horsesReviewed     Horse[]          @relation("HorseReviewedBy")
   raceEntriesAsJockey RaceEntry[]     @relation("RaceEntryJockey")
   raceEntriesReviewed RaceEntry[]     @relation("RaceEntryReviewedBy")
-  sentInvitations    JockeyInvitation[] @relation("JockeyInvitationSender")
-  receivedInvitations JockeyInvitation[] @relation("JockeyInvitationReceiver")
+  sentInvitations    JockeyInvitation[] @relation("InvitationOwner")
+  receivedInvitations JockeyInvitation[] @relation("InvitationJockey")
   predictions        Prediction[]
 }
 
@@ -254,7 +254,7 @@ model JockeyInvitation {
   jockeyId      Int
   horseId       Int
   raceId        Int
-  status        JockeyInvitationStatus @default(PENDING)
+  status        InvitationStatus @default(PENDING)
   declineReason String?
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
@@ -267,7 +267,6 @@ model JockeyInvitation {
   @@unique([jockeyId, horseId, raceId])
   @@index([ownerId])
   @@index([jockeyId])
-  @@index([status])
 }
 
 model RaceResult {

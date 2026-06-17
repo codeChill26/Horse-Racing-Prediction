@@ -12,7 +12,12 @@ import {
   changeAdminUserRole,
 } from "../../api/admin";
 import { formatDate } from "../../utils/formatter";
-import { ROLE_FILTER_OPTIONS, ROLE_CODES, roleLabelVi } from "../../utils/roleLabels";
+import {
+  ROLE_FILTER_OPTIONS,
+  ROLE_CODES,
+  roleLabelVi,
+} from "../../utils/roleLabels";
+import { RoleBadge, StatusBadge } from "../../components/ui/Badges";
 import AdminUserFormModal from "./AdminUserFormModal";
 import "./AdminUsersPage.css";
 
@@ -70,11 +75,18 @@ export default function AdminUsersPage() {
         topRole = roleLabelVi(code);
       }
     });
-    return { total: users.length, active, inactive: users.length - active, topRole };
+    return {
+      total: users.length,
+      active,
+      inactive: users.length - active,
+      topRole,
+    };
   }, [users]);
 
   const replaceUser = (updated) => {
-    setUsers((prev) => prev.map((u) => (u.userId === updated.userId ? updated : u)));
+    setUsers((prev) =>
+      prev.map((u) => (u.userId === updated.userId ? updated : u))
+    );
   };
 
   const handleToggleActive = async (user) => {
@@ -131,12 +143,12 @@ export default function AdminUsersPage() {
       <header className="adm-u-page__header">
         <div>
           <h1 className="adm-u-page__title">Quản lý người dùng</h1>
-          <p className="adm-u-page__desc">
-            Tạo, sửa, đổi vai trò, bật/tắt và vô hiệu hóa tài khoản — API{" "}
-            <code>/api/admin/users</code>
-          </p>
         </div>
-        <button type="button" className="adm-u-btn adm-u-btn--primary" onClick={() => setModal({ mode: "create" })}>
+        <button
+          type="button"
+          className="adm-u-btn adm-u-btn--primary"
+          onClick={() => setModal({ mode: "create" })}
+        >
           <Plus size={16} />
           Tạo người dùng
         </button>
@@ -182,7 +194,12 @@ export default function AdminUsersPage() {
             </option>
           ))}
         </select>
-        <button type="button" className="adm-u-btn adm-u-btn--ghost" onClick={loadUsers} disabled={loading}>
+        <button
+          type="button"
+          className="adm-u-btn adm-u-btn--ghost"
+          onClick={loadUsers}
+          disabled={loading}
+        >
           <RefreshCw size={14} />
           Làm mới
         </button>
@@ -211,6 +228,7 @@ export default function AdminUsersPage() {
                   <th>Vai trò</th>
                   <th>Trạng thái</th>
                   <th>Ngày tạo</th>
+                  <th>Đổi vai trò</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
@@ -223,42 +241,45 @@ export default function AdminUsersPage() {
                       <td>
                         <div className="adm-u-name">{user.fullName}</div>
                         <div className="adm-u-meta">{user.email}</div>
-                        {user.phoneNumber && <div className="adm-u-meta">{user.phoneNumber}</div>}
-                      </td>
-                      <td>
-                        <span className="adm-u-badge adm-u-badge--role">
-                          {roleLabelVi(user.role?.code)}
-                        </span>
-                        <select
-                          className="adm-u-select"
-                          style={{ marginTop: "0.35rem", width: "100%", maxWidth: "9rem", fontSize: "0.7rem" }}
-                          value=""
-                          disabled={isBusy}
-                          onChange={(e) => handleChangeRole(user, e.target.value)}
-                        >
-                          <option value="">Đổi vai trò</option>
-                          {ROLE_CODES.filter((c) => c !== user.role?.code).map((code) => (
-                            <option key={code} value={code}>
-                              → {roleLabelVi(code)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <span
-                          className={`adm-u-badge ${
-                            user.isActive ? "adm-u-badge--active" : "adm-u-badge--inactive"
-                          }`}
-                        >
-                          {user.isActive ? "Hoạt động" : "Đã khóa"}
-                        </span>
-                        {user.isProfileComplete === false && user.role?.code === "JOCKEY" && (
-                          <div className="adm-u-meta" style={{ marginTop: "0.25rem" }}>
-                            Hồ sơ kỵ sĩ chưa đủ
-                          </div>
+                        {user.phoneNumber && (
+                          <div className="adm-u-meta">{user.phoneNumber}</div>
                         )}
                       </td>
+                      <td>
+                        <RoleBadge role={user.role?.code} />
+                        {user.isProfileComplete === false &&
+                          user.role?.code === "JOCKEY" && (
+                            <div className="adm-u-meta" style={{ marginTop: "0.25rem" }}>
+                              Hồ sơ kỵ sĩ chưa đủ
+                            </div>
+                          )}
+                      </td>
+                      <td>
+                        <StatusBadge
+                          status={user.isActive ? "ACTIVE" : "INACTIVE"}
+                          label={user.isActive ? "Hoạt động" : "Đã khóa"}
+                        />
+                      </td>
                       <td>{formatDate(user.createdAt)}</td>
+                      <td>
+                        <select
+                          className="adm-u-role-select"
+                          value=""
+                          disabled={isBusy}
+                          onChange={(e) =>
+                            handleChangeRole(user, e.target.value)
+                          }
+                        >
+                          <option value="">Chọn...</option>
+                          {ROLE_CODES.filter((c) => c !== user.role?.code).map(
+                            (code) => (
+                              <option key={code} value={code}>
+                                {roleLabelVi(code)}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </td>
                       <td>
                         <div className="adm-u-actions">
                           <button
@@ -266,28 +287,30 @@ export default function AdminUsersPage() {
                             className="adm-u-icon-btn"
                             title="Chỉnh sửa"
                             disabled={isBusy}
-                            onClick={() => setModal({ mode: "edit", id: user.userId })}
+                            onClick={() =>
+                              setModal({ mode: "edit", id: user.userId })
+                            }
                           >
                             <Pencil size={14} />
                           </button>
                           <button
                             type="button"
-                            className="adm-u-btn adm-u-btn--warn"
+                            className="adm-u-icon-btn"
+                            title={user.isActive ? "Tắt tài khoản" : "Bật tài khoản"}
                             disabled={isBusy}
                             onClick={() => handleToggleActive(user)}
                           >
                             <Power size={14} />
-                            {user.isActive ? "Tắt" : "Bật"}
                           </button>
                           {user.isActive && (
                             <button
                               type="button"
-                              className="adm-u-btn adm-u-btn--danger"
+                              className="adm-u-icon-btn adm-u-icon-btn--danger"
+                              title="Vô hiệu hóa"
                               disabled={isBusy}
                               onClick={() => handleDeactivate(user)}
                             >
                               <Trash2 size={14} />
-                              Vô hiệu
                             </button>
                           )}
                         </div>
@@ -302,7 +325,10 @@ export default function AdminUsersPage() {
       </div>
 
       {modal?.mode === "create" && (
-        <AdminUserFormModal onClose={() => setModal(null)} onSaved={loadUsers} />
+        <AdminUserFormModal
+          onClose={() => setModal(null)}
+          onSaved={loadUsers}
+        />
       )}
       {modal?.mode === "edit" && (
         <AdminUserFormModal
