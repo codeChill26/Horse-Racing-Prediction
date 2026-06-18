@@ -5,6 +5,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/login_welcome.dart';
 import '../home_router.dart';
 import 'horse_owner_home_screen.dart';
+import 'horse_owner_horses_screen.dart';
+import 'horse_owner_invitations_screen.dart';
 import 'horse_owner_profile_screen.dart';
 import '../tournaments/public_tournaments_screen.dart';
 import '../tournaments/tournament_view_theme.dart';
@@ -38,9 +40,13 @@ class _HorseOwnerShellState extends State<HorseOwnerShell> {
     await HomeRouter.openLogin(context);
   }
 
-  void _goToProfile() => setState(() => _index = 2);
+  void _goToProfile() => setState(() => _index = 4);
 
   void _goToTournaments() => setState(() => _index = 1);
+
+  void _goToHorses() => setState(() => _index = 2);
+
+  void _goToInvitations() => setState(() => _index = 3);
 
   @override
   Widget build(BuildContext context) {
@@ -49,8 +55,12 @@ class _HorseOwnerShellState extends State<HorseOwnerShell> {
         onLogout: _logout,
         onOpenProfile: _goToProfile,
         onOpenTournaments: _goToTournaments,
+        onOpenInvitations: _goToInvitations,
+        onOpenHorses: _goToHorses,
       ),
       const PublicTournamentsScreen(theme: TournamentViewTheme.horseOwner),
+      const HorseOwnerHorsesScreen(),
+      const HorseOwnerInvitationsScreen(),
       HorseOwnerProfileScreen(onLogout: _logout),
     ];
 
@@ -72,6 +82,16 @@ class _HorseOwnerShellState extends State<HorseOwnerShell> {
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events, color: AppColors.ownerPrimary),
             label: 'Giải đấu',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.pets_outlined),
+            selectedIcon: Icon(Icons.pets, color: AppColors.ownerPrimary),
+            label: 'Ngựa',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.mail_outline),
+            selectedIcon: Icon(Icons.mail_rounded, color: AppColors.ownerPrimary),
+            label: 'Kỵ sĩ',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

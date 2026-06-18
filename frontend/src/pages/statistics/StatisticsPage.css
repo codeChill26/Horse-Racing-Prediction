@@ -1,0 +1,291 @@
+/* ============================================
+   STATISTICS PAGE - Dark Theme (Admin Colors)
+   ============================================ */
+
+/* ============ SHARED SP-* UTILITIES ============ */
+.sp-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.sp-page-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8dd6a6;
+}
+
+.sp-page-title {
+  margin: 0 0 0.35rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #dae3ee;
+  letter-spacing: -0.02em;
+}
+
+.sp-page-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #8b949e;
+}
+
+.sp-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8b949e;
+}
+
+.sp-spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 1rem;
+  border: 2px solid #30363d;
+  border-top-color: #8dd6a6;
+  border-radius: 50%;
+  animation: sp-spin 0.8s linear infinite;
+}
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============ SUMMARY CARDS ============ */
+.st-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .st-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .st-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.st-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.st-card:hover {
+  background: #1c2128;
+  border-color: rgba(141, 214, 166, 0.15);
+}
+
+.st-card__icon-wrap {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.st-card__icon-wrap--primary {
+  background: rgba(141, 214, 166, 0.12);
+  color: #8dd6a6;
+}
+
+.st-card__icon-wrap--secondary {
+  background: rgba(230, 195, 100, 0.12);
+  color: #e6c364;
+}
+
+.st-card__icon-wrap--tertiary {
+  background: rgba(137, 210, 162, 0.12);
+  color: #89d2a2;
+}
+
+.st-card__label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.st-card__value {
+  margin: 0;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #dae3ee;
+  line-height: 1.1;
+}
+
+.st-card__value--green {
+  color: #8dd6a6;
+}
+
+.st-card__value--gold {
+  color: #e6c364;
+}
+
+/* ============ TWO COLUMN GRID ============ */
+.st-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .st-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============ FAVORITE CARDS ============ */
+.st-fav-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.st-fav-card:hover {
+  background: #1c2128;
+  border-color: rgba(141, 214, 166, 0.15);
+}
+
+.st-fav-card__avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.st-fav-card__avatar--horse {
+  background: rgba(141, 214, 166, 0.12);
+}
+
+.st-fav-card__avatar--jockey {
+  background: rgba(230, 195, 100, 0.12);
+}
+
+.st-fav-card__name {
+  margin: 0 0 0.25rem;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.st-fav-card__desc {
+  margin: 0;
+  font-size: 0.775rem;
+  color: #8b949e;
+}
+
+/* ============ PERFORMANCE SECTION ============ */
+.st-perf {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.st-perf__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #30363d;
+}
+
+.st-perf__title {
+  margin: 0;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.st-perf__subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.775rem;
+  color: #8b949e;
+}
+
+.st-perf__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.st-perf__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #21262d;
+}
+
+.st-perf__item:last-child {
+  border-bottom: none;
+}
+
+.st-perf__race {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #dae3ee;
+  min-width: 120px;
+}
+
+.st-perf__result {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.st-perf__result--win {
+  background: rgba(141, 214, 166, 0.12);
+  color: #8dd6a6;
+}
+
+.st-perf__result--lose {
+  background: rgba(255, 180, 171, 0.1);
+  color: #ffb4ab;
+}
+
+.st-perf__points {
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-width: 100px;
+  text-align: right;
+}
+
+.st-perf__points--win {
+  color: #8dd6a6;
+}
+
+.st-perf__points--lose {
+  color: #ffb4ab;
+}

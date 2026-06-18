@@ -42,35 +42,27 @@ class TournamentsService {
     return tournament;
   }
 
-  async listTournamentRaces(tournamentId) {
+  async listPublicRacesByTournamentId(tournamentId) {
     const tournament = await prisma.tournament.findFirst({
       where: { tournamentId, status: { in: PUBLIC_STATUSES } },
       select: { tournamentId: true },
     });
+
     if (!tournament) throw httpError('Tournament not found', 404);
 
-    const races = await prisma.race.findMany({
+    return prisma.race.findMany({
       where: { tournamentId },
       orderBy: { raceId: 'asc' },
       select: {
         raceId: true,
+        tournamentId: true,
         name: true,
-        maxEntries: true,
         scheduledAt: true,
-        registrationDeadline: true,
         registrationOpen: true,
-        status: true,
+        registrationOpenedAt: true,
+        registrationClosedAt: true,
       },
     });
-
-    return Promise.all(
-      races.map(async (race) => {
-        const approved = await prisma.raceEntry.count({
-          where: { raceId: race.raceId, status: 'APPROVED' },
-        });
-        return { ...race, entryCount: approved };
-      })
-    );
   }
 }
 

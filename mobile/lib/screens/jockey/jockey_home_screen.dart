@@ -14,11 +14,13 @@ class JockeyHomeScreen extends StatefulWidget {
     required this.onLogout,
     required this.onOpenProfile,
     required this.onOpenTournaments,
+    required this.onOpenInvitations,
   });
 
   final VoidCallback onLogout;
   final VoidCallback onOpenProfile;
   final VoidCallback onOpenTournaments;
+  final VoidCallback onOpenInvitations;
 
   @override
   State<JockeyHomeScreen> createState() => _JockeyHomeScreenState();
@@ -200,7 +202,10 @@ class _JockeyHomeScreenState extends State<JockeyHomeScreen> {
                     subtitle: 'Công cụ dành cho kỵ sĩ',
                   ),
                   const SizedBox(height: 12),
-                  _QuickActionsGrid(onProfileTap: widget.onOpenProfile),
+                  _QuickActionsGrid(
+                    onProfileTap: widget.onOpenProfile,
+                    onInvitationsTap: widget.onOpenInvitations,
+                  ),
                   const SizedBox(height: 24),
                   const _SectionHeader(
                     title: 'Phân công sắp tới',
@@ -423,9 +428,13 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid({required this.onProfileTap});
+  const _QuickActionsGrid({
+    required this.onProfileTap,
+    required this.onInvitationsTap,
+  });
 
   final VoidCallback onProfileTap;
+  final VoidCallback onInvitationsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -437,13 +446,18 @@ class _QuickActionsGrid extends StatelessWidget {
           runSpacing: 12,
           children: jockeyQuickActions.map((item) {
             final isProfile = item.title == 'Hoàn thiện hồ sơ';
+            final isInvitations = item.title == 'Lời mời thi đấu';
             return SizedBox(
               width: w,
               child: Material(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 child: InkWell(
-                  onTap: isProfile ? onProfileTap : null,
+                  onTap: isProfile
+                      ? onProfileTap
+                      : isInvitations
+                          ? onInvitationsTap
+                          : null,
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
                     padding: const EdgeInsets.all(14),

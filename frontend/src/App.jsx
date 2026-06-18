@@ -1,31 +1,47 @@
-import './App.css'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import RequireRole from './components/RequireRole'
-import AdminLayout from './components/admin/AdminLayout'
-import AdminUsersPage from './pages/admin/AdminUsersPage'
-import ForgotPasswordPage from './pages/LoginPage/ForgotPasswordPage'
-import LoginPage from './pages/LoginPage/LoginPage'
-import ResetPasswordPage from './pages/LoginPage/ResetPasswordPage'
-import RegisterPage from './pages/registerPage/RegisterPage'
-import HorseOwnerLayout from './components/horseOwner/HorseOwnerLayout'
-import JockeyLayout from './components/jockey/JockeyLayout'
-import HorseOwnerHomePage from './pages/horseOwner/HorseOwnerHomePage'
-import HorseOwnerProfilePage from './pages/horseOwner/HorseOwnerProfilePage'
-import JockeyHomePage from './pages/jockey/JockeyHomePage'
-import JockeyProfilePage from './pages/jockey/JockeyProfilePage'
-import SpectatorLayout from './components/spectator/SpectatorLayout'
-import SpectatorHomePage from './pages/spectator/SpectatorHomePage'
-import SpectatorProfilePage from './pages/spectator/SpectatorProfilePage'
+import "./App.css";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import RequireRole from "./components/RequireRole";
+import AdminLayout from "./components/admin/AdminLayout";
+import ForgotPasswordPage from "./pages/LoginPage/ForgotPasswordPage";
+import LoginPage from "./pages/LoginPage/LoginPage";
+import ResetPasswordPage from "./pages/LoginPage/ResetPasswordPage";
+import RegisterPage from "./pages/registerPage/RegisterPage";
+import HorseOwnerLayout from "./components/horseOwner/HorseOwnerLayout";
+import HorseOwnerHomePage from "./pages/horseOwner/HorseOwnerHomePage";
+import HorseOwnerProfilePage from "./pages/horseOwner/HorseOwnerProfilePage";
+import JockeyLayout from "./components/jockey/JockeyLayout";
+import JockeyHomePage from "./pages/jockey/JockeyHomePage";
+import JockeyProfilePage from "./pages/jockey/JockeyProfilePage";
+import SpectatorLayout from "./components/spectator/SpectatorLayout";
+import SpectatorHomePage from "./pages/spectator/SpectatorHomePage";
+import SpectatorProfilePage from "./pages/spectator/SpectatorProfilePage";
+import LandingDashboard from "./pages/Dashboard/LandingDashboard";
+import AuthLayout from "./layouts/AuthLayout";
+import DashboardAdmin from "./pages/admin/DashboardAdmin";
+import AdminTournamentsPage from "./pages/admin/AdminTournamentsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminHorseListPage from "./pages/admin/AdminHorseListPage";
+import AdminRaceStagePage from "./pages/admin/AdminRaceStagePage";
+import AdminDeviationPage from "./pages/admin/AdminDeviationPage";
+import AdminViolationPage from "./pages/admin/AdminViolationPage";
+import AdminWalletPointPage from "./pages/admin/AdminWalletPointPage";
+
+// New spectator pages
+import TournamentsPage from "./pages/tournaments/TournamentsPage";
+import BettingHistoryPage from "./pages/betting-history/BettingHistoryPage";
+import StatisticsPage from "./pages/statistics/StatisticsPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<LandingDashboard />} />
+
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
         <Route
           path="/admin"
           element={
@@ -34,7 +50,14 @@ function App() {
             </RequireRole>
           }
         >
-          <Route index element={<AdminUsersPage />} />
+          <Route index element={<DashboardAdmin />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="tournaments" element={<AdminTournamentsPage />} />
+          <Route path="horses" element={<AdminHorseListPage />} />
+          <Route path="races" element={<AdminRaceStagePage />} />
+          <Route path="discrepancies" element={<AdminDeviationPage />} />
+          <Route path="violations" element={<AdminViolationPage />} />
+          <Route path="points" element={<AdminWalletPointPage />} />
         </Route>
         <Route
           path="/spectator"
@@ -45,6 +68,9 @@ function App() {
           }
         >
           <Route index element={<SpectatorHomePage />} />
+          <Route path="tournaments" element={<TournamentsPage />} />
+          <Route path="betting-history" element={<BettingHistoryPage />} />
+          <Route path="statistics" element={<StatisticsPage />} />
           <Route path="profile" element={<SpectatorProfilePage />} />
         </Route>
         <Route
@@ -71,7 +97,7 @@ function App() {
         </Route>
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

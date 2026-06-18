@@ -80,13 +80,13 @@ const ownerQuickActions = [
     icon: '🐴',
     title: 'Quản lý ngựa',
     description: 'Danh sách & hồ sơ từng con',
-    tag: 'Sắp ra mắt',
+    tag: 'Mở ngay',
   ),
   OwnerQuickAction(
     icon: '📋',
-    title: 'Hợp đồng kỵ sĩ',
-    description: 'Phân công kỵ sĩ cho ngựa',
-    tag: 'Sắp ra mắt',
+    title: 'Mời kỵ sĩ',
+    description: 'Gửi lời mời & chốt kỵ sĩ thi đấu',
+    tag: 'Mở ngay',
   ),
   OwnerQuickAction(
     icon: '📊',

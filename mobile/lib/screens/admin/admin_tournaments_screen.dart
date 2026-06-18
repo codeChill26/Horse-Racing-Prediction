@@ -4,6 +4,7 @@ import '../../models/admin_tournament.dart';
 import '../../services/admin_tournaments_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/tournament_status_labels.dart';
+import 'admin_tournament_detail_screen.dart';
 import 'admin_tournament_form_sheet.dart';
 
 class AdminTournamentsScreen extends StatefulWidget {
@@ -24,7 +25,6 @@ class _AdminTournamentsScreenState extends State<AdminTournamentsScreen> {
   String? _error;
   String _statusFilter = '';
   String _search = '';
-  int? _busyId;
 
   @override
   void initState() {
@@ -75,7 +75,7 @@ class _AdminTournamentsScreenState extends State<AdminTournamentsScreen> {
     }).toList();
   }
 
-  ({int total, int open, int draft, int races}) get _stats {
+  ({int total, int open, int draft, int ongoing, int finished, int races}) get _stats {
     var races = 0;
     for (final t in _tournaments) {
       races += t.racesCount;
@@ -84,22 +84,10 @@ class _AdminTournamentsScreenState extends State<AdminTournamentsScreen> {
       total: _tournaments.length,
       open: _tournaments.where((t) => t.status == 'OPEN').length,
       draft: _tournaments.where((t) => t.status == 'DRAFT').length,
+      ongoing: _tournaments.where((t) => t.status == 'ONGOING').length,
+      finished: _tournaments.where((t) => t.status == 'FINISHED').length,
       races: races,
     );
-  }
-
-  void _replaceTournament(AdminTournament updated) {
-    setState(() {
-      _tournaments = _tournaments
-          .map((t) => t.tournamentId == updated.tournamentId ? updated : t)
-          .toList();
-    });
-  }
-
-  void _removeTournament(int id) {
-    setState(() {
-      _tournaments = _tournaments.where((t) => t.tournamentId != id).toList();
-    });
   }
 
   Future<void> _openCreate() async {
@@ -107,175 +95,19 @@ class _AdminTournamentsScreenState extends State<AdminTournamentsScreen> {
     if (ok == true) await _loadTournaments();
   }
 
-  Future<void> _openEdit(AdminTournament t) async {
-    if (t.tournamentId == null) return;
-    final ok = await showAdminTournamentFormSheet(context, tournamentId: t.tournamentId);
-    if (ok == true) await _loadTournaments();
-  }
-
-  Future<String?> _promptReason(String title, {required bool required}) async {
-    final ctrl = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Lý do',
-            hintText: 'Nhập lý do hủy…',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          FilledButton(
-            onPressed: () {
-              final text = ctrl.text.trim();
-              if (required && text.isEmpty) return;
-              Navigator.pop(ctx, text);
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.adminAccent),
-            child: const Text('Xác nhận'),
-          ),
-        ],
-      ),
-    );
-    ctrl.dispose();
-    return result;
-  }
-
-  Future<void> _onChangeStatus(AdminTournament t, String nextStatus) async {
-    if (t.tournamentId == null) return;
-
-    String? cancelReason;
-    if (nextStatus == 'CANCELLED') {
-      cancelReason = await _promptReason('Hủy giải đấu', required: true);
-      if (cancelReason == null || cancelReason.isEmpty) return;
-    } else {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Đổi trạng thái'),
-          content: Text(
-            '#${t.tournamentId} ${t.name}\n\n'
-            '${tournamentStatusLabelVi(t.status)} → ${tournamentStatusLabelVi(nextStatus)}?',
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.adminAccent),
-              child: const Text('Xác nhận'),
-            ),
-          ],
-        ),
-      );
-      if (ok != true) return;
-    }
-
-    setState(() => _busyId = t.tournamentId);
-    setState(() => _error = null);
-    try {
-      final updated = await _service.changeStatus(
-        t.tournamentId!,
-        status: nextStatus,
-        cancelReason: cancelReason,
-      );
-      _replaceTournament(updated);
-    } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _busyId = null);
-    }
-  }
-
-  Future<void> _showStatusPicker(AdminTournament t) async {
-    final options = nextStatusesFor(t.status);
-    if (options.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Giải này không thể đổi trạng thái.')),
-      );
-      return;
-    }
-
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Chuyển trạng thái',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-            ),
-            ...options.map(
-              (code) => ListTile(
-                title: Text(tournamentStatusLabelVi(code)),
-                onTap: () => Navigator.pop(ctx, code),
-              ),
-            ),
-          ],
+  Future<void> _openDetail(AdminTournament tournament) async {
+    if (tournament.tournamentId == null) return;
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminTournamentDetailScreen(
+          tournamentId: tournament.tournamentId!,
+          initialTournament: tournament,
+          onChanged: () {},
         ),
       ),
     );
-    if (picked != null) await _onChangeStatus(t, picked);
-  }
-
-  Future<void> _onDelete(AdminTournament t) async {
-    if (t.tournamentId == null) return;
-
-    String? reason;
-    if (t.racesCount > 0) {
-      reason = await _promptReason(
-        'Giải có ${t.racesCount} cuộc đua — sẽ hủy thay vì xóa',
-        required: true,
-      );
-      if (reason == null || reason.isEmpty) return;
-    } else {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Xóa giải đấu'),
-          content: Text('Xóa vĩnh viễn giải #${t.tournamentId} (${t.name})?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
-              child: const Text('Xóa'),
-            ),
-          ],
-        ),
-      );
-      if (ok != true) return;
-    }
-
-    setState(() => _busyId = t.tournamentId);
-    setState(() => _error = null);
-    try {
-      final result = await _service.deleteTournament(t.tournamentId!, reason: reason);
-      if (result.deleted) {
-        _removeTournament(t.tournamentId!);
-      } else if (result.tournament != null) {
-        _replaceTournament(result.tournament!);
-      }
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.deleted ? 'Đã xóa giải đấu.' : 'Giải có cuộc đua — đã chuyển sang Đã hủy.',
-          ),
-        ),
-      );
-    } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _busyId = null);
-    }
+    await _loadTournaments();
   }
 
   @override
@@ -343,8 +175,10 @@ class _AdminTournamentsScreenState extends State<AdminTournamentsScreen> {
                   _TournamentStatsRow(
                     loading: _loading,
                     total: s.total,
-                    open: s.open,
                     draft: s.draft,
+                    open: s.open,
+                    ongoing: s.ongoing,
+                    finished: s.finished,
                     races: s.races,
                   ),
                   const SizedBox(height: 16),
@@ -425,20 +259,16 @@ class _AdminTournamentsScreenState extends State<AdminTournamentsScreen> {
           else
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final t = filtered[index];
-                    return _TournamentCard(
-                      tournament: t,
-                      busy: _busyId == t.tournamentId,
-                      onEdit: () => _openEdit(t),
-                      onStatus: () => _showStatusPicker(t),
-                      onDelete: () => _onDelete(t),
-                    );
-                  },
-                  childCount: filtered.length,
-                ),
+              sliver: SliverList.separated(
+                itemCount: filtered.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final t = filtered[index];
+                  return _TournamentListTile(
+                    tournament: t,
+                    onTap: () => _openDetail(t),
+                  );
+                },
               ),
             ),
         ],
@@ -477,15 +307,19 @@ class _TournamentStatsRow extends StatelessWidget {
   const _TournamentStatsRow({
     required this.loading,
     required this.total,
-    required this.open,
     required this.draft,
+    required this.open,
+    required this.ongoing,
+    required this.finished,
     required this.races,
   });
 
   final bool loading;
   final int total;
-  final int open;
   final int draft;
+  final int open;
+  final int ongoing;
+  final int finished;
   final int races;
 
   @override
@@ -498,18 +332,28 @@ class _TournamentStatsRow extends StatelessWidget {
           runSpacing: 12,
           children: [
             _StatCard(width: w, label: 'Tổng giải', value: loading ? '—' : '$total'),
+            _StatCard(width: w, label: 'Nháp', value: loading ? '—' : '$draft'),
             _StatCard(
               width: w,
               label: 'Mở đăng ký',
               value: loading ? '—' : '$open',
               accent: true,
             ),
-            _StatCard(width: w, label: 'Nháp', value: loading ? '—' : '$draft'),
+            _StatCard(
+              width: w,
+              label: 'Đang diễn ra',
+              value: loading ? '—' : '$ongoing',
+            ),
+            _StatCard(
+              width: w,
+              label: 'Đã kết thúc',
+              value: loading ? '—' : '$finished',
+              success: true,
+            ),
             _StatCard(
               width: w,
               label: 'Tổng cuộc đua',
               value: loading ? '—' : '$races',
-              success: true,
             ),
           ],
         );
@@ -578,20 +422,14 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _TournamentCard extends StatelessWidget {
-  const _TournamentCard({
+class _TournamentListTile extends StatelessWidget {
+  const _TournamentListTile({
     required this.tournament,
-    required this.busy,
-    required this.onEdit,
-    required this.onStatus,
-    required this.onDelete,
+    required this.onTap,
   });
 
   final AdminTournament tournament;
-  final bool busy;
-  final VoidCallback onEdit;
-  final VoidCallback onStatus;
-  final VoidCallback onDelete;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -599,136 +437,62 @@ class _TournamentCard extends StatelessWidget {
     final statusColor = tournamentStatusColor(status);
     final statusBg = tournamentStatusBg(status);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tournament.name ?? '—',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.heading,
-                        ),
-                      ),
-                      if (tournament.description?.isNotEmpty == true)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            tournament.description!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                          ),
-                        ),
-                    ],
-                  ),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.adminBg,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                Text(
-                  '#${tournament.tournamentId}',
+                child: const Icon(Icons.emoji_events, color: AppColors.adminAccent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  tournament.name ?? '—',
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: AppColors.heading,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  tournamentStatusLabelVi(status),
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                    fontFamily: 'monospace',
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusBg,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    tournamentStatusLabelVi(status),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${tournament.racesCount} cuộc đua',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${formatTournamentDateTime(tournament.startAt)} → ${formatTournamentDateTime(tournament.endAt)}',
-              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-            ),
-            if (tournament.cancelReason?.isNotEmpty == true) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Lý do hủy: ${tournament.cancelReason}',
-                style: const TextStyle(fontSize: 11, color: AppColors.errorText),
               ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, color: AppColors.textMuted),
             ],
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: busy || !tournament.isEditable ? null : onEdit,
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Sửa'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.adminAccent,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: busy || nextStatusesFor(status).isEmpty ? null : onStatus,
-                    icon: const Icon(Icons.swap_horiz, size: 18),
-                    label: const Text('Trạng thái'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: busy || status == 'FINISHED' ? null : onDelete,
-                icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)),
-                label: Text(tournament.racesCount > 0 ? 'Hủy giải' : 'Xóa'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFDC2626),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

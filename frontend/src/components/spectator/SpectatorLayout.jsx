@@ -1,3 +1,8 @@
+/**
+ * SpectatorLayout - Dark Theme (Admin Color System)
+ * Màu sắc đồng bộ với admin dashboard
+ */
+
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { logoutUser } from '../../api/auth'
 import { clearAuthTokens, getAccessToken, getRefreshToken } from '../../utils/token'
@@ -5,7 +10,10 @@ import './SpectatorLayout.css'
 
 const NAV_ITEMS = [
   { to: '/spectator', label: 'Trang chủ', icon: '⌂', end: true },
-  { to: '/spectator/profile', label: 'Trang cá nhân', icon: '👤', end: false },
+  { to: '/spectator/tournaments', label: 'Giải đấu', icon: '🏆', end: false },
+  { to: '/spectator/betting-history', label: 'Lịch sử cược', icon: '📋', end: false },
+  { to: '/spectator/statistics', label: 'Thống kê', icon: '📊', end: false },
+  { to: '/spectator/profile', label: 'Cá nhân', icon: '👤', end: false },
 ]
 
 export default function SpectatorLayout() {
@@ -17,7 +25,7 @@ export default function SpectatorLayout() {
       const refreshToken = getRefreshToken()
       if (accessToken) await logoutUser({ accessToken, refreshToken })
     } catch {
-      /* clear local anyway */
+      // clear local anyway
     }
     clearAuthTokens()
     navigate('/login', { replace: true })
@@ -55,7 +63,7 @@ export default function SpectatorLayout() {
         </nav>
 
         <div className="spectator-sidebar-footer">
-          <button type="button" className="spectator-btn spectator-btn--ghost spectator-btn--full" onClick={onLogout}>
+          <button type="button" className="spectator-btn spectator-btn--ghost" onClick={onLogout}>
             Đăng xuất
           </button>
         </div>

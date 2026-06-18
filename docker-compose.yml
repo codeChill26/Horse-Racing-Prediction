@@ -1,5 +1,6 @@
-# DATABASE_URL / DIRECT_URL: lấy từ backend/.env (Supabase).
-# Chỉ bật Postgres local khi cần: docker compose --profile local-db up -d
+# Runtime: DATABASE_URL / DIRECT_URL từ backend/.env (Supabase).
+# Build: dùng placeholder nếu chưa export; hoặc: docker compose --env-file backend/.env up -d --build
+# Postgres local (tùy chọn): docker compose --profile local-db up -d
 
 services:
   backend_app:
@@ -7,8 +8,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        - DATABASE_URL=${DATABASE_URL}
-        - DIRECT_URL=${DIRECT_URL}
+        DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/postgres}
+        DIRECT_URL: ${DIRECT_URL:-postgresql://postgres:postgres@localhost:5432/postgres}
     container_name: horse_racing_backend
     restart: always
     ports:

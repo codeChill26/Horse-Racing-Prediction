@@ -1,0 +1,701 @@
+/* Admin — Quản lý ví điểm (Wallet Point) */
+
+.awp-page {
+  --awp-card: #161b22;
+  --awp-border: #30363d;
+  --awp-text: #dae3ee;
+  --awp-muted: #8b949e;
+  --awp-primary: #8dd6a6;
+  --awp-gold: #e6c364;
+  --awp-warn: #e6c364;
+  --awp-danger: #f85149;
+  --awp-info: #79c0ff;
+  --awp-radius: 14px;
+}
+
+/* === Toast === */
+.awp-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+  animation: awp-toast-in 0.2s ease-out;
+}
+
+.awp-toast--success {
+  background: rgba(141, 214, 166, 0.12);
+  border: 1px solid rgba(141, 214, 166, 0.35);
+  color: var(--awp-primary);
+}
+
+.awp-toast--error {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  color: #ff7b72;
+}
+
+.awp-toast__close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.awp-toast__close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes awp-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === Adjust current balance === */
+.awp-adjust-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background: rgba(141, 214, 166, 0.08);
+  border: 1px dashed rgba(141, 214, 166, 0.3);
+  border-radius: 10px;
+  font-size: 0.78rem;
+}
+
+.awp-adjust-current__label {
+  color: var(--awp-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.awp-adjust-current__value {
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--awp-primary);
+}
+
+/* === Modal footer (within shared AdminModal body) === */
+.awp-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem 1.1rem;
+  border-top: 1px solid var(--awp-border);
+  background: rgba(13, 17, 23, 0.4);
+  flex-shrink: 0;
+}
+
+.awp-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.awp-page__title {
+  margin: 0;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--awp-text);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.awp-page__desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--awp-muted);
+}
+
+.awp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .awp-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.awp-stat {
+  background: var(--awp-card);
+  border: 1px solid var(--awp-border);
+  border-radius: var(--awp-radius);
+  padding: 0.9rem 1rem;
+}
+
+.awp-stat__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--awp-muted);
+}
+
+.awp-stat__value {
+  margin-top: 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--awp-text);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.awp-stat__value--ok {
+  color: var(--awp-primary);
+}
+
+.awp-stat__value--err {
+  color: var(--awp-danger);
+}
+
+.awp-stat__value--gold {
+  color: var(--awp-gold);
+}
+
+/* Tabs */
+.awp-tabs {
+  display: flex;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--awp-border);
+  margin-bottom: 1rem;
+}
+
+.awp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: none;
+  background: transparent;
+  color: var(--awp-muted);
+  padding: 0.55rem 0.95rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.awp-tab:hover:not(.awp-tab--active) {
+  color: var(--awp-text);
+}
+
+.awp-tab--active {
+  color: var(--awp-gold);
+  border-bottom-color: var(--awp-gold);
+}
+
+/* Toolbar */
+.awp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.awp-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.awp-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--awp-muted);
+  pointer-events: none;
+}
+
+.awp-search {
+  width: 100%;
+  background: var(--awp-card);
+  border: 1px solid var(--awp-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem 0.55rem 2.15rem;
+  color: var(--awp-text);
+  font-size: 0.8rem;
+}
+
+.awp-search:focus {
+  outline: none;
+  border-color: var(--awp-gold);
+}
+
+.awp-select {
+  background: var(--awp-card);
+  border: 1px solid var(--awp-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  color: var(--awp-text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.awp-select:focus {
+  outline: none;
+  border-color: var(--awp-gold);
+}
+
+.awp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.awp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.awp-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--awp-border);
+  color: var(--awp-muted);
+}
+
+.awp-btn--ghost:hover:not(:disabled) {
+  color: var(--awp-text);
+  border-color: var(--awp-muted);
+}
+
+.awp-btn--ok {
+  background: var(--awp-primary);
+  color: #052e16;
+}
+
+.awp-btn--danger {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  color: #ff7b72;
+}
+
+.awp-alert--error {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: #ff7b72;
+  margin-bottom: 1rem;
+}
+
+.awp-panel {
+  background: var(--awp-card);
+  border: 1px solid var(--awp-border);
+  border-radius: var(--awp-radius);
+  overflow: hidden;
+}
+
+.awp-table-wrap {
+  overflow-x: auto;
+}
+
+.awp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.awp-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--awp-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.65rem;
+  border-bottom: 1px solid var(--awp-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.awp-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.7);
+  color: var(--awp-text);
+  vertical-align: middle;
+}
+
+.awp-table tr:last-child td {
+  border-bottom: none;
+}
+
+.awp-table tr:hover td {
+  background: rgba(230, 195, 100, 0.04);
+}
+
+.awp-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--awp-gold);
+  background: rgba(230, 195, 100, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(230, 195, 100, 0.25);
+}
+
+.awp-name {
+  font-weight: 700;
+  color: var(--awp-text);
+}
+
+.awp-meta {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--awp-muted);
+}
+
+.awp-balance {
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--awp-gold);
+}
+
+.awp-balance__unit {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.65rem;
+  color: var(--awp-muted);
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
+.awp-desc {
+  max-width: 320px;
+  font-size: 0.75rem;
+  color: var(--awp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.awp-amount {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.awp-amount--plus {
+  color: var(--awp-primary);
+}
+
+.awp-amount--minus {
+  color: #ff7b72;
+}
+
+.awp-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 1px solid var(--awp-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--awp-muted);
+}
+
+.awp-badge--plus {
+  color: var(--awp-primary);
+  border-color: rgba(141, 214, 166, 0.35);
+  background: rgba(141, 214, 166, 0.1);
+}
+
+.awp-badge--minus {
+  color: #ff7b72;
+  border-color: rgba(248, 81, 73, 0.35);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.awp-badge--admin {
+  color: var(--awp-gold);
+  border-color: rgba(230, 195, 100, 0.35);
+  background: rgba(230, 195, 100, 0.1);
+}
+
+.awp-badge--refund {
+  color: var(--awp-info);
+  border-color: rgba(121, 192, 255, 0.35);
+  background: rgba(121, 192, 255, 0.1);
+}
+
+.awp-badge--active {
+  color: var(--awp-primary);
+  border-color: rgba(141, 214, 166, 0.35);
+  background: rgba(141, 214, 166, 0.1);
+}
+
+.awp-badge--inactive {
+  color: var(--awp-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.awp-badge--frozen {
+  color: var(--awp-info);
+  border-color: rgba(121, 192, 255, 0.35);
+  background: rgba(121, 192, 255, 0.1);
+}
+
+.awp-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.awp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--awp-border);
+  background: transparent;
+  color: var(--awp-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.awp-icon-btn:hover:not(:disabled) {
+  color: var(--awp-text);
+  border-color: var(--awp-muted);
+}
+
+.awp-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.awp-icon-btn--ok:hover:not(:disabled) {
+  color: var(--awp-primary);
+  border-color: rgba(141, 214, 166, 0.5);
+  background: rgba(141, 214, 166, 0.1);
+}
+
+.awp-icon-btn--err:hover:not(:disabled) {
+  color: #ff7b72;
+  border-color: rgba(248, 81, 73, 0.5);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.awp-empty,
+.awp-loading {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--awp-muted);
+  font-size: 0.85rem;
+}
+
+.awp-spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--awp-border);
+  border-top-color: var(--awp-gold);
+  animation: awp-spin 0.8s linear infinite;
+}
+
+@keyframes awp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal */
+.awp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(6, 15, 22, 0.82);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.awp-modal {
+  width: 100%;
+  max-width: 30rem;
+  background: var(--awp-card);
+  border: 1px solid var(--awp-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.awp-modal--sm {
+  max-width: 26rem;
+}
+
+.awp-modal__bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--awp-gold), var(--awp-primary), var(--awp-gold));
+}
+
+.awp-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--awp-border);
+}
+
+.awp-modal__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--awp-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.awp-modal__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  color: var(--awp-muted);
+}
+
+.awp-modal__close {
+  border: none;
+  background: transparent;
+  color: var(--awp-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.awp-modal__close:hover {
+  color: var(--awp-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.awp-modal__body {
+  padding: 1.1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.awp-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem 1.15rem;
+  border-top: 1px solid var(--awp-border);
+}
+
+.awp-detail-row {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed rgba(48, 54, 61, 0.6);
+  font-size: 0.78rem;
+}
+
+.awp-detail-row:last-child {
+  border-bottom: none;
+}
+
+.awp-detail-row__label {
+  color: var(--awp-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.awp-detail-row__value {
+  color: var(--awp-text);
+  word-break: break-word;
+}
+
+/* Form */
+.awp-form {
+  padding: 1.1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.awp-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.awp-form__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--awp-muted);
+}
+
+.awp-form__input,
+.awp-form__textarea {
+  background: #0d1117;
+  border: 1px solid var(--awp-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  color: var(--awp-text);
+  font-size: 0.8rem;
+  font-family: inherit;
+}
+
+.awp-form__textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.awp-form__input:focus,
+.awp-form__textarea:focus {
+  outline: none;
+  border-color: var(--awp-gold);
+}
+
+.awp-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--awp-border);
+}
