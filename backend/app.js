@@ -20,6 +20,8 @@ var tournamentsRouter = require('./src/routes/tournaments');
 var horsesRouter = require('./src/routes/horses');
 var raceEntriesRouter = require('./src/routes/raceEntries');
 var invitationsRouter = require('./src/routes/invitations');
+var ownerEntriesRouter = require('./src/routes/owner/entries');
+var publicRacesRouter = require('./src/routes/races');
 var predictionsRouter = require('./src/routes/predictions');
 var walletRouter = require('./src/routes/wallet');
 var adminWalletsRouter = require('./src/routes/admin/wallets');
@@ -49,12 +51,16 @@ app.use('/api/admin/users', adminUsersRouter);
 app.use('/api/admin/tournaments', adminTournamentsRouter);
 app.use('/api/admin/horses', adminHorsesRouter);
 app.use('/api/admin/races', adminRacesRouter);
+app.use('/api/admin/tournaments/:tournamentId/races', adminRacesRouter);
 
 // Public APIs
 app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/horses', horsesRouter);
 app.use('/api/entries', raceEntriesRouter);
 app.use('/api/races/:raceId/entries', raceEntriesRouter);
+app.use('/api/races', publicRacesRouter);
+
+app.use('/api/entries', ownerEntriesRouter);
 
 app.use('/api/invitations', invitationsRouter);
 app.use('/api/predictions', predictionsRouter);

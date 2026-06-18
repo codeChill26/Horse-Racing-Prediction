@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { emitToAll } = require('../socket/emitter');
 
 const MIN_BET = 10;
 const MAX_BET_PCT = 0.5;
@@ -234,7 +235,7 @@ class PredictionsService {
       where: { raceId, status: 'PENDING' },
     });
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       for (const pred of predictions) {
         const picks = [pred.entryId1, pred.entryId2, pred.entryId3];
         const correctCount = picks.filter((pick) => top3EntryIds.includes(pick)).length;
@@ -306,9 +307,14 @@ class PredictionsService {
         settledCount: predictions.length,
       };
     });
+
+    emitToAll('race:results_published', { raceId, settledCount: result.settledCount });
+
+    return result;
   }
 
   async unpublishResults(raceId) {
+
     const race = await prisma.race.findUnique({
       where: { raceId },
       select: { raceId: true, publishedAt: true, status: true },
@@ -326,7 +332,7 @@ class PredictionsService {
       },
     });
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       for (const pred of predictions) {
         if (pred.payout > 0) {
           const wallet = await tx.pointWallet.findUnique({
@@ -397,6 +403,10 @@ class PredictionsService {
         rolledBackCount: predictions.length,
       };
     });
+
+    emitToAll('race:results_unpublished', { raceId, rolledBackCount: result.rolledBackCount });
+
+    return result;
   }
 
   async listMyPredictions(spectatorId) {

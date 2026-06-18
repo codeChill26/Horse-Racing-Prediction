@@ -169,6 +169,7 @@ model Race {
   raceId       Int      @id @default(autoincrement())
   tournamentId Int
   name         String
+  maxEntries   Int      @default(8)
   scheduledAt  DateTime?
   registrationDeadline DateTime?
   status       RaceStatus @default(SCHEDULED)

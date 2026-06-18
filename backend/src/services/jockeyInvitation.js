@@ -1,12 +1,47 @@
 // backend/src/services/jockeyInvitation.js
 const prisma = require('../config/prisma');
+const { emitToUser, emitToAdmin } = require('../socket/emitter');
+
+function round2(value) {
+  return Math.round(value * 100) / 100;
+}
 
 class JockeyInvitationService {
   
+  async _attachJockeyStats(jockey) {
+    const entries = await prisma.raceEntry.findMany({
+      where: { jockeyId: jockey.userId, status: 'APPROVED' },
+      select: { entryId: true, raceId: true, horseId: true },
+    });
+
+    if (entries.length === 0) {
+      return { ...jockey, careerStats: { totalStarts: 0, wins: 0, winRate: 0 } };
+    }
+
+    const results = await prisma.raceResult.findMany({
+      where: {
+        OR: entries.map((e) => ({ raceId: e.raceId, horseId: e.horseId })),
+      },
+      select: { finishPosition: true },
+    });
+
+    const totalStarts = results.length;
+    const wins = results.filter((r) => r.finishPosition === 1).length;
+
+    return {
+      ...jockey,
+      careerStats: {
+        totalStarts,
+        wins,
+        winRate: totalStarts === 0 ? 0 : round2((wins / totalStarts) * 100),
+      },
+    };
+  }
+
   // TASK 1: Tìm kiếm Jockey nâng cao (Chỉ lấy người đã hoàn thiện hồ sơ hoàn chỉnh)
   async searchJockeys(query) {
     const { name } = query;
-    return await prisma.user.findMany({
+    const jockeys = await prisma.user.findMany({
       where: {
         role: { code: 'JOCKEY' },
         isActive: true,
@@ -15,9 +50,11 @@ class JockeyInvitationService {
       },
       select: {
         userId: true, email: true, fullName: true, phoneNumber: true,
-        licenseNumber: true, weight: true, bio: true
+        avatarUrl: true, licenseNumber: true, weight: true, bio: true
       }
     });
+
+    return Promise.all(jockeys.map((j) => this._attachJockeyStats(j)));
   }
 
   // TASK 2: API gửi lời mời (Horse Owner -> Jockey)
@@ -44,7 +81,7 @@ class JockeyInvitationService {
     });
     if (existing) throw new Error('You have already sent an invitation to this Jockey for this specific Horse and Race.');
 
-    return await prisma.jockeyInvitation.create({
+    const invitation = await prisma.jockeyInvitation.create({
       data: {
         ownerId,
         jockeyId: data.jockeyId,
@@ -53,6 +90,10 @@ class JockeyInvitationService {
         status: 'PENDING'
       }
     });
+
+    emitToUser(data.jockeyId, 'invitation:received', { invitation });
+
+    return invitation;
   }
 
   // API Xem hộp thư Inbox / Outbox
@@ -79,13 +120,18 @@ class JockeyInvitationService {
     if (!invitation || invitation.jockeyId !== jockeyId) throw new Error('Invitation not found or unauthorized');
     if (invitation.status !== 'PENDING') throw new Error('This invitation has already been processed');
 
-    return await prisma.jockeyInvitation.update({
+    const updated = await prisma.jockeyInvitation.update({
       where: { invitationId },
       data: {
         status: data.status,
         declineReason: data.status === 'DECLINED' ? data.declineReason : null
       }
     });
+
+    const eventName = data.status === 'ACCEPTED' ? 'invitation:accepted' : 'invitation:declined';
+    emitToUser(updated.ownerId, eventName, { invitation: updated });
+
+    return updated;
   }
 
   // TASK 3: CHỐT JOCKEY & TỰ ĐỘNG CANCEL CÁC LỜI MỜI KHÁC (Crucial Transaction Logic)
@@ -102,8 +148,20 @@ class JockeyInvitationService {
       throw new Error('The registration gate for this race is closed. Action denied.');
     }
 
+    // Kiểm tra giới hạn số lượng entries tối đa
+    const race = await prisma.race.findUnique({
+      where: { raceId: invitation.raceId },
+      select: { maxEntries: true },
+    });
+    const approvedCount = await prisma.raceEntry.count({
+      where: { raceId: invitation.raceId, status: 'APPROVED' },
+    });
+    if (approvedCount >= race.maxEntries) {
+      throw new Error(`Race has reached its maximum of ${race.maxEntries} entries. Cannot confirm jockey.`);
+    }
+
     // Kích hoạt Database Transaction toàn cục (Atomic operation) để thực thi chuỗi logic phức tạp
-    return await prisma.$transaction(async (tx) => {
+    const entry = await prisma.$transaction(async (tx) => {
       
       // Ràng buộc 1: 1 Jockey chỉ được Confirm cho tối đa 1 ngựa trong cùng Race
       const jockeyBooked = await tx.raceEntry.findUnique({
@@ -141,6 +199,11 @@ class JockeyInvitationService {
 
       return entry;
     });
+
+    emitToAdmin('entry:created', { entry });
+    emitToUser(invitation.jockeyId, 'invitation:confirmed', { invitationId, entry });
+
+    return entry;
   }
 }
 
