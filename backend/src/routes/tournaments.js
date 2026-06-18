@@ -13,4 +13,7 @@ router.get('/', tournamentsController.listPublicTournaments);
 // GET /api/tournaments/:id
 router.get('/:id', tournamentsController.getPublicTournamentById);
 
+// GET /api/tournaments/:id/races
+router.get('/:id/races', tournamentsController.listTournamentRaces);
+
 module.exports = router;

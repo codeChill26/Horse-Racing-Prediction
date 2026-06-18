@@ -8,6 +8,18 @@ function parsePositiveInt(value, fieldName) {
   return parsed;
 }
 
+function parseOptionalPositiveInt(value, fieldName, maxValue) {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid ${fieldName}`);
+  }
+  if (maxValue !== undefined && parsed > maxValue) {
+    throw new Error(`${fieldName} cannot exceed ${maxValue}`);
+  }
+  return parsed;
+}
+
 function parseOptionalDateTime(value, fieldName) {
   if (value === undefined || value === null || value === '') return undefined;
 
@@ -24,15 +36,12 @@ class RaceDtoValidator {
     const name = (body?.name ?? '').toString().trim();
     if (!name) throw new Error('Race name is required');
 
-    const legIdRaw = body?.legId;
-    const legId = legIdRaw === undefined || legIdRaw === null || legIdRaw === ''
-      ? undefined
-      : parsePositiveInt(legIdRaw, 'legId');
+    const maxEntries = parseOptionalPositiveInt(body?.maxEntries, 'maxEntries');
 
     const scheduledAt = parseOptionalDateTime(body?.scheduledAt, 'scheduledAt');
     const registrationDeadline = parseOptionalDateTime(body?.registrationDeadline, 'registrationDeadline');
 
-    return { name, legId, scheduledAt, registrationDeadline };
+    return { name, maxEntries, scheduledAt, registrationDeadline };
   }
 
   validateUpdateRace(body) {
@@ -40,19 +49,16 @@ class RaceDtoValidator {
     const name = nameRaw === undefined || nameRaw === null ? undefined : String(nameRaw).trim();
     if (name !== undefined && name === '') throw new Error('name cannot be empty');
 
-    const legIdRaw = body?.legId;
-    const legId = legIdRaw === undefined || legIdRaw === null || legIdRaw === ''
-      ? undefined
-      : parsePositiveInt(legIdRaw, 'legId');
+    const maxEntries = parseOptionalPositiveInt(body?.maxEntries, 'maxEntries');
 
     const scheduledAt = parseOptionalDateTime(body?.scheduledAt, 'scheduledAt');
     const registrationDeadline = parseOptionalDateTime(body?.registrationDeadline, 'registrationDeadline');
 
-    if (name === undefined && legId === undefined && scheduledAt === undefined && registrationDeadline === undefined) {
+    if (name === undefined && maxEntries === undefined && scheduledAt === undefined && registrationDeadline === undefined) {
       throw new Error('At least one field is required to update');
     }
 
-    return { name, legId, scheduledAt, registrationDeadline };
+    return { name, maxEntries, scheduledAt, registrationDeadline };
   }
 
   parseRaceId(params) {

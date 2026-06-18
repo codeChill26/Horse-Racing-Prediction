@@ -16,14 +16,17 @@ router.post('/', authMiddleware, adminOnly, adminRacesController.createRace);
 // GET /api/admin/races/:id - Get single race
 router.get('/:id', authMiddleware, adminOnly, adminRacesController.getRaceById);
 
+// GET /api/admin/races/:id/entries - List all entries for a race
+router.get('/:id/entries', authMiddleware, adminOnly, adminRacesController.listRaceEntries);
+
+// POST /api/admin/races/:id/bulk-review - Bulk approve/reject entries
+router.post('/:id/bulk-review', authMiddleware, adminOnly, adminRacesController.bulkReviewEntries);
+
 // PATCH /api/admin/races/:id - Update a race
 router.patch('/:id', authMiddleware, adminOnly, adminRacesController.updateRace);
 
 // DELETE /api/admin/races/:id - Delete a race
 router.delete('/:id', authMiddleware, adminOnly, adminRacesController.deleteRace);
-
-// GET /api/admin/legs/:legId/races - List races by leg
-router.get('/by-leg/:legId', authMiddleware, adminOnly, adminRacesController.listRacesByLeg);
 
 // PUT /api/admin/races/:id/registration-gate
 router.put('/:id/registration-gate', authMiddleware, adminOnly, raceEntriesController.setRegistrationGate);
