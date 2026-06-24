@@ -6,6 +6,7 @@ const adminOnly = require('../../middlewares/adminOnly');
 const raceEntriesController = require('../../controllers/raceEntries.controller');
 const predictionsController = require('../../controllers/predictions.controller');
 const adminRacesController = require('../../controllers/adminRaces.controller');
+const adminRefereeController = require('../../controllers/adminReferee.controller');
 
 // GET /api/admin/tournaments/:tournamentId/races - List races by tournament
 router.get('/', authMiddleware, adminOnly, adminRacesController.listRacesByTournament);
@@ -36,5 +37,9 @@ router.post('/:id/publish', authMiddleware, adminOnly, predictionsController.pub
 
 // POST /api/admin/races/:id/unpublish - Unpublish race results & rollback settlement
 router.post('/:id/unpublish', authMiddleware, adminOnly, predictionsController.unpublishRaceResults);
+
+router.post('/:id/assign-referees', authMiddleware, adminOnly, adminRefereeController.assignReferees);
+router.get('/:id/review-conflict', authMiddleware, adminOnly, adminRefereeController.reviewConflict);
+router.post('/:id/resolve-conflict', authMiddleware, adminOnly, adminRefereeController.resolveConflict);
 
 module.exports = router;

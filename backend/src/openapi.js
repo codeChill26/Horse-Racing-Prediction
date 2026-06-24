@@ -381,7 +381,79 @@ module.exports = {
           declineReason: { type: 'string', nullable: true, example: 'Schedule conflict' },
         },
       },
-    },
+RefereeSubmitResultRequest: {
+        type: 'object',
+        required: ['rawResults'],
+        properties: {
+          rawResults: {
+            type: 'array',
+            description: 'Danh sách kết quả xếp hạng do Trọng tài nhập',
+            items: {
+              type: 'object',
+              required: ['entryId', 'rank', 'isDnf', 'isDq'],
+              properties: {
+                entryId: {
+                  type: 'integer',
+                  description: 'ID lượt đăng ký tham gia trận đấu (vị trí ngựa trong trận)'
+                },
+                rank: {
+                  type: 'integer',
+                  description: 'Thứ hạng về đích của ngựa (1, 2, 3...)'
+                },
+                isDnf: {
+                  type: 'boolean',
+                  description: 'True nếu ngựa không hoàn thành cuộc đua (Did Not Finish)'
+                },
+                isDq: {
+                  type: 'boolean',
+                  description: 'True nếu ngựa bị tước quyền thi đấu do phạm quy (Disqualified)'
+                },
+              },
+            },
+          },
+        },
+      },
+
+      AdminAssignRefereesRequest: {
+        type: 'object',
+        required: ['refereeAId', 'refereeBId'],
+        properties: {
+          refereeAId: {
+            type: 'integer',
+            description: 'Mã ID tài khoản của Trọng tài A'
+          },
+          refereeBId: {
+            type: 'integer',
+            description: 'Mã ID tài khoản của Trọng tài B (Không được trùng với A)'
+          },
+        },
+      },
+
+      AdminResolveConflictRequest: {
+        type: 'object',
+        required: ['finalResults', 'reason'],
+        properties: {
+          finalResults: {
+            type: 'array',
+            description: 'Bảng kết quả xếp hạng cuối cùng do Admin quyết định ghi đè',
+            items: {
+              type: 'object',
+              properties: {
+                entryId: { type: 'integer' },
+                rank: { type: 'integer' },
+                isDnf: { type: 'boolean' },
+                isDq: { type: 'boolean' }
+              }
+            },
+          },
+          reason: {
+            type: 'string',
+            minLength: 5,
+            description: 'Lý do bắt buộc nhập khi Admin can thiệp ghi đè kết quả'
+          },
+        },
+      },
+    }, 
   },
   paths: {
     '/api/tournaments': {
@@ -1528,6 +1600,234 @@ module.exports = {
       },
     },
 
+'/api/admin/tournaments/{tournamentId}/races': {
+  get: {
+    tags: ['Admin Races'],
+    summary: 'List races by tournament',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'tournamentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+    ],
+    responses: {
+      '200': { description: 'List races successfully' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+      '404': { description: 'Tournament not found' },
+    },
+  },
+
+  post: {
+    tags: ['Admin Races'],
+    summary: 'Create a race',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'tournamentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+          },
+        },
+      },
+    },
+    responses: {
+      '201': { description: 'Race created successfully' },
+      '400': { description: 'Invalid request data' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+    },
+  },
+},
+
+'/api/admin/races/{id}': {
+  get: {
+    tags: ['Admin Races'],
+    summary: 'Get race details',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+    ],
+    responses: {
+      '200': { description: 'Race details' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+      '404': { description: 'Race not found' },
+    },
+  },
+
+  patch: {
+    tags: ['Admin Races'],
+    summary: 'Update a race',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+          },
+        },
+      },
+    },
+    responses: {
+      '200': { description: 'Race updated successfully' },
+      '400': { description: 'Invalid request data' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+      '404': { description: 'Race not found' },
+    },
+  },
+
+  delete: {
+    tags: ['Admin Races'],
+    summary: 'Delete a race',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+    ],
+    responses: {
+      '200': { description: 'Race deleted successfully' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+      '404': { description: 'Race not found' },
+    },
+  },
+},
+
+'/api/admin/races/{id}/entries': {
+  get: {
+    tags: ['Admin Races'],
+    summary: 'List all race entries',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+      {
+        name: 'status',
+        in: 'query',
+        required: false,
+        schema: { type: 'string' },
+      },
+    ],
+    responses: {
+      '200': { description: 'List race entries' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+      '404': { description: 'Race not found' },
+    },
+  },
+},
+
+'/api/admin/races/{id}/bulk-review': {
+  post: {
+    tags: ['Admin Races'],
+    summary: 'Bulk approve or reject race entries',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          example: {
+            entries: [
+              {
+                entryId: 1,
+                status: 'APPROVED',
+              },
+              {
+                entryId: 2,
+                status: 'REJECTED',
+                reason: 'Invalid registration',
+              },
+            ],
+          },
+        },
+      },
+    },
+    responses: {
+      '200': { description: 'Bulk review completed' },
+      '400': { description: 'Invalid request data' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+    },
+  },
+},
+
+'/api/admin/races/{id}/registration-gate': {
+  put: {
+    tags: ['Admin Races'],
+    summary: 'Open or close registration gate',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'integer' },
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          example: {
+            registrationOpen: true,
+          },
+        },
+      },
+    },
+    responses: {
+      '200': { description: 'Registration gate updated' },
+      '400': { description: 'Invalid request data' },
+      '401': { description: 'Unauthorized' },
+      '403': { description: 'Forbidden' },
+      '404': { description: 'Race not found' },
+    },
+  },
+},
+
     // ---- Wallet Endpoints ----
 
     '/api/wallet': {
@@ -1609,6 +1909,92 @@ module.exports = {
         ],
         responses: {
           '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+
+    // ---- Referee Endpoints ----
+
+    '/api/referee/races/{id}/start': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee starts the assigned race (SCHEDULED -> IN_PROGRESS)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'Race started and bets are locked' },
+          '400': { description: 'Bad Request / Invalid race state' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/referee/races/{id}/submit': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee blind submits race ranks and statuses',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RefereeSubmitResultRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Result submitted successfully' },
+          '400': { description: 'Bad Request / Already submitted' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+
+    // ---- Admin Referee Control Endpoints ----
+
+    '/api/admin/races/{id}/assign-referees': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Admin assigns two distinct referees to a scheduled race',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminAssignRefereesRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Referees assigned successfully' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/review-conflict': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Admin reviews side-by-side referee submissions for a paused race',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found or not in PAUSED state' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/resolve-conflict': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Admin overwrites the final result and provides a mandatory reason',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminResolveConflictRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Conflict resolved and race moved to PENDING_RESULT' },
+          '400': { description: 'Bad Request / Reason too short' },
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
         },
