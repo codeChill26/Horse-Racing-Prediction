@@ -3,51 +3,18 @@ const prisma = require('../config/prisma');
 const MIN_BET = 10;
 const MAX_BET_PCT = 0.5;
 
-const MULTIPLIERS = {
-  3: 1.0,
-  2: 0.5,
-  1: 0.2,
-  0: 0,
-};
-
 function httpError(message, status = 400) {
   const err = new Error(message);
   err.status = status;
   return err;
 }
 
-async function computeOddsForEntry(entryId) {
-  const entry = await prisma.raceEntry.findUnique({
-    where: { entryId },
-    include: {
-      horse: {
-        include: {
-          results: true,
-        },
-      },
-    },
-  });
-
-  if (!entry) throw httpError(`RaceEntry ${entryId} not found`, 404);
-
-  const results = entry.horse.results;
-  const totalStarts = results.length;
-
-  if (totalStarts === 0) return 3.0;
-
-  const wins = results.filter((r) => r.finishPosition === 1).length;
-  const winRate = wins / totalStarts;
-
-  const odds = 3.0 - winRate * 2.0;
-  return Math.round(odds * 100) / 100;
-}
-
 class PredictionsService {
 
-  async placeBet(spectatorId, raceId, entryIds, betAmount) {
+  async placeBet(spectatorId, raceId, betType, entryIds, betAmount) {
     const race = await prisma.race.findUnique({
       where: { raceId },
-      select: { raceId: true, status: true, tournamentId: true },
+      select: { raceId: true, status: true },
     });
 
     if (!race) throw httpError('Race not found', 404);
@@ -55,13 +22,21 @@ class PredictionsService {
       throw httpError('Can only place bets on SCHEDULED races', 409);
     }
 
+    const spectator = await prisma.user.findUnique({
+      where: { userId: spectatorId },
+      select: { isActive: true },
+    });
+
+    if (!spectator) throw httpError('Spectator not found', 404);
+    if (!spectator.isActive) throw httpError('Account is not active. Cannot place bets.', 403);
+
     const entries = await prisma.raceEntry.findMany({
       where: { entryId: { in: entryIds }, raceId },
       select: { entryId: true, status: true },
     });
 
-    if (entries.length !== 3) {
-      throw httpError('All 3 entries must belong to the specified race', 400);
+    if (entries.length !== entryIds.length) {
+      throw httpError('All entries must belong to the specified race', 400);
     }
 
     const allApproved = entries.every((e) => e.status === 'APPROVED');
@@ -84,17 +59,32 @@ class PredictionsService {
       throw httpError(`Bet amount exceeds 50% of current balance. Max allowed: ${maxBet}`, 400);
     }
 
-    const oddsPromises = entryIds.map((id) => computeOddsForEntry(id));
-    const oddsValues = await Promise.all(oddsPromises);
-    const oddsAvg = oddsValues.reduce((s, v) => s + v, 0) / 3;
-    const oddsAvgRounded = Math.round(oddsAvg * 100) / 100;
+    const oddsRecords = await prisma.odds.findMany({
+      where: { entryId: { in: entryIds }, raceId },
+      select: { entryId: true, oddsFinal: true },
+    });
+
+    if (oddsRecords.length !== entryIds.length) {
+      throw httpError('Odds not calculated for all selected entries yet', 409);
+    }
+
+    const oddsMap = {};
+    for (const o of oddsRecords) {
+      oddsMap[o.entryId] = Number(o.oddsFinal);
+    }
+
+    let lockedOdds;
+    if (['WIN', 'PLACE', 'SHOW'].includes(betType)) {
+      lockedOdds = oddsMap[entryIds[0]];
+    } else {
+      lockedOdds = (oddsMap[entryIds[0]] + oddsMap[entryIds[1]]) / 2;
+    }
+    lockedOdds = Math.round(lockedOdds * 100) / 100;
 
     return prisma.$transaction(async (tx) => {
       const updatedWallet = await tx.pointWallet.update({
         where: { walletId: wallet.walletId },
-        data: {
-          balance: { decrement: betAmount },
-        },
+        data: { balance: { decrement: betAmount } },
       });
 
       if (updatedWallet.balance < 0) {
@@ -108,25 +98,29 @@ class PredictionsService {
           balanceAfter: updatedWallet.balance,
           referenceType: 'PREDICTION',
           type: 'BET_PLACED',
-          description: `Placed bet of ${betAmount} points on race #${raceId}`,
+          description: `Placed ${betType} bet of ${betAmount} points on race #${raceId}`,
         },
       });
 
+      const predictionData = {
+        spectatorId,
+        raceId,
+        betType,
+        entryId1: entryIds[0],
+        betAmount,
+        lockedOdds,
+        status: 'PENDING',
+      };
+
+      if (entryIds[1] !== undefined) {
+        predictionData.entryId2 = entryIds[1];
+      }
+
       const prediction = await tx.prediction.create({
-        data: {
-          spectatorId,
-          raceId,
-          entryId1: entryIds[0],
-          entryId2: entryIds[1],
-          entryId3: entryIds[2],
-          betAmount,
-          oddsAvgAtBet: oddsAvgRounded,
-          status: 'PENDING',
-        },
+        data: predictionData,
         include: {
           pick1: { include: { horse: { select: { horseId: true, name: true } } } },
           pick2: { include: { horse: { select: { horseId: true, name: true } } } },
-          pick3: { include: { horse: { select: { horseId: true, name: true } } } },
           race: { select: { raceId: true, name: true } },
         },
       });
@@ -161,9 +155,7 @@ class PredictionsService {
 
       const updatedWallet = await tx.pointWallet.update({
         where: { walletId: wallet.walletId },
-        data: {
-          balance: { increment: prediction.betAmount },
-        },
+        data: { balance: { increment: prediction.betAmount } },
       });
 
       await tx.walletTransaction.create({
@@ -186,6 +178,7 @@ class PredictionsService {
     });
   }
 
+<<<<<<< Updated upstream
   async publishResults(raceId) {
     const race = await prisma.race.findUnique({
       where: { raceId },
@@ -399,6 +392,8 @@ class PredictionsService {
     });
   }
 
+=======
+>>>>>>> Stashed changes
   async listMyPredictions(spectatorId) {
     return prisma.prediction.findMany({
       where: { spectatorId },
@@ -407,7 +402,6 @@ class PredictionsService {
         race: { select: { raceId: true, name: true, status: true } },
         pick1: { include: { horse: { select: { horseId: true, name: true } } } },
         pick2: { include: { horse: { select: { horseId: true, name: true } } } },
-        pick3: { include: { horse: { select: { horseId: true, name: true } } } },
       },
     });
   }
@@ -419,7 +413,6 @@ class PredictionsService {
         race: { select: { raceId: true, name: true, status: true, publishedAt: true } },
         pick1: { include: { horse: { select: { horseId: true, name: true } } } },
         pick2: { include: { horse: { select: { horseId: true, name: true } } } },
-        pick3: { include: { horse: { select: { horseId: true, name: true } } } },
       },
     });
 

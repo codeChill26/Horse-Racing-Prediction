@@ -213,16 +213,14 @@ module.exports = {
       },
       PlaceBetRequest: {
         type: 'object',
-        required: ['raceId', 'entryIds', 'betAmount'],
+        required: ['raceId', 'betType', 'entryIds', 'betAmount'],
         properties: {
           raceId: { type: 'integer', example: 1 },
+          betType: { type: 'string', enum: ['WIN', 'PLACE', 'SHOW', 'QUINELLA', 'EXACTA'], example: 'WIN' },
           entryIds: {
             type: 'array',
             items: { type: 'integer' },
-            minItems: 3,
-            maxItems: 3,
-            example: [1, 2, 3],
-            description: 'Array of exactly 3 distinct approved RaceEntry IDs',
+            description: 'WIN/PLACE/SHOW: 1 entry. QUINELLA/EXACTA: 2 entries.',
           },
           betAmount: { type: 'integer', example: 50, minimum: 10 },
         },
@@ -233,11 +231,11 @@ module.exports = {
           predictionId: { type: 'integer' },
           spectatorId: { type: 'integer' },
           raceId: { type: 'integer' },
+          betType: { type: 'string', enum: ['WIN', 'PLACE', 'SHOW', 'QUINELLA', 'EXACTA'] },
           entryId1: { type: 'integer' },
-          entryId2: { type: 'integer' },
-          entryId3: { type: 'integer' },
+          entryId2: { type: 'integer', nullable: true },
           betAmount: { type: 'integer' },
-          oddsAvgAtBet: { type: 'number' },
+          lockedOdds: { type: 'number' },
           status: { type: 'string', enum: ['PENDING', 'WON', 'PARTIAL_WON', 'LOST', 'REFUNDED'] },
           payout: { type: 'integer', nullable: true },
           settledAt: { type: 'string', format: 'date-time', nullable: true },
@@ -1106,8 +1104,8 @@ module.exports = {
     '/api/predictions': {
       post: {
         tags: ['Predictions'],
-        summary: 'Spectator places a Top 3 bet',
-        description: 'Select 3 different approved entries. Minimum 10 points, maximum 50% of wallet balance. Odds locked at bet time.',
+        summary: 'Spectator places a bet (WIN/PLACE/SHOW/QUINELLA/EXACTA)',
+        description: 'WIN/PLACE/SHOW: pick 1 entry. QUINELLA/EXACTA: pick 2 entries. Minimum 10 points, maximum 50% of wallet balance. Odds locked at bet time.',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -1162,41 +1160,6 @@ module.exports = {
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
           '409': { description: 'Conflict - race already started or prediction already settled' },
-        },
-      },
-    },
-
-    // ---- Admin Race Publish/Unpublish ----
-
-    '/api/admin/races/{id}/publish': {
-      post: {
-        tags: ['Admin Races'],
-        summary: 'Publish race results and trigger settlement engine',
-        description: 'Auto-settles all PENDING predictions for this race. Computes payouts based on correct picks.',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: {
-          '200': { description: 'Published and settled', content: { 'application/json': { schema: { $ref: '#/components/schemas/PublishResponse' } } } },
-          '400': { description: 'Bad Request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Forbidden' },
-          '409': { description: 'Already published or missing results' },
-        },
-      },
-    },
-    '/api/admin/races/{id}/unpublish': {
-      post: {
-        tags: ['Admin Races'],
-        summary: 'Unpublish race results and rollback settlement',
-        description: 'Reverses all payouts, refunds original bet amounts, resets predictions to PENDING.',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: {
-          '200': { description: 'Unpublished and rolled back' },
-          '400': { description: 'Bad Request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Forbidden' },
-          '409': { description: 'Not published yet' },
         },
       },
     },
