@@ -7,6 +7,7 @@ import '../home_router.dart';
 import '../tournaments/public_tournaments_screen.dart';
 import '../tournaments/tournament_view_theme.dart';
 import 'jockey_home_screen.dart';
+import 'jockey_invitations_screen.dart';
 import 'jockey_profile_screen.dart';
 
 class JockeyShell extends StatefulWidget {
@@ -38,9 +39,11 @@ class _JockeyShellState extends State<JockeyShell> {
     await HomeRouter.openLogin(context);
   }
 
-  void _goToProfile() => setState(() => _index = 2);
+  void _goToProfile() => setState(() => _index = 3);
 
   void _goToTournaments() => setState(() => _index = 1);
+
+  void _goToInvitations() => setState(() => _index = 2);
 
   @override
   Widget build(BuildContext context) {
@@ -49,8 +52,10 @@ class _JockeyShellState extends State<JockeyShell> {
         onLogout: _logout,
         onOpenProfile: _goToProfile,
         onOpenTournaments: _goToTournaments,
+        onOpenInvitations: _goToInvitations,
       ),
       const PublicTournamentsScreen(theme: TournamentViewTheme.jockey),
+      const JockeyInvitationsScreen(),
       JockeyProfileScreen(onLogout: _logout),
     ];
 
@@ -72,6 +77,11 @@ class _JockeyShellState extends State<JockeyShell> {
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events, color: AppColors.jockeyPrimary),
             label: 'Giải đấu',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.mail_outline),
+            selectedIcon: Icon(Icons.mail_rounded, color: AppColors.jockeyPrimary),
+            label: 'Lời mời',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

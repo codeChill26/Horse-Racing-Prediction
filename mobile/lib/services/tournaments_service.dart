@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/public_tournament.dart';
+import '../models/race_summary.dart';
 
 /// API công khai — không cần đăng nhập (OPEN / ONGOING / FINISHED).
 class TournamentsService {
@@ -44,5 +45,18 @@ class TournamentsService {
       throw Exception('Phản hồi không có dữ liệu giải đấu');
     }
     return PublicTournament.fromJson(tournament);
+  }
+
+  Future<List<RaceSummary>> listRacesByTournamentId(int tournamentId) async {
+    final res = await http.get(ApiConfig.uri('/api/tournaments/$tournamentId/races'));
+    final data = await _decodeBody(res);
+    _throwIfFailed(res, data, 'Không tải được danh sách chặng đua');
+
+    final races = data?['races'];
+    if (races is! List) return [];
+    return races
+        .whereType<Map<String, dynamic>>()
+        .map(RaceSummary.fromJson)
+        .toList();
   }
 }

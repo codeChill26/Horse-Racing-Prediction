@@ -34,10 +34,10 @@ class JockeyAssignment {
 
 const jockeyQuickActions = [
   JockeyQuickAction(
-    icon: '📅',
-    title: 'Lịch thi đấu',
-    description: 'Xem cuộc đua được phân công',
-    tag: 'Sắp ra mắt',
+    icon: '📬',
+    title: 'Lời mời thi đấu',
+    description: 'Xem & phản hồi lời mời từ chủ ngựa',
+    tag: 'Mở ngay',
   ),
   JockeyQuickAction(
     icon: '🐴',

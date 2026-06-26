@@ -14,11 +14,13 @@ class HorseOwnerHomeScreen extends StatefulWidget {
     required this.onLogout,
     required this.onOpenProfile,
     required this.onOpenTournaments,
+    required this.onOpenInvitations,
   });
 
   final VoidCallback onLogout;
   final VoidCallback onOpenProfile;
   final VoidCallback onOpenTournaments;
+  final VoidCallback onOpenInvitations;
 
   @override
   State<HorseOwnerHomeScreen> createState() => _HorseOwnerHomeScreenState();
@@ -193,7 +195,10 @@ class _HorseOwnerHomeScreenState extends State<HorseOwnerHomeScreen> {
                     subtitle: 'Công cụ dành cho chủ ngựa',
                   ),
                   const SizedBox(height: 12),
-                  _QuickActionsGrid(onTournaments: widget.onOpenTournaments),
+                  _QuickActionsGrid(
+                    onTournaments: widget.onOpenTournaments,
+                    onInvitations: widget.onOpenInvitations,
+                  ),
                   const SizedBox(height: 24),
                   const _SectionHeader(
                     title: 'Ngựa của bạn',
@@ -336,9 +341,13 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid({required this.onTournaments});
+  const _QuickActionsGrid({
+    required this.onTournaments,
+    required this.onInvitations,
+  });
 
   final VoidCallback onTournaments;
+  final VoidCallback onInvitations;
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +360,9 @@ class _QuickActionsGrid extends StatelessWidget {
           children: ownerQuickActions.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
-            final onTap = index == 0 ? onTournaments : null;
+            VoidCallback? onTap;
+            if (index == 0) onTap = onTournaments;
+            if (index == 2) onTap = onInvitations;
             return SizedBox(
               width: w,
               child: Material(
