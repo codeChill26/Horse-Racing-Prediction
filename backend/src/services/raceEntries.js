@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const oddsService = require('./odds');
+const { emitToAdmin, emitToUser, emitToAll } = require('../socket/emitter');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -24,6 +25,7 @@ function entrySelect() {
         horseId: true,
         name: true,
         status: true,
+        ownerId: true,
       },
     },
     race: {
@@ -69,12 +71,19 @@ class RaceEntriesService {
   async createEntry(raceId, horseId, ownerId, jockeyId) {
     const race = await prisma.race.findUnique({
       where: { raceId },
-      select: { raceId: true, registrationOpen: true },
+      select: { raceId: true, registrationOpen: true, maxEntries: true },
     });
 
     if (!race) throw httpError('Race not found', 404);
     if (!race.registrationOpen) {
       throw httpError('Race registration gate is closed.', 409);
+    }
+
+    const approvedCount = await prisma.raceEntry.count({
+      where: { raceId, status: 'APPROVED' },
+    });
+    if (approvedCount >= race.maxEntries) {
+      throw httpError(`Race has reached its maximum of ${race.maxEntries} entries.`, 409);
     }
 
     const horse = await prisma.horse.findUnique({
@@ -111,10 +120,17 @@ class RaceEntriesService {
     }
 
     try {
-      return await prisma.raceEntry.create({
+      const entry = await prisma.raceEntry.create({
         data: { raceId, horseId, jockeyId: jockeyId || undefined, status: 'PENDING' },
         select: entrySelect(),
       });
+
+      emitToAdmin('entry:created', { entry });
+      if (jockeyId) {
+        emitToUser(jockeyId, 'entry:created', { entry });
+      }
+
+      return entry;
     } catch (error) {
       if (error?.code === 'P2002') {
         throw httpError('Horse is already registered for this race.', 409);
@@ -126,10 +142,23 @@ class RaceEntriesService {
   async reviewEntry(entryId, { status, reason }, reviewerId) {
     const existing = await prisma.raceEntry.findUnique({
       where: { entryId },
-      select: { entryId: true, status: true },
+      select: { entryId: true, status: true, raceId: true },
     });
 
     if (!existing) throw httpError('Race entry not found', 404);
+
+    if (status === 'APPROVED' && existing.status !== 'APPROVED') {
+      const race = await prisma.race.findUnique({
+        where: { raceId: existing.raceId },
+        select: { maxEntries: true },
+      });
+      const approvedCount = await prisma.raceEntry.count({
+        where: { raceId: existing.raceId, status: 'APPROVED' },
+      });
+      if (approvedCount >= race.maxEntries) {
+        throw httpError(`Race has reached its maximum of ${race.maxEntries} entries. Cannot approve more.`, 409);
+      }
+    }
 
     const data =
       status === 'APPROVED'
@@ -146,11 +175,23 @@ class RaceEntriesService {
             reviewedAt: new Date(),
           };
 
-    return prisma.raceEntry.update({
+    const updated = await prisma.raceEntry.update({
       where: { entryId },
       data,
       select: entrySelect(),
     });
+
+    const horseOwnerId = updated.horse?.ownerId;
+    if (horseOwnerId) {
+      emitToUser(horseOwnerId, 'entry:status_changed', {
+        entryId: updated.entryId,
+        raceId: updated.raceId,
+        status: updated.status,
+        reason: updated.rejectionReason,
+      });
+    }
+
+    return updated;
   }
 
   async setRegistrationGate(raceId, isOpen) {
@@ -173,6 +214,8 @@ class RaceEntriesService {
         },
         select: raceSelect(),
       });
+
+      emitToAll('race:gate_opened', { raceId });
 
       return { race: updatedRace, autoRejectedCount: 0 };
     }
@@ -198,6 +241,8 @@ class RaceEntriesService {
 
       return { race: updatedRace, autoRejectedCount: autoRejected.count };
     });
+
+    emitToAll('race:gate_closed', { raceId, autoRejectedCount: result.autoRejectedCount });
 
     try {
       const oddsCalculated = await oddsService.calculateAllOddsForRace(raceId);
