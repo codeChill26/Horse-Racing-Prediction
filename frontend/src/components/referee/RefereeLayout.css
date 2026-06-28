@@ -1,0 +1,178 @@
+/* ============================================
+   REFEREE LAYOUT - Dark Theme
+   Đồng bộ emerald green + regal gold với Admin/Spectator/HorseOwner
+   ============================================ */
+
+/* === SHELL === */
+.ref-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--ho-bg, #0b141c);
+  color: var(--ho-text-secondary, #bfc9bf);
+}
+
+/* === SIDEBAR === */
+.ref-sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: #060f16;
+  border-right: 1px solid var(--ho-border, #30363d);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Brand */
+.ref-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.1rem;
+  border-bottom: 1px solid var(--ho-border, #30363d);
+  margin-bottom: 0.5rem;
+}
+
+.ref-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(140deg, rgba(141, 214, 166, 0.18), rgba(230, 195, 100, 0.18));
+  color: var(--ho-gold, #e6c364);
+  border: 1px solid var(--ho-gold-border, rgba(230, 195, 100, 0.4));
+}
+
+.ref-sidebar-brand > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.ref-sidebar-brand strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  line-height: 1.2;
+}
+
+.ref-sidebar-brand span {
+  font-size: 0.68rem;
+  color: var(--ho-text-muted, #8b949e);
+  margin-top: 0.1rem;
+}
+
+/* Nav */
+.ref-sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.25rem 0.65rem;
+}
+
+.ref-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ho-text-secondary, #bfc9bf);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ref-nav-link:hover {
+  background: var(--ho-surface-high, #222b33);
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+.ref-nav-link.is-active {
+  background: linear-gradient(135deg, rgba(141, 214, 166, 0.15), rgba(141, 214, 166, 0.08));
+  color: var(--ho-primary, #8dd6a6);
+  border: 1px solid var(--ho-primary-border, rgba(141, 214, 166, 0.35));
+}
+
+.ref-nav-link.is-active .ref-nav-icon {
+  color: var(--ho-primary, #8dd6a6);
+}
+
+.ref-nav-icon {
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+/* Footer */
+.ref-sidebar-footer {
+  padding: 0.85rem 0.85rem;
+  border-top: 1px solid var(--ho-border, #30363d);
+}
+
+.ref-btn {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--ho-border, #30363d);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+  text-decoration: none;
+}
+
+.ref-btn--ghost {
+  background: transparent;
+  color: var(--ho-text-secondary, #bfc9bf);
+}
+
+.ref-btn--ghost:hover {
+  background: var(--ho-surface-high, #222b33);
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+.ref-btn--full {
+  width: 100%;
+}
+
+/* === CONTENT === */
+.ref-shell-content {
+  flex: 1;
+  min-width: 0;
+  background: var(--ho-bg, #0b141c);
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .ref-sidebar {
+    width: 60px;
+  }
+  .ref-sidebar-brand div,
+  .ref-nav-link span,
+  .ref-sidebar-brand span {
+    display: none;
+  }
+  .ref-nav-link {
+    justify-content: center;
+    padding: 0.65rem;
+  }
+  .ref-sidebar-brand {
+    justify-content: center;
+    padding: 1rem 0.5rem;
+  }
+  .ref-logo {
+    width: 2rem;
+    height: 2rem;
+  }
+}

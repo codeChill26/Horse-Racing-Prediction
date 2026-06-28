@@ -1,0 +1,257 @@
+/* ============================================
+   REFEREE PROFILE PAGE - Dark Theme
+   ============================================ */
+
+.ref-page {
+  min-height: 100%;
+  background: var(--ho-bg, #0b141c);
+  color: var(--ho-text-secondary, #bfc9bf);
+  padding-bottom: 3rem;
+}
+
+/* === LOADING === */
+.ref-profile-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ref-profile-hero-skeleton {
+  height: 7rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid var(--ho-border, #30363d);
+  animation: ref-pulse 1.5s ease-in-out infinite;
+}
+
+.ref-profile-stats-skeleton {
+  height: 5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid var(--ho-border, #30363d);
+  animation: ref-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ref-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+/* === HERO CARD === */
+.ref-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 14px;
+  margin-bottom: 1.25rem;
+}
+
+.ref-profile-hero__avatar {
+  width: 4rem;
+  height: 4rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(140deg, rgba(230, 195, 100, 0.2), rgba(230, 195, 100, 0.1));
+  color: var(--ho-gold, #e6c364);
+  border: 2px solid rgba(230, 195, 100, 0.4);
+  font-weight: 700;
+  font-size: 1.2rem;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.ref-profile-hero__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ref-profile-hero__info h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  line-height: 1.2;
+}
+
+.ref-profile-hero__badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* === STATS GRID === */
+.ref-profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .ref-profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .ref-profile-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ref-profile-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 12px;
+}
+
+.ref-profile-stat-card__icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ho-border, #30363d);
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.ref-profile-stat-card__icon--primary {
+  background: rgba(141, 214, 166, 0.12);
+  border-color: rgba(141, 214, 166, 0.4);
+  color: var(--ho-primary, #8dd6a6);
+}
+
+.ref-profile-stat-card__icon--danger {
+  background: rgba(255, 180, 171, 0.12);
+  border-color: rgba(255, 180, 171, 0.35);
+  color: #ffb4ab;
+}
+
+.ref-profile-stat-card__label {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.ref-profile-stat-card__value {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  line-height: 1.1;
+}
+
+.ref-profile-stat-card__value--primary {
+  color: var(--ho-primary, #8dd6a6);
+}
+
+.ref-profile-stat-card__value--danger {
+  color: #ffb4ab;
+}
+
+.ref-profile-stat-card__pending {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ho-gold, #e6c364);
+}
+
+/* === INFO SECTION === */
+.ref-profile-info-section {
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.ref-profile-info-section h3 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.ref-profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .ref-profile-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ref-profile-info-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 10px;
+}
+
+.ref-profile-info-item__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--ho-text-muted, #8b949e);
+  font-weight: 500;
+}
+
+.ref-profile-info-item__value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ho-text-primary, #dae3ee);
+  text-align: right;
+}
+
+/* === NOTICE === */
+.ref-profile-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  background: rgba(121, 192, 255, 0.06);
+  border: 1px solid rgba(121, 192, 255, 0.25);
+  border-radius: 12px;
+  font-size: 0.82rem;
+}
+
+.ref-profile-notice svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #79c0ff;
+}
+
+.ref-profile-notice strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+.ref-profile-notice p {
+  margin: 0;
+  color: var(--ho-text-secondary, #bfc9bf);
+  line-height: 1.45;
+}

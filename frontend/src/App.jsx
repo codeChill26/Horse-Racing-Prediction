@@ -35,6 +35,15 @@ import TournamentsPage from "./pages/tournaments/TournamentsPage";
 import BettingHistoryPage from "./pages/betting-history/BettingHistoryPage";
 import StatisticsPage from "./pages/statistics/StatisticsPage";
 
+// Referee pages
+import RefereeLayout from "./components/referee/RefereeLayout";
+import RefereeDashboardPage from "./pages/referee/RefereeDashboardPage";
+import RefereeAssignedRacesPage from "./pages/referee/RefereeAssignedRacesPage";
+import RefereeRaceControlPage from "./pages/referee/RefereeRaceControlPage";
+import RefereeSubmissionHistoryPage from "./pages/referee/RefereeSubmissionHistoryPage";
+import RefereeConflictPage from "./pages/referee/RefereeConflictPage";
+import RefereeProfilePage from "./pages/referee/RefereeProfilePage";
+
 function App() {
   return (
     <BrowserRouter>
@@ -102,6 +111,21 @@ function App() {
           <Route path="invite-jockey" element={<HorseOwnerInviteJockeyPage />} />
           <Route path="schedule" element={<HorseOwnerSchedulePage />} />
           <Route path="tournaments" element={<HorseOwnerTournamentPage />} />
+        </Route>
+        <Route
+          path="/referee"
+          element={
+            <RequireRole role="REFEREE">
+              <RefereeLayout />
+            </RequireRole>
+          }
+        >
+          <Route index element={<RefereeDashboardPage />} />
+          <Route path="assigned-races" element={<RefereeAssignedRacesPage />} />
+          <Route path="races/:raceId/control" element={<RefereeRaceControlPage />} />
+          <Route path="submissions" element={<RefereeSubmissionHistoryPage />} />
+          <Route path="conflicts" element={<RefereeConflictPage />} />
+          <Route path="profile" element={<RefereeProfilePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

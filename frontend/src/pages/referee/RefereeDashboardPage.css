@@ -1,0 +1,168 @@
+/* ============================================
+   REFEREE DASHBOARD PAGE - Dark Theme
+   ============================================ */
+
+.ref-page {
+  min-height: 100%;
+  background: var(--ho-bg, #0b141c);
+  color: var(--ho-text-secondary, #bfc9bf);
+  padding-bottom: 3rem;
+}
+
+/* === SKELETON / LOADING === */
+.ref-dashboard-loading {
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ref-loading-bar {
+  height: 5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  border: 1px solid var(--ho-border, #30363d);
+  animation: ref-pulse 1.5s ease-in-out infinite;
+}
+
+.ref-loading-bar--short {
+  height: 2rem;
+  width: 60%;
+}
+
+@keyframes ref-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+/* === STATS GRID === */
+.ref-stats-grid {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .ref-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .ref-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* === CONFLICT ALERTS === */
+.ref-conflict-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* === RACE ROW === */
+.ref-race-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ref-race-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 12px;
+  transition: border-color 0.15s;
+}
+
+.ref-race-row:hover {
+  border-color: var(--ho-primary-border, rgba(141, 214, 166, 0.4));
+}
+
+.ref-race-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ref-race-row__info h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ref-race-row__info p {
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.ref-race-row__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem !important;
+  color: var(--ho-text-muted, #8b949e) !important;
+  flex-wrap: wrap;
+}
+
+.ref-race-row__progress {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ref-race-row__progress-bar {
+  width: 160px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ref-race-row__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ho-primary, #8dd6a6), var(--ho-gold, #e6c364));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.ref-race-row__progress span {
+  font-size: 0.72rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.ref-race-row__status {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.ref-race-row__pending {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ho-gold, #e6c364);
+}
+
+@media (max-width: 600px) {
+  .ref-race-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ref-race-row__status {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+  }
+}

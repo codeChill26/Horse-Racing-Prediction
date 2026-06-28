@@ -1,0 +1,168 @@
+/* ============================================
+   REFEREE ASSIGNED RACES PAGE - Dark Theme
+   ============================================ */
+
+.ref-page {
+  min-height: 100%;
+  background: var(--ho-bg, #0b141c);
+  color: var(--ho-text-secondary, #bfc9bf);
+  padding-bottom: 3rem;
+}
+
+/* === RACE TABLE === */
+.ref-race-table {
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ref-race-table__header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 0.6fr 1fr 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.65rem 1.1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--ho-border, #30363d);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.ref-race-table__row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 0.6fr 1fr 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  align-items: center;
+  transition: background 0.15s;
+}
+
+.ref-race-table__row:last-child {
+  border-bottom: none;
+}
+
+.ref-race-table__row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ref-race-table__race {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.ref-race-table__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--ho-text-muted, #8b949e);
+  flex-shrink: 0;
+}
+
+.ref-race-table__race strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ref-race-table__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ref-race-table__label {
+  display: none;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.ref-race-table__cell > span:not(.ref-race-table__label):not(.ref-badge):not(.ref-race-table__time):not(.ref-race-table__role) {
+  font-size: 0.82rem;
+  color: var(--ho-text-secondary, #bfc9bf);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ref-race-table__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--ho-text-secondary, #bfc9bf);
+  white-space: nowrap;
+}
+
+.ref-race-table__role {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ho-gold, #e6c364) !important;
+}
+
+/* === SKELETON === */
+.ref-skeleton__line {
+  height: 0.75rem !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.ref-skeleton__line--sm {
+  width: 60%;
+}
+
+.ref-skeleton__line--xs {
+  width: 40%;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1024px) {
+  .ref-race-table__header,
+  .ref-race-table__row {
+    grid-template-columns: 2fr 1.5fr 1.2fr 0.8fr 1fr;
+  }
+  .ref-race-table__header > span:nth-child(3),
+  .ref-race-table__row > div:nth-child(3) {
+    display: none;
+  }
+  .ref-race-table__header > span:nth-child(4),
+  .ref-race-table__row > div:nth-child(4) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .ref-race-table__header {
+    display: none;
+  }
+  .ref-race-table__row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+  .ref-race-table__cell {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .ref-race-table__label {
+    display: block;
+    min-width: 80px;
+  }
+}
