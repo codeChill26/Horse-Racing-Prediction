@@ -219,6 +219,7 @@ class OwnerService {
     };
   }
 
+
   async listOpenRaces() {
     const races = await prisma.race.findMany({
       where: { registrationOpen: true },

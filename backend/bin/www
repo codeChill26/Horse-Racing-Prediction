@@ -8,6 +8,7 @@ var app = require('../app');
 var debug = require('debug')('horsesracingprediction-prm:server');
 var http = require('http');
 var { startScheduler } = require('../src/services/scheduler');
+var { initSocket } = require('../src/socket');
 
 /**
  * Get port from environment and store in Express.
@@ -21,6 +22,9 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+
+// Attach Socket.IO to HTTP server
+initSocket(server);
 
 /**
  * Listen on provided port, on all network interfaces.

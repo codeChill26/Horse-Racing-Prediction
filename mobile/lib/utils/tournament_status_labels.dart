@@ -10,6 +10,14 @@ const tournamentStatusCodes = [
   'CANCELLED',
 ];
 
+/// Luồng chính (không gồm hủy).
+const tournamentMainFlow = [
+  'DRAFT',
+  'OPEN',
+  'ONGOING',
+  'FINISHED',
+];
+
 const allowedStatusTransitions = <String, List<String>>{
   'DRAFT': ['OPEN', 'CANCELLED'],
   'OPEN': ['ONGOING', 'CANCELLED'],
@@ -17,6 +25,27 @@ const allowedStatusTransitions = <String, List<String>>{
   'FINISHED': [],
   'CANCELLED': [],
 };
+
+bool canTransitionTournamentStatus(String? current, String next) {
+  return nextStatusesFor(current).contains(next.toUpperCase());
+}
+
+String tournamentTransitionHint(String from, String to) {
+  switch ('${from.toUpperCase()}->${to.toUpperCase()}') {
+    case 'DRAFT->OPEN':
+      return 'Mở đăng ký cho chủ ngựa và kỵ sĩ';
+    case 'OPEN->ONGOING':
+      return 'Đóng đăng ký, giải đang diễn ra';
+    case 'ONGOING->FINISHED':
+      return 'Kết thúc giải đấu';
+    case 'DRAFT->CANCELLED':
+    case 'OPEN->CANCELLED':
+    case 'ONGOING->CANCELLED':
+      return 'Hủy giải — bắt buộc nhập lý do';
+    default:
+      return '';
+  }
+}
 
 String tournamentStatusLabelVi(String? code) {
   switch (code?.toUpperCase()) {

@@ -2,6 +2,55 @@
    STATISTICS PAGE - Dark Theme (Admin Colors)
    ============================================ */
 
+/* ============ SHARED SP-* UTILITIES ============ */
+.sp-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.sp-page-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8dd6a6;
+}
+
+.sp-page-title {
+  margin: 0 0 0.35rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #dae3ee;
+  letter-spacing: -0.02em;
+}
+
+.sp-page-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #8b949e;
+}
+
+.sp-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #8b949e;
+}
+
+.sp-spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 1rem;
+  border: 2px solid #30363d;
+  border-top-color: #8dd6a6;
+  border-radius: 50%;
+  animation: sp-spin 0.8s linear infinite;
+}
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ============ SUMMARY CARDS ============ */
 .st-summary {
   display: grid;
@@ -72,7 +121,7 @@
 
 .st-card__value {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1.6rem;
   font-weight: 800;
   color: #dae3ee;
@@ -139,7 +188,7 @@
 
 .st-fav-card__name {
   margin: 0 0 0.25rem;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1.1rem;
   font-weight: 700;
   color: #dae3ee;
@@ -170,7 +219,7 @@
 
 .st-perf__title {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1rem;
   font-weight: 700;
   color: #dae3ee;
@@ -226,7 +275,7 @@
 }
 
 .st-perf__points {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 0.9rem;
   font-weight: 700;
   min-width: 100px;

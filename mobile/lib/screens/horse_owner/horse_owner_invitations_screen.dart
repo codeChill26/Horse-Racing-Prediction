@@ -211,7 +211,7 @@ class _SentInvitationsTabState extends State<_SentInvitationsTab> {
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(16),
                             itemCount: _invitations.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            separatorBuilder: (_, _) => const SizedBox(height: 10),
                             itemBuilder: (context, i) {
                               final inv = _invitations[i];
                               return _InvitationCard(
@@ -546,7 +546,7 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DropdownButtonFormField<PublicTournament>(
-                  value: _selectedTournament,
+                  initialValue: _selectedTournament,
                   decoration: const InputDecoration(
                     labelText: 'Giải đấu',
                     border: OutlineInputBorder(),
@@ -575,7 +575,7 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
                   )
                 else if (_races.isNotEmpty)
                   DropdownButtonFormField<RaceSummary>(
-                    value: _selectedRace,
+                    initialValue: _selectedRace,
                     decoration: const InputDecoration(
                       labelText: 'Chặng đua',
                       border: OutlineInputBorder(),

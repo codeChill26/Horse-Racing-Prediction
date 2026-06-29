@@ -1,4 +1,4 @@
-// backend/src/openapi.js
+﻿// backend/src/openapi.js
 
 module.exports = {
   openapi: '3.0.3',
@@ -9,9 +9,12 @@ module.exports = {
   servers: [{ url: 'http://localhost:3000' }],
   tags: [
     { name: 'Auth' },
+    { name: 'Horses' },
+    { name: 'Admin Horses' },
     { name: 'Admin Users' },
     { name: 'Tournaments' },
     { name: 'Admin Tournaments' },
+    { name: 'Jockey Invitations' },
     { name: 'Predictions' },
     { name: 'Wallet' },
     { name: 'Admin Wallet' },
@@ -282,7 +285,173 @@ module.exports = {
           reason: { type: 'string', example: 'Compensation for race cancellation' },
         },
       },
-    },
+      HorseCareerMetrics: {
+        type: 'object',
+        properties: {
+          totalStarts: { type: 'integer', example: 5 },
+          wins: { type: 'integer', example: 2 },
+          winRate: { type: 'number', example: 40 },
+          avgFinishPosition: { type: 'number', nullable: true, example: 2.4 },
+          recentFormText: { type: 'string', example: '1-2-4' },
+          recentForm: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                raceId: { type: 'integer' },
+                raceName: { type: 'string' },
+                tournamentId: { type: 'integer', nullable: true },
+                tournamentName: { type: 'string', nullable: true },
+                scheduledAt: { type: 'string', format: 'date-time', nullable: true },
+                finishPosition: { type: 'integer' },
+              },
+            },
+          },
+        },
+      },
+      Horse: {
+        type: 'object',
+        properties: {
+          horseId: { type: 'integer', example: 10 },
+          ownerId: { type: 'integer', example: 3 },
+          name: { type: 'string', example: 'Storm' },
+          breed: { type: 'string', nullable: true, example: 'Arabian' },
+          dateOfBirth: { type: 'string', format: 'date-time', nullable: true },
+          sex: { type: 'string', nullable: true, example: 'M' },
+          color: { type: 'string', nullable: true, example: 'Brown' },
+          status: {
+            type: 'string',
+            enum: ['PENDING', 'APPROVED', 'REJECTED', 'INACTIVE'],
+            example: 'APPROVED',
+          },
+          rejectionReason: { type: 'string', nullable: true },
+          approvedAt: { type: 'string', format: 'date-time', nullable: true },
+          rejectedAt: { type: 'string', format: 'date-time', nullable: true },
+          reviewedById: { type: 'integer', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      HorseWithCareerMetrics: {
+        allOf: [
+          { $ref: '#/components/schemas/Horse' },
+          {
+            type: 'object',
+            properties: {
+              careerMetrics: { $ref: '#/components/schemas/HorseCareerMetrics' },
+            },
+          },
+        ],
+      },
+      CreateHorseRequest: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'Storm' },
+          breed: { type: 'string', nullable: true, example: 'Arabian' },
+          dateOfBirth: { type: 'string', format: 'date', nullable: true, example: '2020-01-01' },
+          sex: { type: 'string', nullable: true, example: 'M' },
+          color: { type: 'string', nullable: true, example: 'Brown' },
+        },
+      },
+      ReviewHorseRequest: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['APPROVED', 'REJECTED'], example: 'APPROVED' },
+          reason: { type: 'string', nullable: true, example: 'Incomplete documentation' },
+        },
+      },
+      SendInvitationRequest: {
+        type: 'object',
+        required: ['raceId', 'horseId', 'jockeyId'],
+        properties: {
+          raceId: { type: 'integer', example: 1 },
+          horseId: { type: 'integer', example: 3 },
+          jockeyId: { type: 'integer', example: 14 },
+        },
+      },
+      RespondInvitationRequest: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['ACCEPTED', 'DECLINED'], example: 'ACCEPTED' },
+          declineReason: { type: 'string', nullable: true, example: 'Schedule conflict' },
+        },
+      },
+RefereeSubmitResultRequest: {
+        type: 'object',
+        required: ['rawResults'],
+        properties: {
+          rawResults: {
+            type: 'array',
+            description: 'Danh sách kết quả xếp hạng do Trọng tài nhập',
+            items: {
+              type: 'object',
+              required: ['entryId', 'rank', 'isDnf', 'isDq'],
+              properties: {
+                entryId: {
+                  type: 'integer',
+                  description: 'ID lượt đăng ký tham gia trận đấu (vị trí ngựa trong trận)'
+                },
+                rank: {
+                  type: 'integer',
+                  description: 'Thứ hạng về đích của ngựa (1, 2, 3...)'
+                },
+                isDnf: {
+                  type: 'boolean',
+                  description: 'True nếu ngựa không hoàn thành cuộc đua (Did Not Finish)'
+                },
+                isDq: {
+                  type: 'boolean',
+                  description: 'True nếu ngựa bị tước quyền thi đấu do phạm quy (Disqualified)'
+                },
+              },
+            },
+          },
+        },
+      },
+
+      AdminAssignRefereesRequest: {
+        type: 'object',
+        required: ['refereeAId', 'refereeBId'],
+        properties: {
+          refereeAId: {
+            type: 'integer',
+            description: 'Mã ID tài khoản của Trọng tài A'
+          },
+          refereeBId: {
+            type: 'integer',
+            description: 'Mã ID tài khoản của Trọng tài B (Không được trùng với A)'
+          },
+        },
+      },
+
+      AdminResolveConflictRequest: {
+        type: 'object',
+        required: ['finalResults', 'reason'],
+        properties: {
+          finalResults: {
+            type: 'array',
+            description: 'Bảng kết quả xếp hạng cuối cùng do Admin quyết định ghi đè',
+            items: {
+              type: 'object',
+              properties: {
+                entryId: { type: 'integer' },
+                rank: { type: 'integer' },
+                isDnf: { type: 'boolean' },
+                isDq: { type: 'boolean' }
+              }
+            },
+          },
+          reason: {
+            type: 'string',
+            minLength: 5,
+            description: 'Lý do bắt buộc nhập khi Admin can thiệp ghi đè kết quả'
+          },
+        },
+      },
+    }, 
   },
   paths: {
     '/api/tournaments': {
@@ -335,6 +504,132 @@ module.exports = {
           },
           '404': {
             description: 'Not Found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/horses': {
+      get: {
+        tags: ['Horses'],
+        summary: 'List approved horses (public)',
+        description: 'Returns only horses with status APPROVED, including career metrics.',
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    horses: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/HorseWithCareerMetrics' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['Horses'],
+        summary: 'Create horse (submit for admin approval)',
+        description: 'Horse owner submits a new horse. Initial status is PENDING.',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateHorseRequest' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Horse submitted for approval' },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — HORSE_OWNER role required' },
+        },
+      },
+    },
+    '/api/horses/mine': {
+      get: {
+        tags: ['Horses'],
+        summary: 'List my horses (horse owner)',
+        description: 'Returns all horses owned by the authenticated user (any status), including career metrics.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    horses: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/HorseWithCareerMetrics' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — HORSE_OWNER role required' },
+        },
+      },
+    },
+    '/api/horses/{id}': {
+      get: {
+        tags: ['Horses'],
+        summary: 'Get approved horse by id (public)',
+        description: 'Only APPROVED horses are visible. Returns 404 for pending/rejected horses.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    horse: { $ref: '#/components/schemas/HorseWithCareerMetrics' },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '404': {
+            description: 'Horse not found or not approved',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -1044,6 +1339,110 @@ module.exports = {
         },
       },
     },
+    '/api/admin/horses': {
+      get: {
+        tags: ['Admin Horses'],
+        summary: 'List horses for admin review',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['PENDING', 'APPROVED', 'REJECTED', 'ALL'],
+            },
+            description: 'Filter by horse status. Omit or use ALL for all statuses.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    horses: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Horse' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — ADMIN role required' },
+        },
+      },
+    },
+    '/api/admin/horses/{id}': {
+      get: {
+        tags: ['Admin Horses'],
+        summary: 'Get horse by id (admin)',
+        description: 'Returns any horse regardless of status, including career metrics.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    horse: { $ref: '#/components/schemas/HorseWithCareerMetrics' },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — ADMIN role required' },
+          '404': { description: 'Not Found' },
+        },
+      },
+    },
+    '/api/admin/horses/{id}/status': {
+      patch: {
+        tags: ['Admin Horses'],
+        summary: 'Approve or reject a horse',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ReviewHorseRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Horse review updated successfully' },
+          '400': { description: 'Bad Request — reason required when rejecting' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — ADMIN role required' },
+          '404': { description: 'Not Found' },
+        },
+      },
+    },
     '/api/invitations/jockeys': {
       get: {
         tags: ['Jockey Invitations'],
@@ -1164,6 +1563,188 @@ module.exports = {
       },
     },
 
+
+    // ---- Admin Race Management ----
+
+    '/api/admin/tournaments/{tournamentId}/races': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'List races by tournament',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'tournamentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          '200': { description: 'List races successfully' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Tournament not found' },
+        },
+      },
+
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Create a race',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'tournamentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Race created successfully' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Get race details',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'Race details' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+
+      patch: {
+        tags: ['Admin Races'],
+        summary: 'Update a race',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Race updated successfully' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+
+      delete: {
+        tags: ['Admin Races'],
+        summary: 'Delete a race',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'Race deleted successfully' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}/entries': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'List all race entries',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'status', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': { description: 'List race entries' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}/bulk-review': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Bulk approve or reject race entries',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              example: {
+                entries: [
+                  { entryId: 1, status: 'APPROVED' },
+                  { entryId: 2, status: 'REJECTED', reason: 'Invalid registration' },
+                ],
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Bulk review completed' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}/registration-gate': {
+      put: {
+        tags: ['Admin Races'],
+        summary: 'Open or close registration gate',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              example: { registrationOpen: true },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Registration gate updated' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
     // ---- Wallet Endpoints ----
 
     '/api/wallet': {
@@ -1245,6 +1826,92 @@ module.exports = {
         ],
         responses: {
           '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+
+    // ---- Referee Endpoints ----
+
+    '/api/referee/races/{id}/start': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee starts the assigned race (SCHEDULED -> IN_PROGRESS)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'Race started and bets are locked' },
+          '400': { description: 'Bad Request / Invalid race state' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/referee/races/{id}/submit': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee blind submits race ranks and statuses',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RefereeSubmitResultRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Result submitted successfully' },
+          '400': { description: 'Bad Request / Already submitted' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+
+    // ---- Admin Referee Control Endpoints ----
+
+    '/api/admin/races/{id}/assign-referees': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Admin assigns two distinct referees to a scheduled race',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminAssignRefereesRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Referees assigned successfully' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/review-conflict': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Admin reviews side-by-side referee submissions for a paused race',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found or not in PAUSED state' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/resolve-conflict': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Admin overwrites the final result and provides a mandatory reason',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminResolveConflictRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Conflict resolved and race moved to PENDING_RESULT' },
+          '400': { description: 'Bad Request / Reason too short' },
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
         },

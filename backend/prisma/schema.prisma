@@ -39,9 +39,19 @@ enum HorseStatus {
 
 enum RaceStatus {
   SCHEDULED
-  ONGOING
+  IN_PROGRESS
+  PENDING_RESULT
+  PAUSED
   FINISHED
   CANCELLED
+}
+
+// Enum cho trạng thái đối chiếu kết quả của Trọng tài
+enum SubmissionMatchStatus {
+  PENDING // Đang chờ trọng tài còn lại nộp
+  AUTO_MATCHED // Khớp 100%
+  CONFLICTED // Lệch kết quả
+  RESOLVED // Đã được Admin xử lý ghi đè
 }
 
 enum PredictionStatus {
@@ -62,53 +72,61 @@ enum BetType {
 
 // 1. Thực thể Người dùng chính (Users)
 model User {
-  userId            Int               @id @default(autoincrement())
-  email             String            @unique
+  userId            Int       @id @default(autoincrement())
+  email             String    @unique
   passwordHash      String
   fullName          String
   phoneNumber       String?
   avatarUrl         String?
   roleId            Int
-  isActive          Boolean           @default(true)
-  lockedUntil       DateTime?         // Thời gian tài khoản bị khóa tạm thời
-  licenseNumber     String?           // Dành riêng cho nhóm Jockey
-  weight            Decimal?          // Dành riêng cho nhóm Jockey
-  bio               String?           // Dành riêng cho nhóm Jockey
-  isProfileComplete Boolean           @default(false)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  isActive          Boolean   @default(true)
+  lockedUntil       DateTime? // Thời gian tài khoản bị khóa tạm thời
+  licenseNumber     String? // Dành riêng cho nhóm Jockey
+  weight            Decimal? // Dành riêng cho nhóm Jockey
+  bio               String? // Dành riêng cho nhóm Jockey
+  isProfileComplete Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  refreshTokens     RefreshToken[]
-  role              Role              @relation(fields: [roleId], references: [roleId])
-  pointWallet       PointWallet?
-  resetOtp          PasswordResetOtp?
+  refreshTokens RefreshToken[]
+  role          Role              @relation(fields: [roleId], references: [roleId])
+  pointWallet   PointWallet?
+  resetOtp      PasswordResetOtp?
 
-  horsesOwned        Horse[]          @relation("HorseOwner")
-  horsesReviewed     Horse[]          @relation("HorseReviewedBy")
-  raceEntriesAsJockey RaceEntry[]     @relation("RaceEntryJockey")
-  raceEntriesReviewed RaceEntry[]     @relation("RaceEntryReviewedBy")
-  sentInvitations    JockeyInvitation[] @relation("JockeyInvitationSender")
-  receivedInvitations JockeyInvitation[] @relation("JockeyInvitationReceiver")
-  predictions        Prediction[]
+  horsesOwned         Horse[]     @relation("HorseOwner")
+  horsesReviewed      Horse[]     @relation("HorseReviewedBy")
+  raceEntriesAsJockey RaceEntry[] @relation("RaceEntryJockey")
+  raceEntriesReviewed RaceEntry[] @relation("RaceEntryReviewedBy")
+
+  // Đã sửa lại tên nhãn quan hệ cho khớp với model JockeyInvitation bên dưới
+  sentInvitations     JockeyInvitation[] @relation("InvitationOwner")
+  receivedInvitations JockeyInvitation[] @relation("InvitationJockey")
+
+  predictions Prediction[]
+
+  // BỔ SUNG: Quan hệ phục vụ luồng phân công Trọng tài
+  racesAsRefereeA    Race[]              @relation("RaceRefereeA")
+  racesAsRefereeB    Race[]              @relation("RaceRefereeB")
+  refereeSubmissions RefereeSubmission[]
 }
 
 // 2. Thực thể Vai trò hệ thống (Roles)
 model Role {
-  roleId    Int      @id @default(autoincrement())
-  code      String   @unique // 'Admin', 'Referee', 'Horse Owner', 'Jockey', 'Spectator'
-  name      String
-  users     User[]
+  roleId Int    @id @default(autoincrement())
+  code   String @unique // 'Admin', 'Referee', 'Horse Owner', 'Jockey', 'Spectator'
+  name   String
+  users  User[]
 }
 
 // 3. Ví điểm (PointWallets)
 model PointWallet {
-  walletId     Int                 @id @default(autoincrement())
-  userId       Int                 @unique
-  balance      Int                 @default(0)       // Số dư ví điểm
-  isFrozen     Int                 @default(0)       // 0: Hoạt động, 1: Bị đóng băng
-  rowVersion   Bytes               @default(dbgenerated("gen_random_bytes(8)")) // binary rowVersion chống Race Condition
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  walletId   Int      @id @default(autoincrement())
+  userId     Int      @unique
+  balance    Int      @default(0) // Số dư ví điểm
+  isFrozen   Int      @default(0) // 0: Hoạt động, 1: Bị đóng băng
+  rowVersion Bytes    @default(dbgenerated("gen_random_bytes(8)")) // binary rowVersion chống Race Condition
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user               User                @relation(fields: [userId], references: [userId])
   walletTransactions WalletTransaction[]
@@ -118,15 +136,15 @@ model PointWallet {
 model WalletTransaction {
   transactionId Int      @id @default(autoincrement())
   walletId      Int
-  amount        Int      // Số điểm thay đổi (+/-)
-  balanceAfter  Int      // Số dư ví điểm ngay sau giao dịch
-  referenceType String?  // Loại tham chiếu ngoại bang (nvarchar)
-  referenceId   BigInt?  // ID tham chiếu ngoại bang tương ứng (bigint)
-  type          String   // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED', 'BET_REFUND', 'BET_WIN', 'BET_WIN_REVERSAL', 'WEEKLY_BONUS', 'ADMIN_ADJUSTMENT'
-  description   String?  
+  amount        Int // Số điểm thay đổi (+/-)
+  balanceAfter  Int // Số dư ví điểm ngay sau giao dịch
+  referenceType String? // Loại tham chiếu ngoại bang (nvarchar)
+  referenceId   BigInt? // ID tham chiếu ngoại bang tương ứng (bigint)
+  type          String // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED', 'BET_REFUND', 'BET_WIN', 'BET_WIN_REVERSAL', 'WEEKLY_BONUS', 'ADMIN_ADJUSTMENT'
+  description   String?
   createdAt     DateTime @default(now())
 
-  pointWallet   PointWallet @relation(fields: [walletId], references: [walletId])
+  pointWallet PointWallet @relation(fields: [walletId], references: [walletId])
 }
 
 // 5. Mã OTP phục vụ luồng Quên mật khẩu (PasswordResetOtps)
@@ -138,7 +156,7 @@ model PasswordResetOtp {
   isUsed     Boolean  @default(false)
   createdAt  DateTime @default(now()) // Thời điểm sinh mã OTP vật lý
 
-  user       User     @relation(fields: [userId], references: [userId])
+  user User @relation(fields: [userId], references: [userId])
 }
 
 model RefreshToken {
@@ -149,68 +167,60 @@ model RefreshToken {
   expiryDate DateTime
   createdAt  DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
 model Tournament {
-  tournamentId Int             @id @default(autoincrement())
+  tournamentId Int              @id @default(autoincrement())
   name         String
   description  String?
   status       TournamentStatus @default(DRAFT)
   cancelReason String?
   startAt      DateTime?
   endAt        DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  races        Race[]
-  legs         Leg[]
-}
-
-model Leg {
-  legId        Int      @id @default(autoincrement())
-  tournamentId Int
-  name         String
-  legOrder     Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  tournament Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
-  races      Race[]
-
-  @@unique([tournamentId, legOrder])
-  @@index([tournamentId])
+  races Race[]
 }
 
 model Race {
-  raceId       Int      @id @default(autoincrement())
-  tournamentId Int
-  legId        Int?
-  name         String
-  scheduledAt  DateTime?
+  raceId               Int        @id @default(autoincrement())
+  tournamentId         Int
+  name                 String
+  maxEntries           Int        @default(8)
+  scheduledAt          DateTime?
   registrationDeadline DateTime?
-  status       RaceStatus @default(SCHEDULED)
-  publishedAt  DateTime?
-  registrationOpen Boolean @default(false)
+  status               RaceStatus @default(SCHEDULED)
+  publishedAt          DateTime?
+  registrationOpen     Boolean    @default(false)
   registrationOpenedAt DateTime?
   registrationClosedAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 
-  tournament   Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
-  leg          Leg?       @relation(fields: [legId], references: [legId], onDelete: SetNull)
-  entries      RaceEntry[]
-  results      RaceResult[]
-  invitations  JockeyInvitation[]
-  predictions  Prediction[]
-  odds         Odds[]
+  // BỔ SUNG: ID của 2 trọng tài được gán vào trận đấu này
+  refereeAId Int?
+  refereeBId Int?
+
+  tournament  Tournament         @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
+  entries     RaceEntry[]
+  results     RaceResult[]
+  invitations JockeyInvitation[]
+  predictions Prediction[]
+  odds        Odds[]
+
+  // BỔ SUNG: Quan hệ tới luồng nộp điểm Blind Entry
+  refereeA           User?               @relation("RaceRefereeA", fields: [refereeAId], references: [userId], onDelete: SetNull)
+  refereeB           User?               @relation("RaceRefereeB", fields: [refereeBId], references: [userId], onDelete: SetNull)
+  refereeSubmissions RefereeSubmission[]
+  officialRaceResult OfficialRaceResult?
 
   @@index([tournamentId])
-  @@index([legId])
 }
 
 model Horse {
-  horseId         Int        @id @default(autoincrement())
+  horseId         Int         @id @default(autoincrement())
   ownerId         Int
   name            String
   breed           String?
@@ -224,14 +234,14 @@ model Horse {
   approvedAt      DateTime?
   rejectedAt      DateTime?
   reviewedById    Int?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   owner      User  @relation("HorseOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
   reviewedBy User? @relation("HorseReviewedBy", fields: [reviewedById], references: [userId], onDelete: SetNull)
 
-  entries    RaceEntry[]
-  results    RaceResult[]
+  entries     RaceEntry[]
+  results     RaceResult[]
   invitations JockeyInvitation[]
 
   @@unique([ownerId, name])
@@ -240,7 +250,7 @@ model Horse {
 }
 
 model RaceEntry {
-  entryId         Int            @id @default(autoincrement())
+  entryId         Int             @id @default(autoincrement())
   raceId          Int
   horseId         Int
   jockeyId        Int?
@@ -248,8 +258,8 @@ model RaceEntry {
   rejectionReason String?
   reviewedById    Int?
   reviewedAt      DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   race       Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
   horse      Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
@@ -268,16 +278,17 @@ model RaceEntry {
 }
 
 model JockeyInvitation {
-  invitationId  Int                    @id @default(autoincrement())
+  invitationId  Int              @id @default(autoincrement())
   ownerId       Int
   jockeyId      Int
   horseId       Int
   raceId        Int
-  status        JockeyInvitationStatus @default(PENDING)
+  status        InvitationStatus @default(PENDING)
   declineReason String?
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
+  // Đã đồng bộ tên quan hệ trùng khớp hoàn toàn với model User
   owner  User  @relation("InvitationOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
   jockey User  @relation("InvitationJockey", fields: [jockeyId], references: [userId], onDelete: Restrict)
   horse  Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
@@ -286,7 +297,6 @@ model JockeyInvitation {
   @@unique([jockeyId, horseId, raceId])
   @@index([ownerId])
   @@index([jockeyId])
-  @@index([status])
 }
 
 model RaceResult {
@@ -302,28 +312,6 @@ model RaceResult {
 
   @@unique([raceId, horseId])
   @@index([horseId])
-}
-
-model JockeyInvitation {
-  invitationId  Int              @id @default(autoincrement())
-  ownerId       Int
-  jockeyId      Int
-  horseId       Int
-  raceId        Int
-  status        InvitationStatus @default(PENDING)
-  declineReason String?
-  createdAt     DateTime         @default(now())
-
-  owner  User  @relation("JockeyInvitationSender", fields: [ownerId], references: [userId])
-  jockey User  @relation("JockeyInvitationReceiver", fields: [jockeyId], references: [userId])
-  horse  Horse @relation(fields: [horseId], references: [horseId])
-  race   Race  @relation(fields: [raceId], references: [raceId])
-
-  @@unique([jockeyId, horseId, raceId])
-  @@index([ownerId])
-  @@index([jockeyId])
-  @@index([horseId])
-  @@index([raceId])
 }
 
 model Odds {
@@ -345,19 +333,19 @@ model Odds {
 }
 
 model Prediction {
-  predictionId Int      @id @default(autoincrement())
+  predictionId Int              @id @default(autoincrement())
   spectatorId  Int
   raceId       Int
   betType      BetType
   entryId1     Int
   entryId2     Int?
   betAmount    Int
-  lockedOdds   Decimal  @default(1.0)
+  lockedOdds   Decimal          @default(1.0)
   status       PredictionStatus @default(PENDING)
   payout       Int?
   settledAt    DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   spectator User      @relation(fields: [spectatorId], references: [userId])
   race      Race      @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
@@ -367,4 +355,42 @@ model Prediction {
   @@index([spectatorId])
   @@index([raceId])
   @@index([status])
+}
+
+// =========================================================================
+// BỔ SUNG CÁC MODEL PHỤC VỤ CHO FLOW 4: BLIND DOUBLE ENTRY
+// =========================================================================
+
+// Model lưu kết quả nộp độc lập của từng trọng tài (Append-Only)
+model RefereeSubmission {
+  submissionId Int      @id @default(autoincrement())
+  raceId       Int
+  refereeId    Int
+  submittedAt  DateTime @default(now())
+
+  // Dữ liệu JSON lưu chi tiết thứ hạng (Ví dụ: [{"entryId": 12, "rank": 1, "isDnf": false, "isDq": false}])
+  rawResults Json
+
+  race    Race @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  referee User @relation(fields: [refereeId], references: [userId], onDelete: Restrict)
+
+  @@unique([raceId, refereeId]) // Khóa ràng buộc: Mỗi trọng tài chỉ nộp 1 lần cho 1 trận đấu
+  @@index([raceId])
+}
+
+// Model lưu trạng thái so sánh kết quả và là nơi để Admin xử lý ghi đè
+model OfficialRaceResult {
+  officialResultId Int                   @id @default(autoincrement())
+  raceId           Int                   @unique // 1 trận đấu chỉ có duy nhất 1 bảng trạng thái kết quả chính thức
+  matchStatus      SubmissionMatchStatus @default(PENDING)
+
+  // Kết quả cuối cùng chốt hạ sau khi so sánh hoặc sau khi Admin chỉnh sửa thủ công
+  finalResults Json
+
+  resolvedById  Int? // ID Admin xử lý nếu trạng thái bị CONFLICTED
+  resolveReason String? // Lý do bắt buộc khi Admin can thiệp ghi đè kết quả
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  race Race @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
 }

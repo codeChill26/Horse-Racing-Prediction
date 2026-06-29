@@ -62,7 +62,7 @@
 
 .sp-hero__title {
   margin: 0 0 0.6rem;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: clamp(1.35rem, 3vw, 1.85rem);
   font-weight: 800;
   color: #dae3ee;
@@ -115,7 +115,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.35rem;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1.9rem;
   font-weight: 800;
   color: #8dd6a6;
@@ -128,7 +128,6 @@
 }
 
 .sp-wallet-card__unit {
-  font-family: 'Inter', sans-serif;
   font-size: 0.85rem;
   font-weight: 500;
   color: #bfc9bf;
@@ -234,7 +233,7 @@
 
 .sp-stat-card__value {
   margin: 0.15rem 0 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1.1rem;
   font-weight: 700;
   color: #dae3ee;
@@ -275,7 +274,7 @@
 
 .sp-section__title {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1rem;
   font-weight: 700;
   color: #dae3ee;
@@ -390,7 +389,7 @@
 
 .sp-race-card__title {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 0.9rem;
   font-weight: 700;
   color: #dae3ee;
@@ -427,7 +426,7 @@
 }
 
 .sp-race-card__odds-value {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 0.875rem;
   font-weight: 700;
   color: #e6c364;
@@ -613,7 +612,7 @@
 
 .sp-modal__title {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1rem;
   font-weight: 700;
   color: #dae3ee;
@@ -662,14 +661,13 @@
 }
 
 .sp-modal__balance-value {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1.2rem;
   font-weight: 700;
   color: #8dd6a6;
 }
 
 .sp-modal__balance-value span {
-  font-family: 'Inter', sans-serif;
   font-size: 0.8rem;
   font-weight: 500;
   color: #8b949e;
@@ -769,7 +767,7 @@
 }
 
 .sp-horse-card__odds-num {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1rem;
   font-weight: 700;
   color: #e6c364;
@@ -845,14 +843,14 @@
 }
 
 .sp-odds-highlight {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1rem;
   font-weight: 700;
   color: #e6c364;
 }
 
 .sp-win-amount {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
   font-size: 1rem;
   font-weight: 700;
   color: #8dd6a6;

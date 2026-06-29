@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../data/horse_owner_mock_data.dart';
+import '../../data/horse_owner_mock_data.dart' show ownerQuickActions;
+import '../../models/owner_horse.dart';
 import '../../models/user_profile.dart';
 import '../../screens/tournaments/tournament_view_theme.dart';
+import '../../services/horses_service.dart';
 import '../../services/profile_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/horse_status_labels.dart';
 import '../../widgets/tournaments_home_section.dart';
 
 class HorseOwnerHomeScreen extends StatefulWidget {
@@ -15,12 +18,14 @@ class HorseOwnerHomeScreen extends StatefulWidget {
     required this.onOpenProfile,
     required this.onOpenTournaments,
     required this.onOpenInvitations,
+    required this.onOpenHorses,
   });
 
   final VoidCallback onLogout;
   final VoidCallback onOpenProfile;
   final VoidCallback onOpenTournaments;
   final VoidCallback onOpenInvitations;
+  final VoidCallback onOpenHorses;
 
   @override
   State<HorseOwnerHomeScreen> createState() => _HorseOwnerHomeScreenState();
@@ -28,8 +33,10 @@ class HorseOwnerHomeScreen extends StatefulWidget {
 
 class _HorseOwnerHomeScreenState extends State<HorseOwnerHomeScreen> {
   final _profileService = ProfileService();
+  final _horsesService = HorsesService();
   final _tournamentsKey = GlobalKey<TournamentsHomeSectionState>();
   UserProfile? _profile;
+  List<OwnerHorse> _myHorses = [];
   int _tournamentCount = 0;
   bool _loading = true;
   String? _error;
@@ -46,10 +53,14 @@ class _HorseOwnerHomeScreenState extends State<HorseOwnerHomeScreen> {
       _error = null;
     });
     try {
-      final profile = await _profileService.getMyProfile();
+      final results = await Future.wait([
+        _profileService.getMyProfile(),
+        _horsesService.listMyHorses(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _profile = profile;
+        _profile = results[0] as UserProfile;
+        _myHorses = results[1] as List<OwnerHorse>;
         _loading = false;
       });
     } catch (e) {
@@ -57,10 +68,14 @@ class _HorseOwnerHomeScreenState extends State<HorseOwnerHomeScreen> {
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
         _profile = null;
+        _myHorses = [];
         _loading = false;
       });
     }
   }
+
+  int get _totalWins =>
+      _myHorses.fold(0, (sum, h) => sum + (h.careerMetrics?.wins ?? 0));
 
   Future<void> _refreshAll() async {
     await Future.wait([
@@ -184,8 +199,8 @@ class _HorseOwnerHomeScreenState extends State<HorseOwnerHomeScreen> {
                   const SizedBox(height: 16),
                   _StatsGrid(
                     loading: _loading,
-                    horseCount: ownerHorses.length,
-                    totalWins: ownerTotalWins,
+                    horseCount: _myHorses.length,
+                    totalWins: _totalWins,
                     upcomingTournaments: _tournamentCount,
                     phone: _profile?.phone,
                   ),
@@ -197,15 +212,57 @@ class _HorseOwnerHomeScreenState extends State<HorseOwnerHomeScreen> {
                   const SizedBox(height: 12),
                   _QuickActionsGrid(
                     onTournaments: widget.onOpenTournaments,
+                    onHorses: widget.onOpenHorses,
                     onInvitations: widget.onOpenInvitations,
                   ),
                   const SizedBox(height: 24),
-                  const _SectionHeader(
+                  _SectionHeader(
                     title: 'Ngựa của bạn',
-                    subtitle: 'Danh sách minh họa — API sẽ kết nối sau',
+                    subtitle: _myHorses.isEmpty
+                        ? 'Chưa có ngựa — xem tab Ngựa để theo dõi'
+                        : '${_myHorses.length} con trong trại',
                   ),
                   const SizedBox(height: 12),
-                  ...ownerHorses.map(_HorseTile.new),
+                  if (_loading)
+                    const Center(child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(color: AppColors.ownerTeal),
+                    ))
+                  else if (_myHorses.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Text(
+                        'Bạn chưa đăng ký ngựa nào.',
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
+                    )
+                  else
+                    ..._myHorses.take(3).map(_HorseTile.new),
+                  if (_myHorses.length > 3) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: widget.onOpenHorses,
+                        child: Text('Xem tất cả ${_myHorses.length} con →'),
+                      ),
+                    ),
+                  ] else if (_myHorses.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: widget.onOpenHorses,
+                        child: const Text('Xem chi tiết ngựa →'),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: widget.onOpenProfile,
@@ -343,10 +400,12 @@ class _SectionHeader extends StatelessWidget {
 class _QuickActionsGrid extends StatelessWidget {
   const _QuickActionsGrid({
     required this.onTournaments,
+    required this.onHorses,
     required this.onInvitations,
   });
 
   final VoidCallback onTournaments;
+  final VoidCallback onHorses;
   final VoidCallback onInvitations;
 
   @override
@@ -362,6 +421,7 @@ class _QuickActionsGrid extends StatelessWidget {
             final item = entry.value;
             VoidCallback? onTap;
             if (index == 0) onTap = onTournaments;
+            if (index == 1) onTap = onHorses;
             if (index == 2) onTap = onInvitations;
             return SizedBox(
               width: w,
@@ -435,6 +495,11 @@ class _HorseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final metrics = horse.careerMetrics;
+    final wins = metrics?.wins ?? 0;
+    final starts = metrics?.totalStarts ?? 0;
+    final age = horse.ageYears;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -470,30 +535,32 @@ class _HorseTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${horse.breed} · ${horse.age} tuổi · ${horse.wins} chiến thắng',
+                  [
+                    if (horse.breed != null && horse.breed!.isNotEmpty) horse.breed,
+                    if (age != null) '$age tuổi',
+                    if (starts > 0) '$wins thắng / $starts trận',
+                  ].join(' · '),
                   style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                'Giải kế tiếp',
-                style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+          if (horse.status != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: horseStatusColor(horse.status).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
               ),
-              Text(
-                horse.nextRace,
-                style: const TextStyle(
-                  fontSize: 11,
+              child: Text(
+                horseStatusLabelVi(horse.status),
+                style: TextStyle(
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.ownerPrimary,
+                  color: horseStatusColor(horse.status),
                 ),
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );

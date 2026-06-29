@@ -12,4 +12,5 @@ router.get('/:id/entries', ownerController.listRaceEntries);
 // GET /api/races/:id/detail - Full race detail with entries, odds, career stats
 router.get('/:id/detail', ownerController.getRaceDetail);
 
+
 module.exports = router;

@@ -1,4 +1,4 @@
-const HORSE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'];
+const HORSE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'INACTIVE'];
 const REVIEW_STATUSES = ['APPROVED', 'REJECTED'];
 
 function normalizeStatus(input, allowedStatuses = HORSE_STATUSES) {

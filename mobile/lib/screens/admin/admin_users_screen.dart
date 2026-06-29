@@ -27,6 +27,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   String _roleFilter = '';
   String _search = '';
   int? _busyUserId;
+  int? _expandedUserId;
+
+  void _toggleExpand(int userId) {
+    setState(() {
+      _expandedUserId = _expandedUserId == userId ? null : userId;
+    });
+  }
 
   @override
   void initState() {
@@ -315,7 +322,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _roleFilter.isEmpty ? '' : _roleFilter,
+                          initialValue: _roleFilter.isEmpty ? '' : _roleFilter,
                           decoration: InputDecoration(
                             labelText: 'Vai trò',
                             filled: true,
@@ -400,7 +407,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     final user = filtered[index];
                     return _UserCard(
                       user: user,
+                      expanded: _expandedUserId == user.userId,
                       busy: _busyUserId == user.userId,
+                      onTap: user.userId == null
+                          ? null
+                          : () => _toggleExpand(user.userId!),
                       onEdit: () => _openEdit(user),
                       onToggleActive: () => _onToggleActive(user),
                       onChangeRole: () => _showRolePicker(user),
@@ -528,7 +539,9 @@ class _StatCard extends StatelessWidget {
 class _UserCard extends StatelessWidget {
   const _UserCard({
     required this.user,
+    required this.expanded,
     required this.busy,
+    required this.onTap,
     required this.onEdit,
     required this.onToggleActive,
     required this.onChangeRole,
@@ -536,7 +549,9 @@ class _UserCard extends StatelessWidget {
   });
 
   final AdminUser user;
+  final bool expanded;
   final bool busy;
+  final VoidCallback? onTap;
   final VoidCallback onEdit;
   final VoidCallback onToggleActive;
   final VoidCallback onChangeRole;
@@ -552,156 +567,233 @@ class _UserCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: user.isActive ? AppColors.border : const Color(0xFFFECACA),
+          color: expanded
+              ? AppColors.adminAccent.withValues(alpha: 0.45)
+              : user.isActive
+                  ? AppColors.border
+                  : const Color(0xFFFECACA),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.adminAccent.withValues(alpha: 0.15),
-                  child: Text(
-                    user.initials,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.adminAccent,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.fullName ?? '—',
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppColors.adminAccent.withValues(alpha: 0.15),
+                      child: Text(
+                        user.initials,
                         style: const TextStyle(
-                          fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.heading,
+                          color: AppColors.adminAccent,
+                          fontSize: 14,
                         ),
                       ),
-                      Text(
-                        user.email ?? '—',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.fullName ?? '—',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.heading,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              _StatusBadge(isActive: user.isActive),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  roleLabelVi(roleCode),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.adminPrimary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
+                    ),
+                    Icon(
+                      expanded ? Icons.expand_less : Icons.chevron_right,
+                      color: AppColors.textMuted,
+                    ),
+                  ],
+                ),
+                AnimatedCrossFade(
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 14),
+                      const Divider(height: 1),
+                      const SizedBox(height: 12),
+                      _DetailRow(label: 'ID', value: '#${user.userId}'),
+                      _DetailRow(label: 'Email', value: user.email ?? '—'),
+                      if (user.phoneNumber?.isNotEmpty == true)
+                        _DetailRow(label: 'SĐT', value: user.phoneNumber!),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: busy ? null : onEdit,
+                              icon: const Icon(Icons.edit_outlined, size: 18),
+                              label: const Text('Sửa'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.adminAccent,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: busy ? null : onChangeRole,
+                              icon: const Icon(Icons.badge_outlined, size: 18),
+                              label: const Text('Vai trò'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: busy ? null : onToggleActive,
+                              icon: Icon(
+                                user.isActive
+                                    ? Icons.lock_outline
+                                    : Icons.lock_open_rounded,
+                                size: 18,
+                              ),
+                              label: Text(user.isActive ? 'Khóa' : 'Mở'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: busy ? null : onDeactivate,
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Color(0xFFDC2626),
+                              ),
+                              label: const Text('Vô hiệu'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFFDC2626),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (busy) ...[
+                        const SizedBox(height: 10),
+                        const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                ),
-                Text(
-                  '#${user.userId}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                    fontFamily: 'monospace',
-                  ),
+                  crossFadeState: expanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 200),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: user.isActive
-                        ? const Color(0xFFECFDF5)
-                        : const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    user.isActive ? 'Hoạt động' : 'Vô hiệu',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: user.isActive
-                          ? const Color(0xFF065F46)
-                          : const Color(0xFF991B1B),
-                    ),
-                  ),
-                ),
-                Text(
-                  roleLabelVi(roleCode),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.adminPrimary,
-                  ),
-                ),
-                if (user.phoneNumber?.isNotEmpty == true)
-                  Text(
-                    user.phoneNumber!,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: busy ? null : onEdit,
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Sửa'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.adminAccent,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: busy ? null : onChangeRole,
-                    icon: const Icon(Icons.badge_outlined, size: 18),
-                    label: const Text('Vai trò'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: busy ? null : onToggleActive,
-                    icon: Icon(
-                      user.isActive ? Icons.lock_outline : Icons.lock_open_rounded,
-                      size: 18,
-                    ),
-                    label: Text(user.isActive ? 'Khóa' : 'Mở'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: busy ? null : onDeactivate,
-                    icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)),
-                    label: const Text('Vô hiệu'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFDC2626),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.isActive});
+
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        isActive ? 'Hoạt động' : 'Vô hiệu',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: isActive ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 52,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.heading,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

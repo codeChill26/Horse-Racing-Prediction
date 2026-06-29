@@ -153,7 +153,7 @@ export default function AdminTournamentsPage() {
           <div className="adm-t-stat__value">{stats.open}</div>
         </div>
         <div className="adm-t-stat">
-          <div className="adm-t-stat__label">Nháp</div>
+          <div className="adm-t-stat__label">Đang chờ</div>
           <div className="adm-t-stat__value">{stats.draft}</div>
         </div>
         <div className="adm-t-stat">
@@ -213,6 +213,7 @@ export default function AdminTournamentsPage() {
                   <th>Thời gian</th>
                   <th>Chặng</th>
                   <th>Trạng thái</th>
+                  <th>Đổi trạng thái</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
@@ -243,6 +244,25 @@ export default function AdminTournamentsPage() {
                         </span>
                       </td>
                       <td>
+                        {transitions.length > 0 ? (
+                          <select
+                            className="adm-t-status-select"
+                            value=""
+                            disabled={isBusy}
+                            onChange={(e) => handleStatusChange(t, e.target.value)}
+                          >
+                            <option value="">Chọn...</option>
+                            {transitions.map((s) => (
+                              <option key={s} value={s}>
+                                {tournamentStatusLabel(s)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="adm-t-na">—</span>
+                        )}
+                      </td>
+                      <td>
                         <div className="adm-t-actions">
                           <button
                             type="button"
@@ -253,29 +273,14 @@ export default function AdminTournamentsPage() {
                           >
                             <Pencil size={14} />
                           </button>
-                          {transitions.length > 0 && (
-                            <select
-                              className="adm-t-status-select"
-                              value=""
-                              disabled={isBusy}
-                              onChange={(e) => handleStatusChange(t, e.target.value)}
-                            >
-                              <option value="">Đổi TT</option>
-                              {transitions.map((s) => (
-                                <option key={s} value={s}>
-                                  → {tournamentStatusLabel(s)}
-                                </option>
-                              ))}
-                            </select>
-                          )}
                           <button
                             type="button"
-                            className="adm-t-btn adm-t-btn--danger"
+                            className="adm-t-icon-btn adm-t-icon-btn--danger"
+                            title={t._count?.races > 0 ? "Hủy giải đấu" : "Xóa giải đấu"}
                             disabled={isBusy}
                             onClick={() => handleDelete(t)}
                           >
                             <Trash2 size={14} />
-                            {t._count?.races > 0 ? "Hủy" : "Xóa"}
                           </button>
                         </div>
                       </td>

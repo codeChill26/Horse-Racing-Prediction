@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { emitToRace } = require('../socket/emitter');
 
 const HOUSE_MARGIN = 0.05;
 const MIN_ODDS = 1.2;
@@ -143,6 +144,8 @@ async function calculateAllOddsForRace(raceId) {
       });
     }
   });
+
+  emitToRace(raceId, 'odds:updated', { raceId });
 
   return results;
 }

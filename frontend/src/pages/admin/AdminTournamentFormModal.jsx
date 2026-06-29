@@ -4,9 +4,13 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { X, Trophy } from "lucide-react";
+import {
+  AdminModal,
+  AdminModalSection,
+  AdminModalField,
+  AdminModalAlert,
+} from "../../components/ui/AdminModal";
 import { tournamentService } from "../../services/tournamentService";
-import "./AdminTournamentsPage.css";
 
 function toDatetimeLocalValue(iso) {
   if (!iso) return "";
@@ -96,99 +100,92 @@ export default function AdminTournamentFormModal({ tournamentId, onClose, onSave
     }
   };
 
+  const footer = (
+    <>
+      <button type="button" className="adm-t-btn adm-t-btn--ghost" onClick={onClose} disabled={saving}>
+        Hủy
+      </button>
+      <button type="submit" form="adm-t-form" className="adm-t-btn adm-t-btn--primary" disabled={saving}>
+        {saving ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo giải"}
+      </button>
+    </>
+  );
+
   return (
-    <div className="adm-t-modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="adm-t-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="adm-t-modal-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="adm-t-modal__bar" />
-        <header className="adm-t-modal__header">
-          <div className="adm-t-modal__title-wrap">
-            <Trophy className="adm-t-modal__icon" />
-            <div>
-              <h2 id="adm-t-modal-title" className="adm-t-modal__title">
-                {isEdit ? "Chỉnh sửa giải đấu" : "Tạo giải đấu mới"}
-              </h2>
-              <p className="adm-t-modal__subtitle">
-                Giải mới mặc định ở trạng thái <strong>Nháp (DRAFT)</strong>
-              </p>
-            </div>
-          </div>
-          <button type="button" className="adm-t-modal__close" onClick={onClose} aria-label="Đóng">
-            <X size={18} />
-          </button>
-        </header>
+    <AdminModal
+      size="lg"
+      accent="gold"
+      title={isEdit ? "Chỉnh sửa giải đấu" : "Tạo giải đấu mới"}
+      subtitle={
+        isEdit
+          ? "Cập nhật thông tin giải đấu. Trạng thái hiện tại được giữ nguyên."
+          : "Giải mới mặc định ở trạng thái Đang chờ (DRAFT). Bạn có thể chuyển sang Đang mở sau khi tạo."
+      }
+      onClose={onClose}
+      footer={loading ? null : footer}
+    >
+      {loading ? (
+        <div className="adm-t-modal__loading">
+          <div className="adm-t-spinner" />
+        </div>
+      ) : (
+        <form id="adm-t-form" onSubmit={handleSubmit}>
+          {error && <AdminModalAlert type="error">{error}</AdminModalAlert>}
 
-        {loading ? (
-          <div className="adm-t-modal__loading">
-            <div className="adm-t-spinner" />
-          </div>
-        ) : (
-          <form className="adm-t-modal__body" onSubmit={handleSubmit}>
-            {error && <div className="adm-t-alert adm-t-alert--error">{error}</div>}
-
-            <label className="adm-t-field">
-              <span className="adm-t-field__label">Tên giải đấu *</span>
+          <AdminModalSection
+            title="Thông tin cơ bản"
+            description="Tên và mô tả giúp khán giả nhận diện giải đấu."
+          >
+            <AdminModalField label="Tên giải đấu" required>
               <input
-                className="adm-t-field__input"
                 name="name"
                 value={form.name}
                 onChange={handleChange}
                 required
                 placeholder="Ví dụ: Cúp GrandStride 2026"
               />
-            </label>
+            </AdminModalField>
 
-            <label className="adm-t-field">
-              <span className="adm-t-field__label">Mô tả</span>
+            <AdminModalField
+              label="Mô tả"
+              hint="Thông tin địa điểm, quy định, giải thưởng..."
+            >
               <textarea
-                className="adm-t-field__input adm-t-field__textarea"
                 name="description"
                 value={form.description}
                 onChange={handleChange}
                 rows={3}
-                placeholder="Thông tin địa điểm, quy định, giải thưởng..."
+                placeholder="Mô tả chi tiết giải đấu..."
               />
-            </label>
+            </AdminModalField>
+          </AdminModalSection>
 
-            <div className="adm-t-field-row">
-              <label className="adm-t-field">
-                <span className="adm-t-field__label">Bắt đầu</span>
+          <AdminModalSection
+            title="Thời gian"
+            description="Khung thời gian tổ chức giải. Có thể cập nhật sau."
+          >
+            <div className="gs-modal-section gs-modal-section--grid">
+              <AdminModalField label="Bắt đầu">
                 <input
-                  className="adm-t-field__input"
                   type="datetime-local"
                   name="startAt"
                   value={form.startAt}
                   onChange={handleChange}
                 />
-              </label>
-              <label className="adm-t-field">
-                <span className="adm-t-field__label">Kết thúc</span>
+              </AdminModalField>
+
+              <AdminModalField label="Kết thúc">
                 <input
-                  className="adm-t-field__input"
                   type="datetime-local"
                   name="endAt"
                   value={form.endAt}
                   onChange={handleChange}
                 />
-              </label>
+              </AdminModalField>
             </div>
-
-            <footer className="adm-t-modal__footer">
-              <button type="button" className="adm-t-btn adm-t-btn--ghost" onClick={onClose} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="adm-t-btn adm-t-btn--primary" disabled={saving}>
-                {saving ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo giải"}
-              </button>
-            </footer>
-          </form>
-        )}
-      </div>
-    </div>
+          </AdminModalSection>
+        </form>
+      )}
+    </AdminModal>
   );
 }

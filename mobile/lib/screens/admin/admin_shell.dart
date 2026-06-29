@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/login_welcome.dart';
 import '../home_router.dart';
+import 'admin_horses_screen.dart';
 import 'admin_tournaments_screen.dart';
 import 'admin_users_screen.dart';
 
@@ -45,6 +46,7 @@ class _AdminShellState extends State<AdminShell> {
         children: [
           AdminUsersScreen(onLogout: _logout),
           AdminTournamentsScreen(onLogout: _logout),
+          AdminHorsesScreen(onLogout: _logout),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -62,6 +64,11 @@ class _AdminShellState extends State<AdminShell> {
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events),
             label: 'Giải đấu',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.pets_outlined),
+            selectedIcon: Icon(Icons.pets),
+            label: 'Ngựa',
           ),
         ],
       ),
