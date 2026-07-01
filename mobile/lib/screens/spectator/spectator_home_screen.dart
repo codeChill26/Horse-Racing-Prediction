@@ -13,10 +13,18 @@ class SpectatorHomeScreen extends StatefulWidget {
     super.key,
     required this.onLogout,
     required this.onOpenTournaments,
+    this.onOpenPlaceBet,
+    this.onOpenMyBets,
   });
 
   final VoidCallback onLogout;
   final VoidCallback onOpenTournaments;
+
+  /// Mở màn đặt cược nhanh từ trang chủ (không truyền raceId).
+  final VoidCallback? onOpenPlaceBet;
+
+  /// Nhảy thẳng sang tab "Cược của tôi".
+  final VoidCallback? onOpenMyBets;
 
   @override
   State<SpectatorHomeScreen> createState() => _SpectatorHomeScreenState();
@@ -154,6 +162,14 @@ class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                     balance: balance,
                     frozen: frozen,
                   ),
+                  if (widget.onOpenPlaceBet != null || widget.onOpenMyBets != null) ...[
+                    const SizedBox(height: 16),
+                    _QuickBetActions(
+                      onPlaceBet: widget.onOpenPlaceBet,
+                      onOpenMyBets: widget.onOpenMyBets,
+                      disabled: frozen,
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   _SectionHeader(
                     title: 'Truy cập nhanh',
@@ -566,6 +582,61 @@ class _ErrorBanner extends StatelessWidget {
           TextButton(onPressed: onRetry, child: const Text('Thử lại')),
         ],
       ),
+    );
+  }
+}
+
+/// Hai nút nhanh: Đặt cược & Xem cược của tôi — hiển thị ngay sau wallet hero card.
+class _QuickBetActions extends StatelessWidget {
+  const _QuickBetActions({
+    required this.onPlaceBet,
+    required this.onOpenMyBets,
+    required this.disabled,
+  });
+
+  final VoidCallback? onPlaceBet;
+  final VoidCallback? onOpenMyBets;
+  final bool disabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (onPlaceBet != null)
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: disabled ? null : onPlaceBet,
+                icon: const Icon(Icons.add_circle_outline),
+                label: const Text('Đặt cược'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.green,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ),
+        if (onPlaceBet != null && onOpenMyBets != null) const SizedBox(width: 10),
+        if (onOpenMyBets != null)
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: onOpenMyBets,
+                icon: const Icon(Icons.list_alt_outlined),
+                label: const Text('Cược của tôi'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.green,
+                  side: const BorderSide(color: AppColors.green, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
