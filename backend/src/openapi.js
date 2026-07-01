@@ -255,6 +255,51 @@ module.exports = {
           settledCount: { type: 'integer' },
         },
       },
+      CreateRaceRequest: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'Race 1 - Sprint' },
+          maxEntries: { type: 'integer', example: 8, default: 8 },
+          scheduledAt: { type: 'string', format: 'date-time', nullable: true },
+          registrationDeadline: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      UpdateRaceRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', example: 'Race 1 - Final' },
+          maxEntries: { type: 'integer', example: 10 },
+          scheduledAt: { type: 'string', format: 'date-time', nullable: true },
+          registrationDeadline: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      BulkReviewEntriesRequest: {
+        type: 'object',
+        required: ['entries'],
+        properties: {
+          entries: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              required: ['entryId', 'status'],
+              properties: {
+                entryId: { type: 'integer', example: 1 },
+                status: { type: 'string', enum: ['APPROVED', 'REJECTED'] },
+                reason: { type: 'string', nullable: true, example: 'Invalid registration' },
+              },
+            },
+          },
+        },
+      },
+      RegistrationGateRequest: {
+        type: 'object',
+        required: ['isOpen'],
+        properties: {
+          isOpen: { type: 'boolean', example: true, description: 'true = open registration, false = close' },
+        },
+      },
       WalletResponse: {
         type: 'object',
         properties: {
@@ -1565,8 +1610,189 @@ RefereeSubmitResultRequest: {
       },
     },
 
-    // ---- Admin Race Publish/Unpublish ----
+    // ---- Admin Races ----
 
+    '/api/admin/tournaments/{tournamentId}/races': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'List races by tournament',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'tournamentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          '200': { description: 'List races successfully' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Tournament not found' },
+        },
+      },
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Create a race',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'tournamentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateRaceRequest' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Race created successfully' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Tournament not found' },
+        },
+      },
+    },
+    '/api/admin/races/{id}': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Get race details',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'Race details' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+      patch: {
+        tags: ['Admin Races'],
+        summary: 'Update a race',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateRaceRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Race updated successfully' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+          '409': { description: 'Cannot update FINISHED or CANCELLED race' },
+        },
+      },
+      delete: {
+        tags: ['Admin Races'],
+        summary: 'Delete a race',
+        description: 'Fails with 409 if the race has entries or predictions.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'Race deleted successfully' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+          '409': { description: 'Race has entries or predictions' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/entries': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'List all race entries',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['PENDING', 'APPROVED', 'REJECTED'],
+            },
+          },
+        ],
+        responses: {
+          '200': { description: 'List race entries with horse, owner, jockey' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/bulk-review': {
+      post: {
+        tags: ['Admin Races'],
+        summary: 'Bulk approve or reject race entries',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/BulkReviewEntriesRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Bulk review completed' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+    '/api/admin/races/{id}/registration-gate': {
+      put: {
+        tags: ['Admin Races'],
+        summary: 'Open or close registration gate',
+        description: 'Closing the gate auto-rejects all PENDING entries and may trigger odds calculation.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/RegistrationGateRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Registration gate updated' },
+          '400': { description: 'Invalid request data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
     '/api/admin/races/{id}/publish': {
       post: {
         tags: ['Admin Races'],
@@ -1599,234 +1825,6 @@ RefereeSubmitResultRequest: {
         },
       },
     },
-
-'/api/admin/tournaments/{tournamentId}/races': {
-  get: {
-    tags: ['Admin Races'],
-    summary: 'List races by tournament',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'tournamentId',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-    ],
-    responses: {
-      '200': { description: 'List races successfully' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-      '404': { description: 'Tournament not found' },
-    },
-  },
-
-  post: {
-    tags: ['Admin Races'],
-    summary: 'Create a race',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'tournamentId',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-    ],
-    requestBody: {
-      required: true,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-          },
-        },
-      },
-    },
-    responses: {
-      '201': { description: 'Race created successfully' },
-      '400': { description: 'Invalid request data' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-    },
-  },
-},
-
-'/api/admin/races/{id}': {
-  get: {
-    tags: ['Admin Races'],
-    summary: 'Get race details',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'id',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-    ],
-    responses: {
-      '200': { description: 'Race details' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-      '404': { description: 'Race not found' },
-    },
-  },
-
-  patch: {
-    tags: ['Admin Races'],
-    summary: 'Update a race',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'id',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-    ],
-    requestBody: {
-      required: true,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-          },
-        },
-      },
-    },
-    responses: {
-      '200': { description: 'Race updated successfully' },
-      '400': { description: 'Invalid request data' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-      '404': { description: 'Race not found' },
-    },
-  },
-
-  delete: {
-    tags: ['Admin Races'],
-    summary: 'Delete a race',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'id',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-    ],
-    responses: {
-      '200': { description: 'Race deleted successfully' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-      '404': { description: 'Race not found' },
-    },
-  },
-},
-
-'/api/admin/races/{id}/entries': {
-  get: {
-    tags: ['Admin Races'],
-    summary: 'List all race entries',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'id',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-      {
-        name: 'status',
-        in: 'query',
-        required: false,
-        schema: { type: 'string' },
-      },
-    ],
-    responses: {
-      '200': { description: 'List race entries' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-      '404': { description: 'Race not found' },
-    },
-  },
-},
-
-'/api/admin/races/{id}/bulk-review': {
-  post: {
-    tags: ['Admin Races'],
-    summary: 'Bulk approve or reject race entries',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'id',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-    ],
-    requestBody: {
-      required: true,
-      content: {
-        'application/json': {
-          example: {
-            entries: [
-              {
-                entryId: 1,
-                status: 'APPROVED',
-              },
-              {
-                entryId: 2,
-                status: 'REJECTED',
-                reason: 'Invalid registration',
-              },
-            ],
-          },
-        },
-      },
-    },
-    responses: {
-      '200': { description: 'Bulk review completed' },
-      '400': { description: 'Invalid request data' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-    },
-  },
-},
-
-'/api/admin/races/{id}/registration-gate': {
-  put: {
-    tags: ['Admin Races'],
-    summary: 'Open or close registration gate',
-    security: [{ bearerAuth: [] }],
-    parameters: [
-      {
-        name: 'id',
-        in: 'path',
-        required: true,
-        schema: { type: 'integer' },
-      },
-    ],
-    requestBody: {
-      required: true,
-      content: {
-        'application/json': {
-          example: {
-            registrationOpen: true,
-          },
-        },
-      },
-    },
-    responses: {
-      '200': { description: 'Registration gate updated' },
-      '400': { description: 'Invalid request data' },
-      '401': { description: 'Unauthorized' },
-      '403': { description: 'Forbidden' },
-      '404': { description: 'Race not found' },
-    },
-  },
-},
 
     // ---- Wallet Endpoints ----
 
