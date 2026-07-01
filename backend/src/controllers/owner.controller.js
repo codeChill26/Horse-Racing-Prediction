@@ -36,8 +36,22 @@ async function listRaceEntries(req, res) {
   }
 }
 
+async function getRaceDetail(req, res) {
+  try {
+    const raceId = Number(req.params.id);
+    if (!Number.isInteger(raceId) || raceId <= 0) {
+      return res.status(400).json({ error: 'Invalid race id' });
+    }
+    const detail = await ownerService.getRaceDetail(raceId);
+    return res.status(200).json(detail);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   listOpenRaces,
   listMyEntries,
   listRaceEntries,
+  getRaceDetail,
 };

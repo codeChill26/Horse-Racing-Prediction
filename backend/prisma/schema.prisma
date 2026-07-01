@@ -62,6 +62,14 @@ enum PredictionStatus {
   REFUNDED
 }
 
+enum BetType {
+  WIN
+  PLACE
+  SHOW
+  QUINELLA
+  EXACTA
+}
+
 // 1. Thực thể Người dùng chính (Users)
 model User {
   userId            Int       @id @default(autoincrement())
@@ -258,10 +266,9 @@ model RaceEntry {
   jockey     User? @relation("RaceEntryJockey", fields: [jockeyId], references: [userId], onDelete: SetNull)
   reviewedBy User? @relation("RaceEntryReviewedBy", fields: [reviewedById], references: [userId], onDelete: SetNull)
 
-  pickedAs1 Prediction[] @relation("Pick1")
-  pickedAs2 Prediction[] @relation("Pick2")
-  pickedAs3 Prediction[] @relation("Pick3")
-  odds      Odds[]
+  pickedAs1    Prediction[] @relation("Pick1")
+  pickedAs2    Prediction[] @relation("Pick2")
+  odds         Odds[]
 
   @@unique([raceId, horseId])
   @@unique([raceId, jockeyId])
@@ -329,11 +336,11 @@ model Prediction {
   predictionId Int              @id @default(autoincrement())
   spectatorId  Int
   raceId       Int
+  betType      BetType
   entryId1     Int
-  entryId2     Int
-  entryId3     Int
+  entryId2     Int?
   betAmount    Int
-  oddsAvgAtBet Decimal          @default(1.0)
+  lockedOdds   Decimal          @default(1.0)
   status       PredictionStatus @default(PENDING)
   payout       Int?
   settledAt    DateTime?
@@ -343,8 +350,7 @@ model Prediction {
   spectator User      @relation(fields: [spectatorId], references: [userId])
   race      Race      @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
   pick1     RaceEntry @relation("Pick1", fields: [entryId1], references: [entryId])
-  pick2     RaceEntry @relation("Pick2", fields: [entryId2], references: [entryId])
-  pick3     RaceEntry @relation("Pick3", fields: [entryId3], references: [entryId])
+  pick2     RaceEntry? @relation("Pick2", fields: [entryId2], references: [entryId])
 
   @@index([spectatorId])
   @@index([raceId])

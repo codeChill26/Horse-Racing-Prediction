@@ -3,8 +3,8 @@ const validator = require('../dto/prediction.dto');
 
 async function placeBet(req, res) {
   try {
-    const { spectatorId, raceId, entryIds, betAmount } = validator.validatePlaceBet(req.body, req.user.sub);
-    const prediction = await predictionsService.placeBet(spectatorId, raceId, entryIds, betAmount);
+    const { spectatorId, raceId, betType, entryIds, betAmount } = validator.validatePlaceBet(req.body, req.user.sub);
+    const prediction = await predictionsService.placeBet(spectatorId, raceId, betType, entryIds, betAmount);
     return res.status(201).json({ message: 'Bet placed successfully', prediction });
   } catch (error) {
     return res.status(error.status || 400).json({ error: error.message });
@@ -46,37 +46,9 @@ async function getPredictionById(req, res) {
   }
 }
 
-async function publishRaceResults(req, res) {
-  try {
-    const raceId = validator.validatePublishResults(req.params);
-    const result = await predictionsService.publishResults(raceId);
-    return res.status(200).json({
-      message: 'Race results published and settlements completed successfully',
-      ...result,
-    });
-  } catch (error) {
-    return res.status(error.status || 400).json({ error: error.message });
-  }
-}
-
-async function unpublishRaceResults(req, res) {
-  try {
-    const raceId = validator.validateUnpublishResults(req.params);
-    const result = await predictionsService.unpublishResults(raceId);
-    return res.status(200).json({
-      message: 'Race results unpublished and rollback completed successfully',
-      ...result,
-    });
-  } catch (error) {
-    return res.status(error.status || 400).json({ error: error.message });
-  }
-}
-
 module.exports = {
   placeBet,
   cancelPrediction,
   listMyPredictions,
   getPredictionById,
-  publishRaceResults,
-  unpublishRaceResults,
 };

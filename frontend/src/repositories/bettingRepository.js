@@ -1,14 +1,8 @@
-/**
- * Betting Repository - Giao tiếp API đặt cược
- */
-
 import { getAccessToken } from '../utils/token'
 
 async function readError(res, fallback) {
   let data = null
-  try {
-    data = await res.json()
-  } catch { /* empty */ }
+  try { data = await res.json() } catch { /* empty */ }
   throw new Error(data?.error || data?.message || `${fallback} (${res.status})`)
 }
 
@@ -21,57 +15,57 @@ function authHeaders() {
 }
 
 export const bettingRepository = {
-  /** Lấy tất cả các race để đặt cược */
-  async getRaces() {
-    const res = await fetch('/api/races', { headers: authHeaders() })
+  /** GET /api/races/open — danh sách race đang mở đặt cược */
+  async getOpenRaces() {
+    const res = await fetch('/api/races/open', { headers: authHeaders() })
     if (!res.ok) await readError(res, 'Không tải được danh sách cuộc đua')
     const data = await res.json()
     return data?.races ?? []
   },
 
-  /** Lấy chi tiết một race + danh sách ngựa tham gia */
+  /** GET /api/races/:id/detail — chi tiết race + entries + odds + career stats */
   async getRaceDetails(raceId) {
-    const res = await fetch(`/api/races/${raceId}`, { headers: authHeaders() })
+    const res = await fetch(`/api/races/${raceId}/detail`, { headers: authHeaders() })
     if (!res.ok) await readError(res, 'Không tải được chi tiết cuộc đua')
-    const data = await res.json()
-    return data?.race ?? data
+    return res.json()
   },
 
-  /** Lấy lịch sử đặt cược của spectator */
+  /** GET /api/predictions — lịch sử đặt cược của spectator */
   async getMyBets() {
-    const res = await fetch('/api/bets/my', { headers: authHeaders() })
+    const res = await fetch('/api/predictions', { headers: authHeaders() })
     if (!res.ok) await readError(res, 'Không tải được lịch sử đặt cược')
     const data = await res.json()
-    return data?.bets ?? []
+    return data?.predictions ?? []
   },
 
-  /** Đặt cược cho một ngựa */
-  async placeBet({ raceId, horseId, amount }) {
-    const res = await fetch('/api/bets', {
+  /** GET /api/predictions/:id — chi tiết một vé cược */
+  async getBetDetails(predictionId) {
+    const res = await fetch(`/api/predictions/${predictionId}`, { headers: authHeaders() })
+    if (!res.ok) await readError(res, 'Không tải được chi tiết đặt cược')
+    const data = await res.json()
+    return data?.prediction ?? data
+  },
+
+  /** POST /api/predictions — đặt cược */
+  async placeBet({ raceId, betType, entryIds, betAmount }) {
+    const res = await fetch('/api/predictions', {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ raceId, horseId, amount }),
+      body: JSON.stringify({ raceId, betType, entryIds, betAmount }),
     })
     if (!res.ok) await readError(res, 'Đặt cược thất bại')
     const data = await res.json()
-    return data?.bet ?? data
+    return data?.prediction ?? data
   },
 
-  /** Hủy đặt cược (nếu race chưa bắt đầu) */
-  async cancelBet(betId) {
-    const res = await fetch(`/api/bets/${betId}`, {
-      method: 'DELETE',
+  /** PUT /api/predictions/:id/cancel — hủy vé cược PENDING */
+  async cancelBet(predictionId) {
+    const res = await fetch(`/api/predictions/${predictionId}/cancel`, {
+      method: 'PUT',
       headers: authHeaders(),
     })
     if (!res.ok) await readError(res, 'Hủy đặt cược thất bại')
-    return true
-  },
-
-  /** Lấy chi tiết một bet */
-  async getBetDetails(betId) {
-    const res = await fetch(`/api/bets/${betId}`, { headers: authHeaders() })
-    if (!res.ok) await readError(res, 'Không tải được chi tiết đặt cược')
     const data = await res.json()
-    return data?.bet ?? data
+    return data?.prediction ?? data
   },
 }
