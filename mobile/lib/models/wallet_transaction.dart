@@ -81,22 +81,37 @@ class WalletTransaction {
   String get amountLabel => formatPointsVi(amount);
   String get balanceAfterLabel => formatPointsVi(balanceAfter);
 
-  String get typeLabel {
+  String get typeLabel => WalletTransaction.typeLabelOf(type);
+
+  /// Trả về label tiếng Việt cho 1 transaction type code.
+  /// Dùng được từ bất kỳ đâu (cả instance lẫn chỉ cần code).
+  static String typeLabelOf(String? type) {
     switch (type) {
       case 'BET_PLACED':
         return 'Đặt cược';
       case 'BET_WON':
+      case 'BET_WIN':
         return 'Thắng cược';
-      case 'BET_REFUND':
-        return 'Hoàn cược';
-      case 'ADMIN_ADJUSTMENT':
-        return 'Điều chỉnh';
-      case 'WEEKLY_BONUS':
-        return 'Thưởng tuần';
       case 'BET_LOST':
         return 'Thua cược';
+      case 'BET_REFUND':
+        return 'Hoàn cược';
+      case 'BET_WIN_REVERSAL':
+        return 'Hoàn thắng';
+      case 'ADMIN_ADJUSTMENT':
+      case 'MANUAL_ADJUSTMENT':
+        return 'Điều chỉnh';
+      case 'WEEKLY_BONUS':
+      case 'WEEKLY_BONUS_CREDIT':
+        return 'Thưởng tuần';
+      case 'INITIAL_BONUS':
+        return 'Thưởng đăng ký';
+      case 'DEPOSIT':
+        return 'Nạp điểm';
       default:
-        return type ?? 'Giao dịch';
+        // Fallback: viết hoa thay vì trả nguyên code để giao diện không bị "kỹ thuật"
+        final raw = type ?? 'Giao dịch';
+        return raw.replaceAll('_', ' ').toUpperCase();
     }
   }
 }
