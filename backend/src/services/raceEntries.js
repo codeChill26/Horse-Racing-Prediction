@@ -18,6 +18,8 @@ function entrySelect() {
     rejectionReason: true,
     reviewedById: true,
     reviewedAt: true,
+    weightLb: true,
+    saddleNumber: true,
     createdAt: true,
     updatedAt: true,
     horse: {
@@ -139,7 +141,7 @@ class RaceEntriesService {
     }
   }
 
-  async reviewEntry(entryId, { status, reason }, reviewerId) {
+  async reviewEntry(entryId, { status, reason, weightLb, saddleNumber }, reviewerId) {
     const existing = await prisma.raceEntry.findUnique({
       where: { entryId },
       select: { entryId: true, status: true, raceId: true },
@@ -167,6 +169,8 @@ class RaceEntriesService {
             rejectionReason: null,
             reviewedById: reviewerId,
             reviewedAt: new Date(),
+            ...(weightLb !== undefined ? { weightLb } : {}),
+            ...(saddleNumber !== undefined ? { saddleNumber } : {}),
           }
         : {
             status: 'REJECTED',

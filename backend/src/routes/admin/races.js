@@ -19,6 +19,9 @@ router.get('/:id', authMiddleware, adminOnly, adminRacesController.getRaceById);
 // GET /api/admin/races/:id/entries - List all entries for a race
 router.get('/:id/entries', authMiddleware, adminOnly, adminRacesController.listRaceEntries);
 
+// GET /api/admin/races/:id/ai-odds - AI odds suggestion (Agent 1, advisory only)
+router.get('/:id/ai-odds', authMiddleware, adminOnly, adminRacesController.getAiOddsSuggestion);
+
 // POST /api/admin/races/:id/bulk-review - Bulk approve/reject entries
 router.post('/:id/bulk-review', authMiddleware, adminOnly, adminRacesController.bulkReviewEntries);
 

@@ -1,0 +1,11 @@
+# Thư viện cho phần AI. Cài bằng: pip install -r requirements.txt
+pandas          # đọc/xử lý dữ liệu dạng bảng (CSV)
+numpy           # tính toán số học
+scikit-learn    # train model Machine Learning (Logistic Regression)
+joblib          # lưu / nạp lại model đã train (.pkl)
+matplotlib      # vẽ biểu đồ khi khám phá & đánh giá
+
+# Dùng ở bước sau (FastAPI service) — cứ cài sẵn luôn:
+fastapi         # framework tạo API service cho AI
+uvicorn         # web server chạy FastAPI
+pydantic        # kiểm tra kiểu dữ liệu request/response

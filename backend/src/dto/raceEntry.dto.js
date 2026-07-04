@@ -42,7 +42,19 @@ class RaceEntryDtoValidator {
       throw new Error('reason is required when rejecting a race entry');
     }
 
-    return { status, reason };
+    const optionalNonNegativeInt = (value, fieldName) => {
+      if (value === undefined || value === null || value === '') return undefined;
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 0) {
+        throw new Error(`${fieldName} must be a non-negative integer`);
+      }
+      return parsed;
+    };
+
+    const weightLb = optionalNonNegativeInt(body?.weightLb, 'weightLb');
+    const saddleNumber = optionalNonNegativeInt(body?.saddleNumber, 'saddleNumber');
+
+    return { status, reason, weightLb, saddleNumber };
   }
 
   validateRegistrationGate(body) {

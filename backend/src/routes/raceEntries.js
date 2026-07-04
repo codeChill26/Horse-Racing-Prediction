@@ -11,6 +11,7 @@ const raceEntriesController = require('../controllers/raceEntries.controller');
 router.post('/', authMiddleware, horseOwnerOnly, raceEntriesController.createEntry);
 
 // PUT /api/entries/:id/status
+// body: { status, reason?, weightLb?, saddleNumber? }
 router.put('/:id/status', authMiddleware, adminOnly, raceEntriesController.reviewEntry);
 
 // GET /api/races/:raceId/odds - Get calculated odds for a race

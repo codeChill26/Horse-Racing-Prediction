@@ -1,6 +1,7 @@
 // backend/src/controllers/adminRaces.controller.js
 
 const adminRacesService = require('../services/adminRaces');
+const aiPredictionService = require('../services/aiPrediction');
 const validator = require('../dto/race.dto');
 
 async function listRacesByTournament(req, res) {
@@ -100,6 +101,24 @@ async function bulkReviewEntries(req, res) {
   }
 }
 
+async function getAiOddsSuggestion(req, res) {
+  try {
+    const raceId = validator.parseRaceId(req.params);
+    const marginRaw = req.query?.margin;
+    const margin =
+      marginRaw === undefined || marginRaw === '' ? undefined : Number(marginRaw);
+    if (margin !== undefined && (Number.isNaN(margin) || margin < 0)) {
+      return res.status(400).json({ error: 'margin must be a non-negative number' });
+    }
+
+    const result = await aiPredictionService.getRaceOddsSuggestion(raceId, { margin });
+    return res.status(200).json(result);
+  } catch (error) {
+    const status = error.status || 400;
+    return res.status(status).json({ error: error.message });
+  }
+}
+
 module.exports = {
   listRacesByTournament,
   getRaceById,
@@ -108,4 +127,5 @@ module.exports = {
   deleteRace,
   listRaceEntries,
   bulkReviewEntries,
+  getAiOddsSuggestion,
 };

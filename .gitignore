@@ -31,7 +31,7 @@ Thumbs.db
 .flutter-versions
 .idea/
 *.iml
-
+.venv
 # VS Code
 .vscode/
 

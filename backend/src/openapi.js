@@ -328,6 +328,8 @@ module.exports = {
           approvedAt: { type: 'string', format: 'date-time', nullable: true },
           rejectedAt: { type: 'string', format: 'date-time', nullable: true },
           reviewedById: { type: 'integer', nullable: true },
+          officialRating: { type: 'integer', nullable: true, example: 95 },
+          racingPostRating: { type: 'integer', nullable: true, example: 103 },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -360,6 +362,13 @@ module.exports = {
         properties: {
           status: { type: 'string', enum: ['APPROVED', 'REJECTED'], example: 'APPROVED' },
           reason: { type: 'string', nullable: true, example: 'Incomplete documentation' },
+        },
+      },
+      UpdateHorseRatingRequest: {
+        type: 'object',
+        properties: {
+          officialRating: { type: 'integer', nullable: true, example: 95 },
+          racingPostRating: { type: 'integer', nullable: true, example: 103 },
         },
       },
       SendInvitationRequest: {
@@ -1443,6 +1452,36 @@ RefereeSubmitResultRequest: {
         },
       },
     },
+    '/api/admin/horses/{id}/rating': {
+      patch: {
+        tags: ['Admin Horses'],
+        summary: 'Set OR/RPR rating for a horse (used by AI Prediction Engine)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateHorseRatingRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Horse rating updated successfully' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — ADMIN role required' },
+          '404': { description: 'Not Found' },
+        },
+      },
+    },
     '/api/invitations/jockeys': {
       get: {
         tags: ['Jockey Invitations'],
@@ -1686,6 +1725,60 @@ RefereeSubmitResultRequest: {
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
           '404': { description: 'Race not found' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}/ai-odds': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'AI odds suggestion for a race (Agent 1 — advisory only)',
+        description:
+          'Gọi AI service (FastAPI /predict-odds) để lấy xác suất thắng + odds gợi ý cho các ' +
+          'ngựa ĐÃ DUYỆT của cuộc đua. Chỉ tham khảo — KHÔNG ghi vào bảng Odds. ' +
+          'Trả 502 nếu AI service không chạy.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          {
+            name: 'margin',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', example: 0.15 },
+            description: 'Biên lợi nhuận nhà cái (overround). Mặc định 0.15.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'AI odds suggestion',
+            content: {
+              'application/json': {
+                example: {
+                  raceId: 1,
+                  raceName: 'Race 1',
+                  source: 'AI_PREDICTION_ENGINE',
+                  note: 'Đây là gợi ý từ AI (chỉ tham khảo), chưa ghi vào bảng Odds chính thức.',
+                  suggestions: [
+                    {
+                      entryId: 5,
+                      horseId: 12,
+                      horseName: 'Thunderbolt',
+                      jockeyName: 'Nguyen Van A',
+                      rank: 1,
+                      winProbability: 34.5,
+                      fairOdds: 2.9,
+                      suggestedOdds: 2.52,
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+          '409': { description: 'Race has no APPROVED entries' },
+          '502': { description: 'AI service không kết nối được' },
         },
       },
     },

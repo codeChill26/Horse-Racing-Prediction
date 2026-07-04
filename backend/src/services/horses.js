@@ -24,6 +24,8 @@ function horseSelect() {
     approvedAt: true,
     rejectedAt: true,
     reviewedById: true,
+    officialRating: true,
+    racingPostRating: true,
     createdAt: true,
     updatedAt: true,
   };
@@ -186,6 +188,21 @@ class HorsesService {
     return prisma.horse.update({
       where: { horseId },
       data,
+      select: horseSelect(),
+    });
+  }
+
+  async updateRating(horseId, { officialRating, racingPostRating }) {
+    const horse = await prisma.horse.findUnique({
+      where: { horseId },
+      select: { horseId: true },
+    });
+
+    if (!horse) throw httpError('Horse not found', 404);
+
+    return prisma.horse.update({
+      where: { horseId },
+      data: { officialRating, racingPostRating },
       select: horseSelect(),
     });
   }
