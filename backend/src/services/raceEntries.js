@@ -144,7 +144,13 @@ class RaceEntriesService {
   async reviewEntry(entryId, { status, reason, weightLb, saddleNumber }, reviewerId) {
     const existing = await prisma.raceEntry.findUnique({
       where: { entryId },
-      select: { entryId: true, status: true, raceId: true },
+      select: {
+        entryId: true,
+        status: true,
+        raceId: true,
+        // Cần rating hiện tại của ngựa để chốt snapshot khi duyệt (APPROVED).
+        horse: { select: { officialRating: true, racingPostRating: true } },
+      },
     });
 
     if (!existing) throw httpError('Race entry not found', 404);
@@ -171,6 +177,9 @@ class RaceEntriesService {
             reviewedAt: new Date(),
             ...(weightLb !== undefined ? { weightLb } : {}),
             ...(saddleNumber !== undefined ? { saddleNumber } : {}),
+            // Chốt snapshot rating tại thời điểm duyệt vào đua.
+            officialRatingSnapshot: existing.horse?.officialRating ?? null,
+            racingPostRatingSnapshot: existing.horse?.racingPostRating ?? null,
           }
         : {
             status: 'REJECTED',

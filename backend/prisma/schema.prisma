@@ -271,6 +271,12 @@ model RaceEntry {
   weightLb     Int? // Cân nặng ngựa mang khi vào đua
   saddleNumber Int? // Số ô xuất phát (draw)
 
+  // Snapshot rating của ngựa TẠI thời điểm vào đua (chốt lúc duyệt entry). Horse.OR/RPR
+  // là giá trị hiện tại và sẽ bị cập nhật sau mỗi đua; snapshot giữ lại rating cũ để
+  // không làm sai lệch dữ liệu lịch sử của các lượt đua đã qua.
+  officialRatingSnapshot   Int? // OR tại lúc vào đua
+  racingPostRatingSnapshot Int? // RPR tại lúc vào đua
+
   race       Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
   horse      Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
   jockey     User? @relation("RaceEntryJockey", fields: [jockeyId], references: [userId], onDelete: SetNull)

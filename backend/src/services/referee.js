@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { applyPositionRatingUpdates } = require('./ratingUpdate');
 
 class RefereeService {
   /**
@@ -106,6 +107,9 @@ class RefereeService {
             finalResults: submissionA.rawResults
           }
         });
+
+        // Kết quả đã chính thức -> cập nhật OR/RPR theo vị trí về đích (rule-based).
+        await applyPositionRatingUpdates(parseInt(raceId), tx);
 
         return {
           status: 'AUTO_MATCHED',
