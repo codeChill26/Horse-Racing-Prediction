@@ -44,8 +44,7 @@ def predict_race(horses, margin=DEFAULT_MARGIN):
 
     horses: list các dict, mỗi dict là 1 con ngựa, ví dụ:
         {"horseName": "Waterproof", "OR": 95, "RPR": 103, "age": 4,
-         "weightLb": 150, "saddle": 3,
-         "jockeyName": "Brendan Powell", "trainerName": "Shaun Keightley"}
+         "weightLb": 150, "saddle": 3, "jockeyName": "Brendan Powell"}
     Các trường số thiếu -> để None, model tự impute.
 
     Trả về: list dict đã thêm win_probability / fair_odds / suggested_odds / rank,
@@ -60,15 +59,14 @@ def predict_race(horses, margin=DEFAULT_MARGIN):
     # runners = số ngựa trong đua này (feature model đã học). Tính tự động.
     df["runners"] = len(df)
 
-    # Tra winrate jockey/trainer từ bảng đã học lúc train. Người lạ -> winrate chung.
+    # Tra winrate jockey từ bảng đã học lúc train. Người lạ -> winrate chung.
     df["jockey_winrate"] = (
         df.get("jockeyName", pd.Series([None] * len(df)))
         .map(bundle["jockey_winrate"]).fillna(bundle["jockey_global"])
     )
-    df["trainer_winrate"] = (
-        df.get("trainerName", pd.Series([None] * len(df)))
-        .map(bundle["trainer_winrate"]).fillna(bundle["trainer_global"])
-    )
+    # trainerName đã bỏ khỏi input (DB không lưu Trainer). Model vẫn cần feature
+    # trainer_winrate -> luôn dùng winrate trainer trung bình chung.
+    df["trainer_winrate"] = bundle["trainer_global"]
 
     # Đảm bảo đủ cột feature model cần (thiếu -> NaN để pipeline impute).
     for col in feature_cols:
@@ -112,17 +110,13 @@ if __name__ == "__main__":
 
     sample_race = [
         {"horseName": "Thunderbolt", "OR": 105, "RPR": 110, "age": 5,
-         "weightLb": 152, "saddle": 2,
-         "jockeyName": "Oisin Murphy", "trainerName": "Andrew Balding"},
+         "weightLb": 152, "saddle": 2, "jockeyName": "Oisin Murphy"},
         {"horseName": "Silver Arrow", "OR": 92, "RPR": 95, "age": 4,
-         "weightLb": 140, "saddle": 5,
-         "jockeyName": "Frankie Dettori", "trainerName": "John Gosden"},
+         "weightLb": 140, "saddle": 5, "jockeyName": "Frankie Dettori"},
         {"horseName": "Old Timer", "OR": 78, "RPR": 80, "age": 9,
-         "weightLb": 133, "saddle": 8,
-         "jockeyName": "Unknown Jockey", "trainerName": "Unknown Trainer"},
+         "weightLb": 133, "saddle": 8, "jockeyName": "Unknown Jockey"},
         {"horseName": "Dark Horse", "OR": None, "RPR": None, "age": 3,
-         "weightLb": 128, "saddle": 1,
-         "jockeyName": "William Buick", "trainerName": "Charlie Appleby"},
+         "weightLb": 128, "saddle": 1, "jockeyName": "William Buick"},
     ]
 
     print("=" * 60)

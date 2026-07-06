@@ -26,6 +26,10 @@ OVER_EXPOSURE_SHARE = 0.40
 # Mức hạ odds tối đa mỗi lần đề xuất (10%).
 MAX_ODDS_CUT = 0.10
 
+# Treasury <= 0 mà vẫn có khoản phải trả -> rủi ro coi như vô hạn. JSON không có
+# "Infinity", nên dùng một số hữu hạn đủ lớn làm mốc (vẫn rơi vào mức CRITICAL).
+INF_RISK = 999.0
+
 
 def _risk_level(ratio):
     for threshold, label in RISK_LEVELS:
@@ -76,7 +80,11 @@ def assess_risk(treasury, horses):
 
     # Risk score = kịch bản xấu nhất so với vốn nhà cái. Chặn chia 0.
     treasury = float(treasury) if treasury else 0.0
-    risk_score = (max_liability / treasury) if treasury > 0 else float("inf")
+    if treasury > 0:
+        risk_score = max_liability / treasury
+    else:
+        # Hết vốn: nếu còn khoản phải trả -> rủi ro tối đa; không thì coi như 0.
+        risk_score = INF_RISK if max_liability > 0 else 0.0
     risk_score = max(risk_score, 0.0)  # liability âm nghĩa là luôn lãi -> rủi ro 0
 
     return {

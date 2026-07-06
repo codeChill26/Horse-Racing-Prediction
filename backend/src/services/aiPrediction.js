@@ -106,8 +106,7 @@ class AiPredictionService {
       weightLb: e.weightLb,
       saddle: e.saddleNumber,
       jockeyName: e.jockey?.fullName ?? null,
-      // App chưa có khái niệm "Trainer" -> để null, model tự dùng winrate trung bình.
-      trainerName: null,
+      // App không có khái niệm "Trainer" -> AI service tự dùng winrate trung bình.
     }));
 
     const payload = { horses };

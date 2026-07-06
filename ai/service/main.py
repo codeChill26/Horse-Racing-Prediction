@@ -43,7 +43,8 @@ class HorseIn(BaseModel):
     weightLb: Optional[float] = None
     saddle: Optional[float] = None
     jockeyName: Optional[str] = None
-    trainerName: Optional[str] = None
+    # trainerName đã bỏ: DB không lưu Trainer nên luôn null -> model dùng winrate
+    # trainer trung bình chung (xem ai/predict.py).
 
 
 class PredictRequest(BaseModel):
