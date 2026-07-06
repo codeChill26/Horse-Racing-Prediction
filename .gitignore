@@ -13,6 +13,10 @@ logs
 backend/node_modules/
 frontend/node_modules/
 
+# AI dataset — 133MB dữ liệu đua ngựa 2016-2020 dùng train model, KHÔNG push lên GitHub.
+# Chỉ cần cho việc train local (python ai/train.py); model đã train nằm ở ai/models/model.pkl.
+docs/horseracing_dataset/
+
 # Build outputs
 backend/public/
 frontend/dist/
