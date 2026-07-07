@@ -135,7 +135,7 @@ model PointWallet {
 // 4. Lịch sử biến động số dư ví điểm (WalletTransactions)
 model WalletTransaction {
   transactionId Int      @id @default(autoincrement())
-  walletId      Int
+  walletId      Int?
   amount        Int // Số điểm thay đổi (+/-)
   balanceAfter  Int // Số dư ví điểm ngay sau giao dịch
   referenceType String? // Loại tham chiếu ngoại bang (nvarchar)
@@ -144,7 +144,7 @@ model WalletTransaction {
   description   String?
   createdAt     DateTime @default(now())
 
-  pointWallet PointWallet @relation(fields: [walletId], references: [walletId])
+  pointWallet PointWallet? @relation(fields: [walletId], references: [walletId])
 }
 
 // 5. Mã OTP phục vụ luồng Quên mật khẩu (PasswordResetOtps)
@@ -393,4 +393,12 @@ model OfficialRaceResult {
   updatedAt     DateTime @updatedAt
 
   race Race @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+}
+
+// BỔ SUNG: Model quản lý hệ thống quỹ dự phòng và doanh thu tổng nhà cái
+model SystemSetting {
+  key         String   @id // 'TREASURE_POOL', 'HOUSE_REVENUE'
+  value       Decimal  @default(0.0)
+  description String?
+  updatedAt   DateTime @updatedAt
 }
