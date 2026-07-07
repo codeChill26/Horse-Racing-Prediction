@@ -2067,39 +2067,6 @@ RefereeSubmitResultRequest: {
       },
     },
 
-    // ---- Referee Endpoints ----
-
-    '/api/referee/races/{id}/start': {
-      post: {
-        tags: ['Referee Management'],
-        summary: 'Referee starts the assigned race (SCHEDULED -> IN_PROGRESS)',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: {
-          '200': { description: 'Race started and bets are locked' },
-          '400': { description: 'Bad Request / Invalid race state' },
-          '401': { description: 'Unauthorized' },
-        },
-      },
-    },
-    '/api/referee/races/{id}/submit': {
-      post: {
-        tags: ['Referee Management'],
-        summary: 'Referee blind submits race ranks and statuses',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: {
-          required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/RefereeSubmitResultRequest' } } },
-        },
-        responses: {
-          '200': { description: 'Result submitted successfully' },
-          '400': { description: 'Bad Request / Already submitted' },
-          '401': { description: 'Unauthorized' },
-        },
-      },
-    },
-
     // ---- Admin Referee Control Endpoints ----
 
     '/api/admin/races/{id}/assign-referees': {
@@ -2151,6 +2118,91 @@ RefereeSubmitResultRequest: {
           '403': { description: 'Forbidden' },
         },
       },
+    },
+  '/api/referee/races/{id}/start': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee starts the assigned race (SCHEDULED -> IN_PROGRESS)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'Race started and bets are locked' },
+          '400': { description: 'Bad Request / Invalid race state' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/referee/races/{id}/submit': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee blind submits race ranks and statuses',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RefereeSubmitResultRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Result submitted successfully' },
+          '400': { description: 'Bad Request / Already submitted' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    
+    // ---- API GET Bổ sung theo Frontend ----
+    
+    '/api/referees/me/races': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy danh sách các cuộc đua được phân công cho Trọng tài hiện tại',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về danh sách mảng races thành công.' }
+        }
+      }
+    },
+    '/api/referees/me/races/{raceId}': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy chi tiết một trận đấu cụ thể được phân công',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'raceId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Trả về chi tiết trận đấu thành công.' },
+          404: { description: 'Không tìm thấy trận đấu hoặc không có quyền.' }
+        }
+      }
+    },
+    '/api/referees/me/submissions': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy lịch sử nộp kết quả của trọng tài',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về danh sách lịch sử nộp điểm.' }
+        }
+      }
+    },
+    '/api/referees/me/conflicts': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy danh sách các trận đấu đang bị tranh chấp (Conflict)',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về danh sách các trận đấu cần Admin xử lý.' }
+        }
+      }
+    },
+    '/api/referees/me/profile': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy thông tin cá nhân và thống kê của trọng tài',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về profile và các chỉ số thống kê.' }
+        }
+      }
     },
   },
 };

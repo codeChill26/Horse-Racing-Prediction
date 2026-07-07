@@ -133,6 +133,151 @@ class RefereeService {
       }
     });
   }
+  
+  /**
+   * Lấy danh sách trận đấu được phân công cho trọng tài (API 1)
+   */
+  async getAssignedRaces(refereeId, queryParams = {}) {
+    const { status, date } = queryParams;
+    let whereClause = { OR: [{ refereeAId: refereeId }, { refereeBId: refereeId }] };
+
+    if (status) whereClause.status = status;
+    if (date) {
+      const targetDate = new Date(date);
+      const nextDate = new Date(targetDate);
+      nextDate.setDate(targetDate.getDate() + 1);
+      whereClause.scheduledAt = { gte: targetDate, lt: nextDate };
+    }
+
+    const races = await prisma.race.findMany({
+      where: whereClause,
+      include: {
+        tournament: true,
+        entries: { include: { horse: true, jockey: true } },
+        refereeA: { select: { fullName: true } },
+        refereeB: { select: { fullName: true } },
+        refereeSubmissions: { where: { refereeId: refereeId } }
+      },
+      orderBy: { scheduledAt: 'asc' }
+    });
+
+    return races.map(race => {
+      const isRefereeA = race.refereeAId === refereeId;
+      const mySub = race.refereeSubmissions[0];
+      return {
+        id: race.raceId,
+        raceId: race.raceId,
+        name: race.name,
+        tournamentName: race.tournament.name,
+        tournamentId: race.tournamentId,
+        scheduledStartTime: race.scheduledAt,
+        actualStartTime: race.publishedAt,
+        status: race.status,
+        bettingStatus: race.registrationOpen ? 'Open' : 'Closed',
+        totalLegs: 1, // Mặc định 1 do DB không chia Leg
+        legs: [{
+          id: `leg-${race.raceId}`,
+          legId: 1,
+          raceId: race.raceId,
+          legNumber: 1,
+          name: `Chặng 1 - ${race.name}`,
+          status: race.status === 'SCHEDULED' ? 'AwaitingSubmission' : race.status,
+          mySubmissionStatus: mySub ? 'Submitted' : 'NotSubmitted',
+          otherRefereeStatus: 'Hidden', // Bảo mật kết quả đối phương
+          horses: race.entries.map(e => ({
+            horseId: e.horseId,
+            gateNumber: e.saddleNo || 0,
+            horseName: e.horse.name,
+            jockeyName: e.jockey?.fullName || 'N/A'
+          }))
+        }],
+        assignedRole: isRefereeA ? 'Referee A' : 'Referee B',
+        refereeId: refereeId,
+        otherRefereeName: isRefereeA ? (race.refereeB?.fullName || null) : (race.refereeA?.fullName || null)
+      };
+    });
+  }
+
+  /**
+   * Lấy chi tiết 1 trận đấu của trọng tài (API 2)
+   */
+  async getRaceDetail(refereeId, raceId) {
+    const races = await this.getAssignedRaces(refereeId, {});
+    return races.find(r => r.raceId === raceId) || null;
+  }
+
+  /**
+   * Lấy lịch sử nộp kết quả của trọng tài (API 5)
+   */
+  async getSubmissionsHistory(refereeId, queryParams = {}) {
+    return await prisma.refereeSubmission.findMany({
+      where: { refereeId: refereeId },
+      include: { race: { select: { name: true } } },
+      orderBy: { submittedAt: 'desc' }
+    });
+  }
+
+  /**
+   * Lấy danh sách các trận đấu bị Conflict (API 6)
+   */
+  async getConflictsList(refereeId) {
+    return await prisma.officialRaceResult.findMany({
+      where: {
+        matchStatus: 'CONFLICTED',
+        race: { OR: [{ refereeAId: refereeId }, { refereeBId: refereeId }] }
+      },
+      include: {
+        race: { include: { refereeSubmissions: true } }
+      }
+    });
+  }
+
+  /**
+   * Lấy Profile và tính toán số liệu thống kê cho Trọng tài (API 7)
+   */
+  async getRefereeProfile(refereeId) {
+    const user = await prisma.user.findUnique({
+      where: { userId: refereeId },
+      include: { role: true }
+    });
+
+    if (!user) throw new Error('Không tìm thấy tài khoản.');
+
+    // Thống kê Metrics
+    const totalAssigned = await prisma.race.count({
+      where: { OR: [{ refereeAId: refereeId }, { refereeBId: refereeId }] }
+    });
+    
+    const totalSubmitted = await prisma.refereeSubmission.count({
+      where: { refereeId: refereeId }
+    });
+
+    const conflicts = await prisma.officialRaceResult.count({
+      where: {
+        matchStatus: 'CONFLICTED',
+        race: { OR: [{ refereeAId: refereeId }, { refereeBId: refereeId }] }
+      }
+    });
+
+    return {
+      userId: user.userId,
+      email: user.email,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      avatarUrl: user.avatarUrl,
+      roleCode: user.role.code,
+      isActive: user.isActive,
+      isProfileComplete: user.isProfileComplete,
+      createdAt: user.createdAt,
+      stats: {
+        totalRacesAssigned: totalAssigned,
+        totalLegsSubmitted: totalSubmitted,
+        autoMatchedRate: totalSubmitted > 0 ? ((totalSubmitted - conflicts) / totalSubmitted * 100).toFixed(1) : 0,
+        conflictCount: conflicts,
+        pendingConflicts: conflicts // Giả định conflict chưa có Admin resolution
+      }
+    };
+  }
 }
 
 module.exports = new RefereeService();
