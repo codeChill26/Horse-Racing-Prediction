@@ -9,24 +9,11 @@
  * Component chứa các bộ lọc: search, status, severity.
  */
 
-import React from "react";
 import { Search, RefreshCw } from "lucide-react";
-
-export const STATUS_OPTIONS = [
-  { value: "ALL", label: "Tất cả trạng thái" },
-  { value: "PENDING", label: "Chờ xử lý" },
-  { value: "REVIEWING", label: "Đang xem xét" },
-  { value: "RESOLVED", label: "Đã xử lý" },
-  { value: "REJECTED", label: "Bị bác bỏ" },
-];
-
-export const SEVERITY_OPTIONS = [
-  { value: "ALL", label: "Tất cả mức độ" },
-  { value: "LOW", label: "Thấp" },
-  { value: "MEDIUM", label: "Trung bình" },
-  { value: "HIGH", label: "Cao" },
-  { value: "CRITICAL", label: "Nghiêm trọng" },
-];
+import {
+  DEVIATION_STATUS_OPTIONS,
+  DEVIATION_SEVERITY_OPTIONS,
+} from "./deviationFilter.constants";
 
 export function DeviationFilter({
   search,
@@ -56,7 +43,7 @@ export function DeviationFilter({
         value={severityFilter}
         onChange={(e) => onSeverityChange(e.target.value)}
       >
-        {SEVERITY_OPTIONS.map((opt) => (
+        {DEVIATION_SEVERITY_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
@@ -68,7 +55,7 @@ export function DeviationFilter({
         value={statusFilter}
         onChange={(e) => onStatusChange(e.target.value)}
       >
-        {STATUS_OPTIONS.map((opt) => (
+        {DEVIATION_STATUS_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

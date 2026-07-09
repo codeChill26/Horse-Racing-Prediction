@@ -7,7 +7,9 @@
  * Race Detail Service
  *
  * Service layer cho race detail management.
- * TODO: waiting backend API
+ *
+ * Mock fallback: chỉ chạy khi env `VITE_FALLBACK_TO_MOCK=true`.
+ * Mặc định throw lỗi lên page để hiển thị cho user (xem raceDetailRepository.withFallback).
  */
 
 import { raceDetailRepository } from "../repositories/raceDetailRepository";

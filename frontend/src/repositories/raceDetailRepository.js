@@ -1,16 +1,29 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Race Detail Repository
  *
- * API chưa tồn tại - sử dụng mock data tạm thời.
- * TODO: waiting backend API
+ * Repository cho Race Detail (Admin side) — Flow 3 / Flow 8.
+ *
+ * Endpoint (theo D:\PRM\project\.cursor\prompts\mainflow.md + openapi.js):
+ *   - GET    /api/admin/races/:id                       — chi tiết race (Admin)
+ *   - GET    /api/admin/races/:id/entries               — list entries của race
+ *   - GET    /api/admin/races/:id/statistics            — thống kê race (BE có thể chưa có)
+ *   - PATCH  /api/admin/races/:id                       — cập nhật race
+ *   - POST   /api/admin/races/:id/cancel  { reason }    — hủy race
+ *   - PUT    /api/admin/races/:id/registration-gate     — open/close registration
+ *
+ * Lưu ý: Một số endpoint (/statistics, /cancel, GET /api/admin/races mount conflict
+ * theo PROCESS.md) có thể chưa có trên BE.
+ *
+ * Mock fallback CHỈ chạy khi env `VITE_FALLBACK_TO_MOCK=true` được set rõ ràng.
+ * Mặc định (prod / staging) sẽ throw lỗi — không im lặng trả về dữ liệu giả.
  */
 
 import { getAccessToken } from "../utils/token";
+
+const FALLBACK_ENABLED =
+  String(import.meta.env.VITE_FALLBACK_TO_MOCK ?? "false").toLowerCase() ===
+  "true";
 
 async function readError(res, fallback) {
   let data = null;
@@ -19,177 +32,77 @@ async function readError(res, fallback) {
   } catch {
     /* empty */
   }
-  throw new Error(data?.error || data?.message || `${fallback} (${res.status})`);
+  throw new Error(
+    data?.error || data?.message || `${fallback} (${res.status})`
+  );
 }
 
 function authHeaders() {
   const token = getAccessToken();
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
 }
 
-// TODO: waiting backend API
+// ----- Mock data (chỉ dùng khi VITE_FALLBACK_TO_MOCK=true) -----
 const MOCK_RACE_DETAIL = {
   id: 1,
-  name: "Belmont Stakes 2026 - Final Round",
-  location: "Belmont Park, New York",
-  date: "2026-06-28T15:00:00Z",
-  status: "SCHEDULED",
   tournamentId: 1,
-  tournamentName: "Triple Crown Series 2026",
+  tournamentName: "Belmont Cup 2026",
+  name: "Chung kết Belmont Stakes",
+  scheduledAt: "2026-07-15T13:00:00Z",
+  registrationDeadline: "2026-07-10T23:59:00Z",
   registrationOpen: true,
-  registrationDeadline: "2026-06-27T23:59:59Z",
-  maxHorses: 16,
-  distance: 2400,
-  prize: 1500000,
-  description: "The final leg of the Triple Crown series, one of the most prestigious horse races in the world.",
-  createdAt: "2026-01-15T08:00:00Z",
-  publishedAt: "2026-02-01T10:00:00Z",
+  status: "SCHEDULED",
+  maxEntries: 16,
+  approvedEntriesCount: 8,
+  trackLength: 2400,
+  trackSurface: "Turf",
+  weather: "Clear",
+  prizePool: 5000000,
+  refereeA: { userId: 5, fullName: "Trọng tài A" },
+  refereeB: { userId: 6, fullName: "Trọng tài B" },
+  createdAt: "2026-06-20T08:00:00Z",
+  updatedAt: "2026-06-28T10:00:00Z",
 };
 
-// TODO: waiting backend API
 const MOCK_ENTRIES = [
   {
     entryId: 1,
-    horseId: 101,
+    raceId: 1,
+    horseId: 10,
     horseName: "Thunder Bolt",
-    horseColor: "Brown",
-    jockeyId: 501,
-    jockeyName: "John Smith",
-    jockeyColor: "Blue & White",
-    ownerId: 301,
-    ownerName: "Thunder Racing Stable",
+    jockeyId: 20,
+    jockeyName: "John Doe",
     gate: 1,
-    odds: 3.5,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-20T10:00:00Z",
+    status: "APPROVED",
+    registeredAt: "2026-06-23T12:15:00Z",
   },
   {
     entryId: 2,
-    horseId: 102,
+    raceId: 1,
+    horseId: 11,
     horseName: "Silver Arrow",
-    horseColor: "Gray",
-    jockeyId: 502,
-    jockeyName: "Jane Doe",
-    jockeyColor: "Red & Gold",
-    ownerId: 302,
-    ownerName: "Silver Line Stables",
+    jockeyId: 21,
+    jockeyName: "Emma Wilson",
     gate: 2,
-    odds: 5.0,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-20T11:30:00Z",
+    status: "APPROVED",
+    registeredAt: "2026-06-23T12:30:00Z",
   },
   {
     entryId: 3,
-    horseId: 103,
-    horseName: "Golden Star",
-    horseColor: "Chestnut",
-    jockeyId: 503,
-    jockeyName: "Mike Johnson",
-    jockeyColor: "Green & Black",
-    ownerId: 303,
-    ownerName: "Golden Gate Farm",
+    raceId: 1,
+    horseId: 12,
+    horseName: "Midnight Star",
+    jockeyId: 22,
+    jockeyName: "Carlos Mendes",
     gate: 3,
-    odds: 4.2,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-21T09:15:00Z",
-  },
-  {
-    entryId: 4,
-    horseId: 104,
-    horseName: "Midnight Thunder",
-    horseColor: "Black",
-    jockeyId: 504,
-    jockeyName: "Sarah Wilson",
-    jockeyColor: "Purple & Silver",
-    ownerId: 304,
-    ownerName: "Night Racing Club",
-    gate: 4,
-    odds: 6.5,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-21T14:20:00Z",
-  },
-  {
-    entryId: 5,
-    horseId: 105,
-    horseName: "Speed Demon",
-    horseColor: "Bay",
-    jockeyId: 505,
-    jockeyName: "Tom Brown",
-    jockeyColor: "Orange & Black",
-    ownerId: 305,
-    ownerName: "Fast Lane Stable",
-    gate: 5,
-    odds: 7.0,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-22T08:45:00Z",
-  },
-  {
-    entryId: 6,
-    horseId: 106,
-    horseName: "Lucky Seven",
-    horseColor: "Dun",
-    jockeyId: 506,
-    jockeyName: "Emma Davis",
-    jockeyColor: "Yellow & Navy",
-    ownerId: 306,
-    ownerName: "Lucky Strike Ranch",
-    gate: 6,
-    odds: 8.5,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-22T16:30:00Z",
-  },
-  {
-    entryId: 7,
-    horseId: 107,
-    horseName: "Phoenix Rising",
-    horseColor: "Red Roan",
-    jockeyId: 507,
-    jockeyName: "Chris Lee",
-    jockeyColor: "Fire Red & White",
-    ownerId: 307,
-    ownerName: "Phoenix Racing Syndicate",
-    gate: 7,
-    odds: 4.8,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-23T10:00:00Z",
-  },
-  {
-    entryId: 8,
-    horseId: 108,
-    horseName: "Ocean Breeze",
-    horseColor: "Blue Roan",
-    jockeyId: 508,
-    jockeyName: "Lisa Wang",
-    jockeyColor: "Aqua & White",
-    ownerId: 308,
-    ownerName: "Coastal Stables",
-    gate: 8,
-    odds: 9.0,
-    finishTime: null,
-    position: null,
-    status: "CONFIRMED",
-    registeredAt: "2026-06-23T12:15:00Z",
+    status: "PENDING",
+    registeredAt: "2026-06-24T09:00:00Z",
   },
 ];
 
-// TODO: waiting backend API
 const MOCK_STATISTICS = {
   totalEntries: 8,
   maxEntries: 16,
@@ -203,89 +116,218 @@ const MOCK_STATISTICS = {
   lastUpdated: "2026-06-28T10:00:00Z",
 };
 
-// TODO: waiting backend API
+/**
+ * Gọi API, fallback về mock CHỈ khi VITE_FALLBACK_TO_MOCK=true.
+ * Không còn swallow 404 — luôn throw để UI xử lý.
+ */
+async function withFallback(apiCall, mockCall, errorContext) {
+  if (FALLBACK_ENABLED) {
+    try {
+      return await apiCall();
+    } catch (_err) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(
+          `[raceDetailRepository] BE endpoint chưa sẵn sàng (${errorContext}). Fallback về mock vì VITE_FALLBACK_TO_MOCK=true.`
+        );
+      }
+      return mockCall();
+    }
+  }
+  return apiCall();
+}
+
 export const raceDetailRepository = {
+  /**
+   * GET /api/admin/races/:id
+   * @param {string|number} raceId
+   */
   async getRaceDetail(raceId) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/races/${raceId}`, { headers: authHeaders() });
-    // if (!res.ok) await readError(res, "Không tải được chi tiết chặng đua");
-    // return await res.json();
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return { ...MOCK_RACE_DETAIL, id: raceId };
+    return withFallback(
+      async () => {
+        const res = await fetch(`/api/admin/races/${raceId}`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) await readError(res, "Không tải được chi tiết chặng đua");
+        const data = await res.json();
+        return data?.race ?? data;
+      },
+      async () => {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return { ...MOCK_RACE_DETAIL, id: raceId };
+      },
+      "getRaceDetail"
+    );
   },
 
-  async getEntries(raceId) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/races/${raceId}/entries`, { headers: authHeaders() });
-    // if (!res.ok) await readError(res, "Không tải được danh sách entries");
-    // return await res.json();
-
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return MOCK_ENTRIES;
+  /**
+   * GET /api/admin/races/:id/entries
+   * @param {string|number} raceId
+   * @param {{ status?: string }} [filters]
+   */
+  async getEntries(raceId, filters = {}) {
+    return withFallback(
+      async () => {
+        const params = new URLSearchParams();
+        if (filters.status && filters.status !== "ALL") {
+          params.set("status", filters.status);
+        }
+        const qs = params.toString();
+        const url = `/api/admin/races/${raceId}/entries${
+          qs ? `?${qs}` : ""
+        }`;
+        const res = await fetch(url, { headers: authHeaders() });
+        if (!res.ok)
+          await readError(res, "Không tải được danh sách entries");
+        const data = await res.json();
+        const list = Array.isArray(data?.entries)
+          ? data.entries
+          : Array.isArray(data)
+            ? data
+            : [];
+        return list;
+      },
+      async () => {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        let list = MOCK_ENTRIES.map((e) => ({ ...e, raceId }));
+        if (filters.status && filters.status !== "ALL") {
+          list = list.filter(
+            (e) => String(e.status).toUpperCase() === filters.status
+          );
+        }
+        return list;
+      },
+      "getEntries"
+    );
   },
 
+  /**
+   * GET /api/admin/races/:id/statistics
+   * Endpoint này chưa có trên BE — fallback mock khi env flag bật.
+   * @param {string|number} raceId
+   */
   async getStatistics(raceId) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/races/${raceId}/statistics`, { headers: authHeaders() });
-    // if (!res.ok) await readError(res, "Không tải được thống kê");
-    // return await res.json();
-
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    return MOCK_STATISTICS;
+    return withFallback(
+      async () => {
+        const res = await fetch(`/api/admin/races/${raceId}/statistics`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) await readError(res, "Không tải được thống kê");
+        const data = await res.json();
+        return data?.statistics ?? data;
+      },
+      async () => {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return { ...MOCK_STATISTICS, raceId };
+      },
+      "getStatistics"
+    );
   },
 
+  /** PATCH /api/admin/races/:id */
   async updateRace(raceId, data) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/races/${raceId}`, {
-    //   method: "PATCH",
-    //   headers: authHeaders(),
-    //   body: JSON.stringify(data),
-    // });
-    // if (!res.ok) await readError(res, "Cập nhật chặng đua thất bại");
-    // return await res.json();
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return { ...MOCK_RACE_DETAIL, ...data, id: raceId };
+    return withFallback(
+      async () => {
+        const res = await fetch(`/api/admin/races/${raceId}`, {
+          method: "PATCH",
+          headers: authHeaders(),
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) await readError(res, "Cập nhật chặng đua thất bại");
+        const result = await res.json();
+        return result?.race ?? result;
+      },
+      async () => {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return { ...MOCK_RACE_DETAIL, ...data, id: raceId };
+      },
+      "updateRace"
+    );
   },
 
+  /**
+   * POST /api/admin/races/:id/cancel { reason }
+   * Endpoint này chưa có trên BE — fallback mock khi env flag bật.
+   * @param {string|number} raceId
+   * @param {string} reason
+   */
   async cancelRace(raceId, reason) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/races/${raceId}/cancel`, {
-    //   method: "POST",
-    //   headers: authHeaders(),
-    //   body: JSON.stringify({ reason }),
-    // });
-    // if (!res.ok) await readError(res, "Hủy chặng đua thất bại");
-    // return await res.json();
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return {
-      ...MOCK_RACE_DETAIL,
-      id: raceId,
-      status: "CANCELLED",
-      cancellationReason: reason,
-      cancelledAt: new Date().toISOString(),
-    };
+    return withFallback(
+      async () => {
+        const res = await fetch(`/api/admin/races/${raceId}/cancel`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ reason }),
+        });
+        if (!res.ok) await readError(res, "Hủy chặng đua thất bại");
+        const result = await res.json();
+        return result?.race ?? result;
+      },
+      async () => {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return {
+          ...MOCK_RACE_DETAIL,
+          id: raceId,
+          status: "CANCELLED",
+          cancellationReason: reason,
+          cancelledAt: new Date().toISOString(),
+        };
+      },
+      "cancelRace"
+    );
   },
 
+  /**
+   * PUT /api/admin/races/:id/registration-gate
+   * Body shape đã được unify: { isOpen: boolean } (khớp openapi.js:1967-1969).
+   * Trước đây raceRepository dùng { isOpen } còn raceDetailRepository dùng { open }
+   * — đã sửa để cả 2 repository gửi cùng payload.
+   * @param {string|number} raceId
+   * @param {boolean} open
+   */
+  async setRegistrationGate(raceId, open) {
+    return withFallback(
+      async () => {
+        const res = await fetch(
+          `/api/admin/races/${raceId}/registration-gate`,
+          {
+            method: "PUT",
+            headers: authHeaders(),
+            body: JSON.stringify({ isOpen: Boolean(open) }),
+          }
+        );
+        if (!res.ok)
+          await readError(
+            res,
+            open ? "Mở cổng đăng ký thất bại" : "Đóng cổng đăng ký thất bại"
+          );
+        const result = await res.json();
+        return result?.race ?? result;
+      },
+      async () => {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return {
+          ...MOCK_RACE_DETAIL,
+          id: raceId,
+          registrationOpen: Boolean(open),
+        };
+      },
+      "setRegistrationGate"
+    );
+  },
+
+  /** Convenience: mở cổng đăng ký */
   async openRegistration(raceId) {
-    // TODO: Replace with real API call
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return {
-      ...MOCK_RACE_DETAIL,
-      id: raceId,
-      registrationOpen: true,
-    };
+    return this.setRegistrationGate(raceId, true);
   },
 
+  /** Convenience: đóng cổng đăng ký */
   async closeRegistration(raceId) {
-    // TODO: Replace with real API call
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return {
-      ...MOCK_RACE_DETAIL,
-      id: raceId,
-      registrationOpen: false,
-    };
+    return this.setRegistrationGate(raceId, false);
   },
 };

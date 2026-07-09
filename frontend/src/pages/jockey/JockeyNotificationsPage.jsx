@@ -2,15 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
-  Check,
   CheckCheck,
   Trash2,
-  Filter,
-  AlertCircle,
-  Flag,
-  User,
-  Calendar,
-  Settings,
+  Mail,
 } from "lucide-react";
 import {
   JockeyPageHeader,
@@ -21,6 +15,7 @@ import {
   JockeyErrorAlert,
   JockeyFilterSelect,
 } from "../../components/jockey/JockeyCommon";
+import JockeyInvitationInbox from "../../components/jockey/JockeyInvitationInbox";
 import { jockeyNotificationService } from "../../services/jockeyService";
 import "./JockeyNotificationsPage.css";
 
@@ -47,10 +42,9 @@ export default function JockeyNotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("invitations");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
-  const [selectedNotifications, setSelectedNotifications] = useState([]);
 
   const fetchNotifications = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -114,8 +108,9 @@ export default function JockeyNotificationsPage() {
 
   const tabs = useMemo(
     () => [
-      { id: "all", label: "All", count: notifications.length },
-      { id: "unread", label: "Unread", count: unreadCount },
+      { id: "invitations", label: "Lời mời", icon: Mail, count: null },
+      { id: "all", label: "Tất cả", count: notifications.length },
+      { id: "unread", label: "Chưa đọc", count: unreadCount },
     ],
     [notifications.length, unreadCount]
   );
@@ -157,20 +152,6 @@ export default function JockeyNotificationsPage() {
     if (notification.raceId) {
       navigate(`/jockey/races/${notification.raceId}`);
     }
-  };
-
-  const getNotificationIcon = (type) => {
-    const icons = {
-      RACE_ASSIGNMENT: Flag,
-      RACE_UPDATE: Calendar,
-      HORSE_UPDATE: User,
-      TRAINER_MESSAGE: Bell,
-      SYSTEM: Settings,
-      RACE_RESULT: Bell,
-      WEIGHT_CHECK: Bell,
-      EQUIPMENT: Bell,
-    };
-    return icons[type] || Bell;
   };
 
   if (loading) {
@@ -229,22 +210,26 @@ export default function JockeyNotificationsPage() {
 
         <JockeyTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-        <div className="jock-notifications-filters">
-          <JockeyFilterSelect
-            value={typeFilter}
-            onChange={setTypeFilter}
-            options={TYPE_FILTER_OPTIONS}
-            label="Type"
-          />
-          <JockeyFilterSelect
-            value={priorityFilter}
-            onChange={setPriorityFilter}
-            options={PRIORITY_FILTER_OPTIONS}
-            label="Priority"
-          />
-        </div>
+        {activeTab === "invitations" ? (
+          <JockeyInvitationInbox />
+        ) : (
+          <>
+            <div className="jock-notifications-filters">
+              <JockeyFilterSelect
+                value={typeFilter}
+                onChange={setTypeFilter}
+                options={TYPE_FILTER_OPTIONS}
+                label="Type"
+              />
+              <JockeyFilterSelect
+                value={priorityFilter}
+                onChange={setPriorityFilter}
+                options={PRIORITY_FILTER_OPTIONS}
+                label="Priority"
+              />
+            </div>
 
-        {Object.keys(groupedNotifications).length > 0 ? (
+            {Object.keys(groupedNotifications).length > 0 ? (
           <div className="jock-notifications-list">
             {Object.entries(groupedNotifications).map(([date, items]) => (
               <div key={date} className="jock-notification-group">
@@ -289,6 +274,8 @@ export default function JockeyNotificationsPage() {
                 : "You don't have any notifications matching your filters."
             }
           />
+        )}
+          </>
         )}
       </div>
     </div>

@@ -9,7 +9,6 @@
  * Skeleton loading state cho deviation table.
  */
 
-import React from "react";
 
 export function DeviationTableSkeleton({ rows = 5 }) {
   return (

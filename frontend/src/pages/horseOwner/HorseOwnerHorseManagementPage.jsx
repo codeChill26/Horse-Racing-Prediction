@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Plus, Search, Eye, X, RefreshCcw, AlertCircle, PawPrint, Calendar, Hash, Trophy, Activity, Award, FileCheck2, Trash2 } from "lucide-react"
+import { Plus, Eye, X, AlertCircle, PawPrint, Calendar, Hash, Trophy, Activity, Award, FileCheck2, Trash2 } from "lucide-react"
 import {
   AdminModal,
   AdminModalSection,
@@ -44,14 +44,6 @@ const SEX_OPTIONS = [
   { value: "FEMALE", label: "Cái" },
   { value: "GELDING", label: "Thiến" },
 ]
-
-function toDateInputValue(iso) {
-  if (!iso) return ""
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ""
-  const pad = (n) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
 
 function computeAge(iso) {
   if (!iso) return null

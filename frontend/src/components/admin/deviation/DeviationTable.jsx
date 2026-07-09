@@ -9,7 +9,6 @@
  * Component hiển thị danh sách deviation dạng bảng (desktop) hoặc card (mobile).
  */
 
-import React from "react";
 import { Eye, MessageSquare, CheckCircle2, XCircle } from "lucide-react";
 import { SeverityBadge } from "../../ui/Badges";
 import { DeviationStatusBadge } from "./DeviationStatusBadge";

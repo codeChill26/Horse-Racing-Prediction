@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cursor context memory — file bộ nhớ ngữ cảnh cho AI, không đẩy lên Git
+cursor.md
+**/cursor.md

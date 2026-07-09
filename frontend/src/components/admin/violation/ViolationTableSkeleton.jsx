@@ -9,7 +9,6 @@
  * Skeleton loading state cho violation table.
  */
 
-import React from "react";
 
 export function ViolationTableSkeleton({ rows = 5 }) {
   return (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Clock, ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
+import { Calendar, Sun, Moon } from "lucide-react";
 import {
   JockeyPageHeader,
   JockeyTabs,

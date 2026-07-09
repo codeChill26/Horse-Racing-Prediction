@@ -478,7 +478,7 @@ export default function TournamentsPage() {
     return acc
   }, {})
 
-  const handlePlacedBet = (bet) => {
+  const handlePlacedBet = () => {
     // Refresh balance
     const token = getAccessToken()
     if (token) {

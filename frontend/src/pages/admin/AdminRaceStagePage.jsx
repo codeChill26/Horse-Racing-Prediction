@@ -3,14 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff } from "lucide-react";
 import { raceService } from "../../services/raceService";
 import { tournamentService } from "../../services/tournamentService";
+import { raceDetailService } from "../../services/raceDetailService";
 import { formatDate, mapStatusToVietnamese } from "../../utils/formatter";
+import { useToast } from "../../hooks/useToast";
+import { useSocket } from "../../hooks/useSocket";
+import { onSocketEvent } from "../../utils/socket";
+import { getAccessToken } from "../../utils/token";
+import RaceCreateFormModal from "./RaceCreateFormModal";
+import AssignRefereesModal from "./AssignRefereesModal";
 import "./AdminRaceStagePage.css";
 
-// TODO: waiting backend API
+// TODO: Replace bằng API khi backend mount ổn định: GET /api/admin/races/:id/entries
+// Note: MOCK_RACE_REGISTRATIONS chỉ còn dùng ở modal Registration detail preview
+// nếu API list chưa sẵn sàng (chỉ khi VITE_FALLBACK_TO_MOCK=true).
 const MOCK_RACE_REGISTRATIONS = {
   1: [
     { horseId: 101, horseName: "Thunder Bolt", jockeyName: "John Smith", owner: "Stable A", registeredAt: "2026-06-20T10:00:00Z" },
@@ -24,10 +33,14 @@ const MOCK_RACE_REGISTRATIONS = {
   3: [],
 };
 
+// Các status hợp lệ theo mainflow.md + openapi.js cho race:
+// SCHEDULED | IN_PROGRESS | PENDING_RESULT | PAUSED | FINISHED | CANCELLED
 const STATUS_OPTIONS = [
   { value: "ALL", label: "Tất cả trạng thái" },
   { value: "SCHEDULED", label: "Đã lên lịch" },
-  { value: "ONGOING", label: "Đang diễn ra" },
+  { value: "IN_PROGRESS", label: "Đang diễn ra" },
+  { value: "PENDING_RESULT", label: "Chờ kết quả" },
+  { value: "PAUSED", label: "Tạm dừng" },
   { value: "FINISHED", label: "Đã kết thúc" },
   { value: "CANCELLED", label: "Đã hủy" },
 ];
@@ -36,8 +49,12 @@ function statusBadgeClass(status) {
   switch (status) {
     case "SCHEDULED":
       return "ars-badge ars-badge--scheduled";
+    case "IN_PROGRESS":
     case "ONGOING":
       return "ars-badge ars-badge--ongoing";
+    case "PENDING_RESULT":
+    case "PAUSED":
+      return "ars-badge ars-badge--warn";
     case "FINISHED":
       return "ars-badge ars-badge--finished";
     case "CANCELLED":
@@ -55,9 +72,14 @@ function Toast({ message, type, onClose }) {
   }, [onClose]);
 
   return (
-    <div className={`ars-toast ars-toast--${type}`}>
+    <div
+      className={`ars-toast ars-toast--${type}`}
+      role={type === "error" ? "alert" : "status"}
+      aria-live={type === "error" ? "assertive" : "polite"}
+      aria-atomic="true"
+    >
       <span>{message}</span>
-      <button type="button" className="ars-toast__close" onClick={onClose}>×</button>
+      <button type="button" className="ars-toast__close" onClick={onClose} aria-label="Đóng thông báo">×</button>
     </div>
   );
 }
@@ -236,6 +258,9 @@ function RegistrationModal({ race, registrations, onClose }) {
 }
 
 export default function AdminRaceStagePage() {
+  const token = getAccessToken();
+  const { connected } = useSocket(token);
+  const toastify = useToast();
   const [races, setRaces] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -249,20 +274,18 @@ export default function AdminRaceStagePage() {
   const [detail, setDetail] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // { race, action }
   const [regModal, setRegModal] = useState(null);
+  const [createModal, setCreateModal] = useState(null);
+  const [assignModal, setAssignModal] = useState(null);
 
-  // Toast
+  // Toast local — hỗ trợ các flow chưa migrate sang useToast
   const [toast, setToast] = useState(null);
-
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const [raceList, tourList] = await Promise.all([
-        raceService.getRacesList(),
+        raceService.getAdminRacesList(),
         tournamentService.getTournamentsList("ALL").catch(() => []),
       ]);
       setRaces(Array.isArray(raceList) ? raceList : []);
@@ -279,16 +302,64 @@ export default function AdminRaceStagePage() {
     loadData();
   }, [loadData]);
 
-  // === SOCKET / REALTIME NOTE ===
+  // === SOCKET / REALTIME: gate + auto-reject events ===
   useEffect(() => {
-    const interval = setInterval(() => {
-      raceService
-        .getRacesList()
-        .then((list) => setRaces(Array.isArray(list) ? list : []))
-        .catch(() => {});
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!token) return undefined;
+
+    const refresh = () => {
+      raceService.getAdminRacesList().then((list) => {
+        if (Array.isArray(list)) setRaces(list);
+      }).catch(() => {});
+    };
+
+    const offGateOpen = onSocketEvent("race:gate_opened", (payload) => {
+      refresh();
+      toastify?.info?.(
+        payload?.raceId
+          ? `Cổng đăng ký race #${payload.raceId} vừa được mở.`
+          : "Cổng đăng ký vừa được mở."
+      );
+    });
+    const offGateClose = onSocketEvent("race:gate_closed", (payload) => {
+      refresh();
+      const auto = payload?.autoRejectedCount;
+      const msg = auto
+        ? `Cổng vừa đóng — ${auto} entry PENDING bị auto-reject.`
+        : "Cổng đăng ký vừa được đóng.";
+      toastify?.warn?.(msg);
+    });
+
+    // Fallback poll mỗi 30s (lỡ event không đến)
+    const interval = setInterval(refresh, 30000);
+
+    return () => {
+      offGateOpen();
+      offGateClose();
+      clearInterval(interval);
+    };
+  }, [token, toastify]);
+
+  const [entriesByRace, setEntriesByRace] = useState({});
+
+  const loadEntriesCounts = useCallback(async () => {
+    try {
+      const results = await Promise.all(
+        races.map((r) =>
+          raceDetailService
+            .getEntries(r.raceId)
+            .then((list) => [r.raceId, Array.isArray(list) ? list.length : 0])
+            .catch(() => [r.raceId, 0]),
+        ),
+      );
+      setEntriesByRace(Object.fromEntries(results));
+    } catch {
+      /* ignore */
+    }
+  }, [races]);
+
+  useEffect(() => {
+    if (races.length > 0) loadEntriesCounts();
+  }, [races.length, loadEntriesCounts]);
 
   const filtered = useMemo(() => {
     let list = races;
@@ -313,9 +384,13 @@ export default function AdminRaceStagePage() {
     return {
       total: races.length,
       scheduled: races.filter((r) => r.status === "SCHEDULED").length,
-      ongoing: races.filter((r) => r.status === "ONGOING").length,
+      ongoing: races.filter(
+        (r) => r.status === "IN_PROGRESS" || r.status === "ONGOING"
+      ).length,
       finished: races.filter((r) => r.status === "FINISHED").length,
-      registrationOpen: races.filter((r) => r.registrationOpen || r.isRegistrationOpen).length,
+      registrationOpen: races.filter(
+        (r) => r.registrationOpen || r.isRegistrationOpen
+      ).length,
     };
   }, [races]);
 
@@ -337,40 +412,51 @@ export default function AdminRaceStagePage() {
     setBusyId(race.raceId);
     try {
       const isOpening = action === "OPEN";
-
-      if (isOpening) {
-        // TODO: waiting backend API
-        // Mock: cập nhật state local
-        replaceRace({ ...race, registrationOpen: true, isRegistrationOpen: true });
-        showToast(`Đã mở cổng đăng ký cho "${race.name}"`, "success");
-      } else {
-        // Gọi API đóng cổng
-        try {
-          const updated = await raceService.executeCloseRegistration(race.raceId);
-          if (updated?.race) {
-            replaceRace(updated.race);
-          } else {
-            replaceRace({ ...race, registrationOpen: false, isRegistrationOpen: false });
-          }
-          showToast(`Đã đóng cổng đăng ký cho "${race.name}"`, "success");
-        } catch (apiError) {
-          // Fallback: cập nhật state local
-          replaceRace({ ...race, registrationOpen: false, isRegistrationOpen: false });
-          showToast(`Đã đóng cổng đăng ký cho "${race.name}"`, "success");
-        }
-      }
+      // PUT /api/admin/races/:id/registration-gate { isOpen } (raceRepository.setRegistrationGate)
+      const result = await raceService.setRegistrationGate(race.raceId, isOpening);
+      const updated = result?.race || {
+        ...race,
+        registrationOpen: isOpening,
+        isRegistrationOpen: isOpening,
+        registrationOpenedAt: isOpening ? new Date().toISOString() : race.registrationOpenedAt,
+        registrationClosedAt: !isOpening ? new Date().toISOString() : race.registrationClosedAt,
+      };
+      replaceRace(updated);
+      toastify?.success?.(
+        isOpening
+          ? `Đã mở cổng đăng ký cho "${race.name}"`
+          : `Đã đóng cổng đăng ký cho "${race.name}". Auto-reject các entry PENDING.`
+      );
     } catch (e) {
-      showToast(e.message || "Không thể thay đổi trạng thái cổng đăng ký", "error");
+      toastify?.error?.(e.message || "Không thể thay đổi trạng thái cổng đăng ký");
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleViewRegistrations = (race) => {
-    // TODO: waiting backend API - lấy registrations từ API
-    // Mock: lấy từ MOCK_RACE_REGISTRATIONS
-    const regs = MOCK_RACE_REGISTRATIONS[race.raceId] || [];
-    setRegModal({ race, registrations: regs });
+  const handleViewRegistrations = async (race) => {
+    setBusyId(race.raceId);
+    try {
+      // Gọi API admin/races/:id/entries để lấy danh sách registration thật.
+      // Trước đây chỉ dùng mock — sai dữ liệu so với backend.
+      const list = await raceDetailService.getEntries(race.raceId);
+      const rows = (Array.isArray(list) ? list : []).map((e) => ({
+        horseId: e.horseId,
+        horseName: e.horseName || e.horse?.name || `#${e.horseId}`,
+        jockeyName: e.jockeyName || e.jockey?.fullName || "Chưa có",
+        owner: e.owner?.fullName || e.ownerName || "—",
+        registeredAt: e.registeredAt || e.createdAt,
+        entryId: e.entryId || e.id,
+        status: e.status,
+      }));
+      setRegModal({ race, registrations: rows });
+    } catch (e) {
+      toastify?.error?.(
+        e?.message || "Không tải được danh sách đăng ký của chặng đua."
+      );
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
@@ -386,10 +472,35 @@ export default function AdminRaceStagePage() {
 
       <header className="ars-page__header">
         <div>
-          <h1 className="ars-page__title">Quản lý chặng đua</h1>
+          <h1 className="ars-page__title">
+            Quản lý chặng đua
+            <span
+              className={`ars-rt ${connected ? "ars-rt--ok" : "ars-rt--off"}`}
+              title={connected ? "Đang nhận cập nhật realtime" : "Mất kết nối realtime"}
+            >
+              {connected ? <Wifi size={11} /> : <WifiOff size={11} />}
+              <span>{connected ? "Realtime" : "Offline"}</span>
+            </span>
+          </h1>
           <p className="ars-page__desc">
             Theo dõi các chặng đua, trạng thái cổng đăng ký và kết quả.
           </p>
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="adm-t-btn adm-t-btn--primary"
+            onClick={() => setCreateModal({})}
+            disabled={tournaments.length === 0}
+            title={
+              tournaments.length === 0
+                ? "Chưa có giải đấu để thêm chặng đua"
+                : "Tạo chặng đua mới trong 1 giải đấu"
+            }
+          >
+            <Plus size={14} />
+            Tạo chặng đua
+          </button>
         </div>
       </header>
 
@@ -488,8 +599,8 @@ export default function AdminRaceStagePage() {
                     (t) => t.tournamentId === r.tournamentId
                   );
                   const isRegOpen = r.registrationOpen || r.isRegistrationOpen;
-                  const maxSlots = r.maxHorses || 20;
-                  const registeredCount = MOCK_RACE_REGISTRATIONS[r.raceId]?.length || 0;
+                  const maxSlots = r.maxHorses || r.maxEntries || 20;
+                  const registeredCount = entriesByRace[r.raceId] ?? MOCK_RACE_REGISTRATIONS[r.raceId]?.length ?? 0;
 
                   return (
                     <tr key={r.raceId}>
@@ -530,6 +641,15 @@ export default function AdminRaceStagePage() {
                       </td>
                       <td>
                         <div className="ars-actions">
+                          <button
+                            type="button"
+                            className="ars-icon-btn"
+                            title="Phân công trọng tài (Flow 3 — Step 3)"
+                            disabled={r.status === "FINISHED" || r.status === "CANCELLED"}
+                            onClick={() => setAssignModal(r)}
+                          >
+                            <UserCog size={14} />
+                          </button>
                           <button
                             type="button"
                             className="ars-icon-btn"
@@ -612,7 +732,7 @@ export default function AdminRaceStagePage() {
               />
               <DetailRow
                 label="Slots"
-                value={`${MOCK_RACE_REGISTRATIONS[detail.raceId]?.length || 0}/${detail.maxHorses || 20}`}
+                value={`${entriesByRace[detail.raceId] ?? MOCK_RACE_REGISTRATIONS[detail.raceId]?.length ?? 0}/${detail.maxHorses || detail.maxEntries || 20}`}
               />
               <DetailRow
                 label="Trạng thái"
@@ -647,6 +767,35 @@ export default function AdminRaceStagePage() {
           onClose={() => setRegModal(null)}
         />
       )}
+
+      {/* Race Create Modal — FLOW 3 Step 2 */}
+      {createModal ? (
+        <RaceCreateFormModal
+          tournaments={tournaments}
+          defaultTournamentId={tournamentFilter !== "ALL" ? tournamentFilter : undefined}
+          onClose={() => setCreateModal(null)}
+          onCreated={(created) => {
+            setCreateModal(null);
+            if (created) setRaces((prev) => [created, ...prev]);
+            toastify?.success?.("Đã tạo chặng đua mới");
+          }}
+        />
+      ) : null}
+
+      {/* Assign Referees Modal — FLOW 3 Step 3 */}
+      {assignModal ? (
+        <AssignRefereesModal
+          race={assignModal}
+          onClose={() => setAssignModal(null)}
+          onAssigned={(updated) => {
+            if (updated) replaceRace(updated);
+            setAssignModal(null);
+            toastify?.success?.(
+              `Đã phân công trọng tài cho "${assignModal.name}"`
+            );
+          }}
+        />
+      ) : null}
     </div>
   );
 }

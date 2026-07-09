@@ -9,7 +9,6 @@
  * Hiển thị badge trạng thái cho violation với màu sắc phù hợp.
  */
 
-import React from "react";
 
 const STATUS_CONFIG = {
   OPEN: {

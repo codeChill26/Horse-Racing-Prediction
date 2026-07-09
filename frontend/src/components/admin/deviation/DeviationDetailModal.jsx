@@ -9,7 +9,6 @@
  * Modal hiển thị chi tiết đầy đủ của một deviation.
  */
 
-import React from "react";
 import { X, Clock, User, AlertTriangle, FileText, History } from "lucide-react";
 import { SeverityBadge } from "../../ui/Badges";
 import { DeviationStatusBadge } from "./DeviationStatusBadge";

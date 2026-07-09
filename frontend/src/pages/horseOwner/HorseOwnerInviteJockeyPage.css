@@ -2,6 +2,45 @@
    HORSE OWNER INVITE JOCKEY - Dark Theme
    ============================================ */
 
+/* === Realtime badge === */
+.oh-realtime-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.oh-realtime {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.oh-realtime--ok {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+  border: 1px solid rgba(141, 214, 166, 0.3);
+}
+
+.oh-realtime--off {
+  background: rgba(168, 184, 200, 0.1);
+  color: #a8b8c8;
+  border: 1px solid rgba(168, 184, 200, 0.2);
+}
+
+.oh-realtime-hint {
+  font-size: 0.8rem;
+  color: #8da4b8;
+  font-style: italic;
+}
+
 /* === JOCKEY CARD === */
 .oh-jockey-card {
   display: flex;

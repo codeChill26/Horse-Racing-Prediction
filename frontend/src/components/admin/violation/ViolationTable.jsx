@@ -9,12 +9,11 @@
  * Component hiển thị danh sách violation dạng bảng (desktop) hoặc card (mobile).
  */
 
-import React from "react";
 import { Eye, MessageSquare, CheckCircle2, XCircle } from "lucide-react";
 import { SeverityBadge, RoleBadge } from "../../ui/Badges";
 import { ViolationStatusBadge } from "./ViolationStatusBadge";
 import { ViolationTableSkeleton } from "./ViolationTableSkeleton";
-import { formatDate, formatPoints } from "../../../utils/formatter";
+import { formatPoints } from "../../../utils/formatter";
 
 function truncate(value, max = 28) {
   if (!value) return "—";
@@ -60,8 +59,9 @@ function ViolationCard({ violation, onView, onStartReview, onResolve, onDismiss,
           type="button"
           className="vio-card__btn vio-card__btn--view"
           onClick={() => onView(violation)}
+          aria-label="Xem chi tiết vi phạm"
         >
-          <Eye size={14} />
+          <Eye size={14} aria-hidden="true" />
           Chi tiết
         </button>
 
@@ -71,8 +71,9 @@ function ViolationCard({ violation, onView, onStartReview, onResolve, onDismiss,
             className="vio-card__btn vio-card__btn--info"
             onClick={() => onStartReview(violation)}
             disabled={isBusy}
+            aria-label="Bắt đầu xem xét vi phạm"
           >
-            <MessageSquare size={14} />
+            <MessageSquare size={14} aria-hidden="true" />
             Xem xét
           </button>
         )}
@@ -84,8 +85,9 @@ function ViolationCard({ violation, onView, onStartReview, onResolve, onDismiss,
               className="vio-card__btn vio-card__btn--ok"
               onClick={() => onResolve(violation)}
               disabled={isBusy}
+              aria-label="Xử lý vi phạm"
             >
-              <CheckCircle2 size={14} />
+              <CheckCircle2 size={14} aria-hidden="true" />
               Xử lý
             </button>
             <button
@@ -93,8 +95,9 @@ function ViolationCard({ violation, onView, onStartReview, onResolve, onDismiss,
               className="vio-card__btn vio-card__btn--err"
               onClick={() => onDismiss(violation)}
               disabled={isBusy}
+              aria-label="Bỏ qua vi phạm"
             >
-              <XCircle size={14} />
+              <XCircle size={14} aria-hidden="true" />
               Bỏ qua
             </button>
           </>
@@ -120,14 +123,14 @@ export function ViolationTable({
           <table className="vio-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Đối tượng</th>
-                <th>Loại vi phạm</th>
-                <th>Chặng</th>
-                <th>Mức độ</th>
-                <th>Trạng thái</th>
-                <th>Phạt</th>
-                <th>Hành động</th>
+                <th scope="col">ID</th>
+                <th scope="col">Đối tượng</th>
+                <th scope="col">Loại vi phạm</th>
+                <th scope="col">Chặng</th>
+                <th scope="col">Mức độ</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col">Phạt</th>
+                <th scope="col">Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -156,16 +159,17 @@ export function ViolationTable({
       {/* Desktop Table */}
       <div className="vio-table-wrap">
         <table className="vio-table">
+          <caption className="sr-only">Danh sách các vi phạm kỷ luật</caption>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Đối tượng</th>
-              <th>Loại vi phạm</th>
-              <th>Chặng</th>
-              <th>Mức độ</th>
-              <th>Trạng thái</th>
-              <th>Phạt</th>
-              <th>Hành động</th>
+              <th scope="col">ID</th>
+              <th scope="col">Đối tượng</th>
+              <th scope="col">Loại vi phạm</th>
+              <th scope="col">Chặng</th>
+              <th scope="col">Mức độ</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col">Phạt</th>
+              <th scope="col">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -211,6 +215,7 @@ export function ViolationTable({
                         type="button"
                         className="vio-icon-btn"
                         title="Xem chi tiết"
+                        aria-label="Xem chi tiết vi phạm"
                         onClick={() => onView(v)}
                       >
                         <Eye size={14} />
@@ -221,6 +226,7 @@ export function ViolationTable({
                           type="button"
                           className="vio-icon-btn vio-icon-btn--info"
                           title="Bắt đầu xem xét"
+                          aria-label="Bắt đầu xem xét vi phạm"
                           disabled={isBusy}
                           onClick={() => onStartReview(v)}
                         >
@@ -234,6 +240,7 @@ export function ViolationTable({
                             type="button"
                             className="vio-icon-btn vio-icon-btn--ok"
                             title="Xử lý xong"
+                            aria-label="Xử lý vi phạm"
                             disabled={isBusy}
                             onClick={() => onResolve(v)}
                           >
@@ -243,6 +250,7 @@ export function ViolationTable({
                             type="button"
                             className="vio-icon-btn vio-icon-btn--err"
                             title="Bỏ qua"
+                            aria-label="Bỏ qua vi phạm"
                             disabled={isBusy}
                             onClick={() => onDismiss(v)}
                           >

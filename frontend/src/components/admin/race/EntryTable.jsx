@@ -9,11 +9,9 @@
  * Component hiển thị danh sách entries của race.
  */
 
-import React from "react";
 import { Crown, User, Home, Hash } from "lucide-react";
-import { formatDate } from "../../../utils/formatter";
 
-function EntryCard({ entry, index }) {
+function EntryCard({ entry }) {
   return (
     <div className="et-card">
       <div className="et-card__header">
@@ -150,8 +148,8 @@ export function EntryTable({ entries, loading }) {
 
       {/* Mobile Cards */}
       <div className="et-cards">
-        {entries.map((entry, index) => (
-          <EntryCard key={entry.entryId || entry.horseId} entry={entry} index={index} />
+        {entries.map((entry) => (
+          <EntryCard key={entry.entryId || entry.horseId} entry={entry} />
         ))}
       </div>
     </div>

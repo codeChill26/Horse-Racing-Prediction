@@ -1,9 +1,8 @@
 
 
-import React from "react";
-import { Search, Bell, Settings as SettingsIcon, LogOut, Menu } from "lucide-react";
+import { Search, Bell, Settings as SettingsIcon, Menu } from "lucide-react";
 
-export default function AdminHeader({ title, onSearch, searchValue }) {
+export default function AdminHeader({ onSearch, searchValue }) {
     return (
         <header className="h-20 bg-surface border-b border-[#30363D] px-8 sticky top-0 z-40 flex items-center justify-between">
             {/* Dynamic Header Information */}

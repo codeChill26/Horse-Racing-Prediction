@@ -14,7 +14,6 @@ import {
 import {
   JockeyPageHeader,
   JockeyStatCard,
-  JockeyRaceCard,
   JockeyErrorAlert,
   JockeySkeleton,
   JockeyEmptyState,
@@ -25,7 +24,6 @@ import {
 } from "../../components/jockey/JockeyCommon";
 import {
   jockeyProfileService,
-  jockeyRaceService,
   jockeyNotificationService,
   jockeyStatsService,
 } from "../../services/jockeyService";

@@ -31,7 +31,7 @@ export function formatDate(dateString) {
       month: "short",
       day: "numeric"
     });
-  } catch (e) { 
+  } catch {
     // trả về gốc
     return dateString;
   }

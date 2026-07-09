@@ -7,8 +7,6 @@ import {
   Bell,
   LogOut,
   Trophy,
-  Star,
-  ChevronRight,
 } from "lucide-react";
 import "./JockeyLayout.css";
 

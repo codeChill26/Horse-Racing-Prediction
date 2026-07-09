@@ -10,14 +10,26 @@
  * Route: /admin/races/:raceId
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Edit, XCircle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Edit, XCircle, Wifi, WifiOff } from "lucide-react";
 import { raceDetailService } from "../../services/raceDetailService";
+import { raceEntryService } from "../../services/raceEntryService";
 import { RaceInfoCard } from "../../components/admin/race/RaceInfoCard";
-import { EntryTable } from "../../components/admin/race/EntryTable";
+import { EntryReviewTable } from "../../components/admin/race/EntryReviewTable";
+import EntryRejectModal from "../../components/admin/race/EntryRejectModal";
 import { RaceStatisticsCard } from "../../components/admin/race/RaceStatisticsCard";
 import { RaceActionBar } from "../../components/admin/race/RaceActionBar";
+import { useSocket } from "../../hooks/useSocket";
+import {
+  getSocket,
+  onSocketEvent,
+  onSocketStatus,
+  subscribeRace,
+  unsubscribeRace,
+} from "../../utils/socket";
+import { useToast } from "../../hooks/useToast";
+import { getAccessToken } from "../../utils/token";
 import "./AdminRaceDetailPage.css";
 
 // Toast Component
@@ -130,6 +142,10 @@ export default function AdminRaceDetailPage() {
   const { raceId } = useParams();
   const navigate = useNavigate();
 
+  const token = getAccessToken();
+  const { connected } = useSocket(token);
+  const toastify = useToast();
+
   const [race, setRace] = useState(null);
   const [entries, setEntries] = useState([]);
   const [statistics, setStatistics] = useState(null);
@@ -140,6 +156,12 @@ export default function AdminRaceDetailPage() {
   // Modals
   const [confirmModal, setConfirmModal] = useState(null);
   const [cancelModal, setCancelModal] = useState(false);
+  const [rejectEntryModal, setRejectEntryModal] = useState(null);
+  const [entryBusyId, setEntryBusyId] = useState(null);
+  const [entryError, setEntryError] = useState("");
+
+  // Filter entries theo status
+  const [entryStatusFilter, setEntryStatusFilter] = useState("ALL");
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -170,6 +192,86 @@ export default function AdminRaceDetailPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // === Socket realtime ===
+  useEffect(() => {
+    if (!token) return undefined;
+
+    // entry:created → owner vừa submit entry trực tiếp
+    const offCreated = onSocketEvent("entry:created", (payload) => {
+      const incoming = payload?.entry;
+      if (!incoming) return;
+      const incomingRaceId = String(incoming.raceId ?? "");
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
+      raceEntryService
+        .getEntriesByRace(raceId)
+        .then((list) => {
+          if (Array.isArray(list)) setEntries(list);
+        })
+        .catch(() => {});
+      toastify?.info?.(
+        `Có entry mới: ${incoming.horseName || `#${incoming.horseId || ""}`} vừa được đăng ký.`,
+        "Entry mới"
+      );
+    });
+
+    // entry:status_changed → admin vừa duyệt/từ chối → cập nhật lại bảng entries
+    const offEntryStatus = onSocketEvent("entry:status_changed", (payload) => {
+      const incoming = payload?.entry;
+      if (!incoming) return;
+      const incomingRaceId = String(incoming.raceId ?? "");
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
+      raceEntryService
+        .getEntriesByRace(raceId)
+        .then((list) => {
+          if (Array.isArray(list)) setEntries(list);
+        })
+        .catch(() => {});
+    });
+
+    // odds:updated → BE recalc odds → reload race detail + stats
+    const offOdds = onSocketEvent("odds:updated", (payload) => {
+      const incomingRaceId = String(payload?.raceId ?? "");
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
+      raceDetailService
+        .getStatistics(raceId)
+        .then((stats) => {
+          if (stats) setStatistics(stats);
+        })
+        .catch(() => {});
+      // Cập nhật lại odds trong bảng entries (EntryReviewTable đang hiển thị odds)
+      raceEntryService
+        .getEntriesByRace(raceId)
+        .then((list) => {
+          if (Array.isArray(list)) setEntries(list);
+        })
+        .catch(() => {});
+    });
+
+    // Subscribe room race:${raceId} để server gửi odds:updated về.
+    // Mỗi lần socket reconnect, BE sẽ drop room → cần subscribe lại.
+    const sock = getSocket(token);
+    if (sock && sock.connected) {
+      subscribeRace(raceId);
+    }
+    const offStatus = onSocketStatus(({ socket: s }) => {
+      if (s && s.connected) {
+        subscribeRace(raceId);
+      }
+    });
+
+    return () => {
+      offCreated();
+      offEntryStatus();
+      offOdds();
+      offStatus();
+      try {
+        unsubscribeRace(raceId);
+      } catch {
+        /* noop */
+      }
+    };
+  }, [token, raceId, toastify]);
 
   const updateRace = (updated) => {
     setRace((prev) => (prev ? { ...prev, ...updated } : updated));
@@ -239,6 +341,69 @@ export default function AdminRaceDetailPage() {
     showToast("Chức năng đang phát triển", "info");
   };
 
+  // === Flow 2: entry review ===
+  const filteredEntries = (() => {
+    if (entryStatusFilter === "ALL") return entries;
+    return entries.filter(
+      (e) => String(e.status || "").toUpperCase() === entryStatusFilter
+    );
+  })();
+
+  const replaceEntry = (updated) => {
+    if (!updated) return;
+    const id = updated.entryId || updated.id;
+    setEntries((prev) => prev.map((e) => (e.entryId === id || e.id === id ? updated : e)));
+  };
+
+  const handleApproveEntry = async (entry) => {
+    const ok = window.confirm(
+      `Duyệt đơn đăng ký của ngựa "${entry.horseName}"?`
+    );
+    if (!ok) return;
+    setEntryError("");
+    setEntryBusyId(entry.entryId || entry.id);
+    try {
+      const updated = await raceEntryService.approveEntry(raceId, entry.entryId || entry.id);
+      replaceEntry(updated);
+      showToast("Đã duyệt entry", "success");
+    } catch (e) {
+      showToast(e.message || "Không duyệt được entry", "error");
+    } finally {
+      setEntryBusyId(null);
+    }
+  };
+
+  const handleAskRejectEntry = (entry) => {
+    setEntryError("");
+    setRejectEntryModal(entry);
+  };
+
+  const handleCloseRejectEntryModal = () => {
+    if (entryBusyId) return;
+    setRejectEntryModal(null);
+    setEntryError("");
+  };
+
+  const handleConfirmRejectEntry = async ({ reason }) => {
+    if (!rejectEntryModal) return;
+    setEntryError("");
+    setEntryBusyId(rejectEntryModal.entryId || rejectEntryModal.id);
+    try {
+      const updated = await raceEntryService.rejectEntry(
+        raceId,
+        rejectEntryModal.entryId || rejectEntryModal.id,
+        reason
+      );
+      replaceEntry(updated);
+      setRejectEntryModal(null);
+      showToast("Đã từ chối entry", "success");
+    } catch (e) {
+      setEntryError(e.message || "Không từ chối được entry");
+    } finally {
+      setEntryBusyId(null);
+    }
+  };
+
   return (
     <div className="ard-page">
       {/* Toast */}
@@ -300,15 +465,46 @@ export default function AdminRaceDetailPage() {
             <RaceInfoCard race={race} loading={loading} />
           </section>
 
-          {/* Entries */}
+          {/* Entries — Flow 2: admin review entries */}
           <section className="ard-section">
-            <h2 className="ard-section__title">
-              Danh sách Entries
-              {!loading && entries.length > 0 && (
-                <span className="ard-section__count">{entries.length}</span>
-              )}
-            </h2>
-            <EntryTable entries={entries} loading={loading} />
+            <div className="ard-section__head">
+              <h2 className="ard-section__title">
+                Đơn đăng ký (Entries)
+                {!loading && entries.length > 0 && (
+                  <span className="ard-section__count">{entries.length}</span>
+                )}
+                <span
+                  className={`ard-rt ${connected ? "ard-rt--ok" : "ard-rt--off"}`}
+                  title={
+                    connected
+                      ? "Đang nhận cập nhật realtime"
+                      : "Mất kết nối realtime"
+                  }
+                >
+                  {connected ? <Wifi size={11} /> : <WifiOff size={11} />}
+                  <span>{connected ? "Realtime" : "Offline"}</span>
+                </span>
+              </h2>
+              <select
+                className="ard-select"
+                value={entryStatusFilter}
+                onChange={(e) => setEntryStatusFilter(e.target.value)}
+                disabled={loading}
+                aria-label="Lọc theo trạng thái entry"
+              >
+                <option value="ALL">Tất cả</option>
+                <option value="PENDING">Chờ duyệt</option>
+                <option value="APPROVED">Đã duyệt</option>
+                <option value="REJECTED">Bị từ chối</option>
+              </select>
+            </div>
+            <EntryReviewTable
+              entries={filteredEntries}
+              loading={loading}
+              busyEntryId={entryBusyId}
+              onApprove={handleApproveEntry}
+              onAskReject={handleAskRejectEntry}
+            />
           </section>
         </div>
 
@@ -369,6 +565,17 @@ export default function AdminRaceDetailPage() {
           onClose={() => setCancelModal(false)}
         />
       )}
+
+      {/* Entry Reject Modal — Flow 2 */}
+      {rejectEntryModal ? (
+        <EntryRejectModal
+          entry={rejectEntryModal}
+          busy={!!entryBusyId}
+          error={entryError}
+          onClose={handleCloseRejectEntryModal}
+          onConfirm={handleConfirmRejectEntry}
+        />
+      ) : null}
     </div>
   );
 }

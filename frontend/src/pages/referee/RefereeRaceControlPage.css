@@ -600,6 +600,44 @@
   margin-top: 0.25rem;
 }
 
+/* FLOW 5 — Cột hành động (báo cáo vi phạm) */
+.horse-result-table__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.5rem;
+}
+
+.horse-result-table__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.horse-result-table__btn--flag {
+  color: var(--ho-text-muted, #8b949e);
+  border-color: var(--ho-border, #30363d);
+  background: var(--ho-surface-lowest, #060f16);
+}
+
+.horse-result-table__btn--flag:hover:not(:disabled) {
+  color: #f59e0b;
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.horse-result-table__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ============================================
    REFEREE NOTE BOX
    ============================================ */

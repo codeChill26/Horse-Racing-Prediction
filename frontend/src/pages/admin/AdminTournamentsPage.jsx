@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { tournamentService } from "../../services/tournamentService";
 import { formatDate } from "../../utils/formatter";
@@ -13,10 +13,13 @@ import {
   tournamentStatusClass,
   tournamentStatusLabel,
 } from "../../utils/tournamentStatus";
+import { useToast } from "../../hooks/useToast";
 import AdminTournamentFormModal from "./AdminTournamentFormModal";
+import TournamentCancelModal from "./TournamentCancelModal";
 import "./AdminTournamentsPage.css";
 
 export default function AdminTournamentsPage() {
+  const toastify = useToast();
   const [tournaments, setTournaments] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -24,6 +27,8 @@ export default function AdminTournamentsPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [modal, setModal] = useState(null);
+  const [cancelModal, setCancelModal] = useState(null);
+  // cancelModal: { tournament, mode: 'status'|'delete', targetStatus? }
 
   const loadTournaments = useCallback(async () => {
     setLoading(true);
@@ -74,38 +79,35 @@ export default function AdminTournamentsPage() {
 
   const handleStatusChange = async (tournament, nextStatus) => {
     if (!nextStatus || nextStatus === tournament.status) return;
-
-    let cancelReason;
     if (nextStatus === "CANCELLED") {
-      cancelReason = window.prompt("Nhập lý do hủy giải đấu:");
-      if (!cancelReason?.trim()) return;
+      // Mở modal nhập lý do huỷ thay vì window.prompt
+      setCancelModal({ tournament, mode: "status", targetStatus: nextStatus });
+      return;
     }
 
     setBusyId(tournament.tournamentId);
     try {
       const updated = await tournamentService.changeTournamentStatus(
         tournament.tournamentId,
-        nextStatus,
-        cancelReason?.trim()
+        nextStatus
       );
       replaceTournament(updated);
+      toastify?.success?.(`Đã đổi trạng thái → ${nextStatus}`);
     } catch (e) {
-      window.alert(e.message || "Không đổi được trạng thái");
+      toastify?.error?.(e.message || "Không đổi được trạng thái");
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleDelete = async (tournament) => {
-    const hasRaces = (tournament._count?.races ?? 0) > 0;
-    const msg = hasRaces
-      ? "Giải đã có chặng đua — hệ thống sẽ HỦY thay vì xóa. Nhập lý do:"
-      : "Xác nhận xóa giải đấu này? Nhập lý do (có thể để trống nếu chưa có chặng):";
+  const handleAskDelete = (tournament) => {
+    setCancelModal({ tournament, mode: "delete" });
+  };
 
-    const reason = window.prompt(msg);
-    if (reason === null) return;
-    if (hasRaces && !reason.trim()) {
-      window.alert("Bắt buộc nhập lý do khi hủy giải có chặng đua");
+  const handleDelete = async (tournament, reason) => {
+    const hasRaces = (tournament._count?.races ?? 0) > 0;
+    if (hasRaces && !reason?.trim()) {
+      toastify?.error?.("Bắt buộc nhập lý do khi hủy giải có chặng đua");
       return;
     }
 
@@ -113,15 +115,44 @@ export default function AdminTournamentsPage() {
     try {
       const result = await tournamentService.deleteTournament(
         tournament.tournamentId,
-        reason.trim() || undefined
+        reason?.trim() || undefined
       );
       if (result?.tournament) {
         replaceTournament(result.tournament);
       } else {
         setTournaments((prev) => prev.filter((t) => t.tournamentId !== tournament.tournamentId));
       }
+      toastify?.success?.(
+        hasRaces ? "Đã hủy giải đấu" : "Đã xoá giải đấu"
+      );
     } catch (e) {
-      window.alert(e.message || "Không xóa/hủy được giải đấu");
+      toastify?.error?.(e.message || "Không xóa/hủy được giải đấu");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleConfirmCancel = async ({ reason }) => {
+    if (!cancelModal) return;
+    const { tournament, mode, targetStatus } = cancelModal;
+    setBusyId(tournament.tournamentId);
+    try {
+      if (mode === "delete") {
+        await handleDelete(tournament, reason);
+        setCancelModal(null);
+        return;
+      }
+      // mode === "status"
+      const updated = await tournamentService.changeTournamentStatus(
+        tournament.tournamentId,
+        targetStatus,
+        reason.trim()
+      );
+      replaceTournament(updated);
+      toastify?.success?.("Đã hủy giải đấu");
+      setCancelModal(null);
+    } catch (e) {
+      toastify?.error?.(e.message || "Không thực hiện được thao tác");
     } finally {
       setBusyId(null);
     }
@@ -278,7 +309,7 @@ export default function AdminTournamentsPage() {
                             className="adm-t-icon-btn adm-t-icon-btn--danger"
                             title={t._count?.races > 0 ? "Hủy giải đấu" : "Xóa giải đấu"}
                             disabled={isBusy}
-                            onClick={() => handleDelete(t)}
+                            onClick={() => handleAskDelete(t)}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -303,6 +334,17 @@ export default function AdminTournamentsPage() {
           onSaved={loadTournaments}
         />
       )}
+
+      {cancelModal ? (
+        <TournamentCancelModal
+          tournament={cancelModal.tournament}
+          mode={cancelModal.mode}
+          targetStatus={cancelModal.targetStatus}
+          busy={busyId === cancelModal.tournament.tournamentId}
+          onClose={() => setCancelModal(null)}
+          onConfirm={handleConfirmCancel}
+        />
+      ) : null}
     </div>
   );
 }

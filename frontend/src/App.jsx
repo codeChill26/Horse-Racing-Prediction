@@ -1,5 +1,7 @@
 import "./App.css";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ToastProvider } from "./hooks/ToastProvider";
+import { ToastContainer } from "./hooks/ToastContainer";
 import RequireRole from "./components/RequireRole";
 import AdminLayout from "./components/admin/AdminLayout";
 import ForgotPasswordPage from "./pages/LoginPage/ForgotPasswordPage";
@@ -24,7 +26,6 @@ import SpectatorLayout from "./components/spectator/SpectatorLayout";
 import SpectatorHomePage from "./pages/spectator/SpectatorHomePage";
 import SpectatorProfilePage from "./pages/spectator/SpectatorProfilePage";
 import LandingDashboard from "./pages/Dashboard/LandingDashboard";
-import AuthLayout from "./layouts/AuthLayout";
 import DashboardAdmin from "./pages/admin/DashboardAdmin";
 import AdminTournamentsPage from "./pages/admin/AdminTournamentsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
@@ -52,14 +53,15 @@ import RefereeProfilePage from "./pages/referee/RefereeProfilePage";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingDashboard />} />
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingDashboard />} />
 
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
         <Route
           path="/admin"
@@ -140,7 +142,9 @@ function App() {
           <Route path="profile" element={<RefereeProfilePage />} />
         </Route>
       </Routes>
+      <ToastContainer />
     </BrowserRouter>
+    </ToastProvider>
   );
 }
 

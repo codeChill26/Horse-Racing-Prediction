@@ -20,6 +20,7 @@ import {
   OwnerAccountCard,
   OwnerWalletCard,
 } from '../../components/horseOwner/OwnerProfileCard'
+import { MyViolationsList } from '../../components/shared/MyViolationsList'
 import './HorseOwnerProfilePage.css'
 
 export default function HorseOwnerProfilePage() {
@@ -177,6 +178,11 @@ export default function HorseOwnerProfilePage() {
             <div className="owner-profile-grid">
               <OwnerWalletCard wallet={null} loading={false} />
             </div>
+
+            {/* FLOW 6: vi phạm của tôi — dành cho horse owner nếu stable bị phạt */}
+            <section className="op-card">
+              <MyViolationsList />
+            </section>
 
             {errorHorses ? (
               <div className="ho-alert ho-alert--error" role="alert">

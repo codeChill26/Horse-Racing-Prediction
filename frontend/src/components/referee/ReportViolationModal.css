@@ -1,0 +1,296 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * ReportViolationModal — styles. Đồng bộ với race-start modal đã có sẵn.
+ */
+
+.rvm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: rvm-fade 160ms ease;
+}
+
+@keyframes rvm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.rvm-modal {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: #1c1f26;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  color: #e6e6e6;
+}
+
+.rvm-modal__bar {
+  height: 4px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  border-radius: 12px 12px 0 0;
+}
+
+.rvm-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 20px 12px;
+}
+
+.rvm-modal__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.rvm-modal__heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.rvm-modal__title {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #f5f5f5;
+}
+
+.rvm-modal__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+.rvm-modal__close {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #9ca3af;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.rvm-modal__close:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e6e6e6;
+}
+
+.rvm-modal__close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rvm-modal__body {
+  padding: 4px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rvm-subject {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rvm-subject__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.rvm-subject__content {
+  flex: 1;
+  font-size: 14px;
+}
+
+.rvm-subject__jockey {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.rvm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rvm-field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6e6e6;
+}
+
+.rvm-field__required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.rvm-field__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.rvm-field__hint { flex: 1; }
+.rvm-field__counter { font-family: monospace; }
+
+.rvm-input-wrap {
+  position: relative;
+}
+
+.rvm-select,
+.rvm-input,
+.rvm-textarea {
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  border-radius: 8px;
+  background: #14161c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e6e6e6;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 160ms ease;
+}
+
+.rvm-select:focus,
+.rvm-input:focus,
+.rvm-textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+}
+
+.rvm-input-wrap .rvm-input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.rvm-input--custom {
+  margin-top: 8px;
+  padding-right: 12px;
+}
+
+.rvm-textarea {
+  resize: vertical;
+  min-height: 80px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.rvm-input:disabled,
+.rvm-select:disabled,
+.rvm-textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rvm-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.rvm-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rvm-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rvm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 160ms ease;
+}
+
+.rvm-btn--ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #d1d5db;
+}
+
+.rvm-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rvm-btn--submit {
+  background: #f59e0b;
+  color: #1c1f26;
+  border-color: #f59e0b;
+}
+
+.rvm-btn--submit:hover:not(:disabled) {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+.rvm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .rvm-modal__header { padding: 16px 16px 8px; }
+  .rvm-modal__body   { padding: 4px 16px 16px; }
+  .rvm-modal__footer { padding: 12px 16px 16px; }
+}

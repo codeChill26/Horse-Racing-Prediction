@@ -12,7 +12,7 @@
  * Route: /admin/discrepancies
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { deviationService } from "../../services/deviationService";
 import { DeviationFilter } from "../../components/admin/deviation/DeviationFilter";
 import { DeviationTable } from "../../components/admin/deviation/DeviationTable";
@@ -101,8 +101,12 @@ export default function AdminDeviationPage() {
 
   const handleStartReview = async (dev) => {
     setBusyId(dev.id);
+    setError("");
     try {
-      const updated = await deviationService.startReview(dev.id);
+      const updated = await deviationService.startReview(
+        dev.id,
+        dev.status
+      );
       updateDeviation(updated);
     } catch (e) {
       setError(e.message || "Không thể bắt đầu xem xét");
@@ -115,7 +119,7 @@ export default function AdminDeviationPage() {
 
   const handleReject = (dev) => setActionModal({ dev, actionType: "REJECTED" });
 
-  const handleActionSubmit = async (note) => {
+  const handleActionSubmit = async (payload) => {
     if (!actionModal) return;
 
     const { dev, actionType } = actionModal;
@@ -124,14 +128,23 @@ export default function AdminDeviationPage() {
     try {
       let updated;
       if (actionType === "RESOLVED") {
-        updated = await deviationService.resolveDeviation(dev.id, note || "Đã xử lý");
+        updated = await deviationService.resolveDeviation(dev.id, {
+          source: payload.source,
+          finalResults: payload.finalResults,
+          reason: payload.reason,
+          currentStatus: dev.status,
+        });
       } else {
-        updated = await deviationService.rejectDeviation(dev.id, note);
+        updated = await deviationService.rejectDeviation(
+          dev.id,
+          payload,
+          dev.status
+        );
       }
       updateDeviation(updated);
       setActionModal(null);
     } catch (e) {
-      throw e; // Let modal handle error
+      setError(e.message || "Không thể xử lý sai lệch");
     } finally {
       setBusyId(null);
     }
@@ -183,13 +196,13 @@ export default function AdminDeviationPage() {
 
       {/* Error Banner */}
       {error && !loading && (
-        <div className="adp-alert adp-alert--error">{error}</div>
+        <div className="adp-alert adp-alert--error" role="alert">
+          {error}
+        </div>
       )}
 
-      {/* Mock Banner */}
-      <div className="adp-mock-banner">
-        Dữ liệu đang hiển thị từ mock. Backend chưa cung cấp API cho sai lệch.
-      </div>
+      {/* State hint: AdminDiscrepancyPage dùng graceful fallback khi BE chưa có.
+          Xem deviationRepository.js với fallback logic. */}
 
       {/* Table */}
       <DeviationTable

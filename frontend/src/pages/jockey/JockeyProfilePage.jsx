@@ -18,11 +18,11 @@ import {
 import {
   JockeyPageHeader,
   JockeyAvatar,
-  JockeyStatCard,
   JockeyErrorAlert,
   JockeySkeleton,
   JockeySuccessAlert,
 } from "../../components/jockey/JockeyCommon";
+import { MyViolationsList } from "../../components/shared/MyViolationsList";
 import { jockeyProfileService, jockeyStatsService } from "../../services/jockeyService";
 import "./JockeyProfilePage.css";
 
@@ -346,6 +346,11 @@ export default function JockeyProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* FLOW 6: Vi phạm của tôi — lịch sử vi phạm & điểm phạt (nếu có) */}
+          <section className="jock-profile-card jock-profile-card--wide">
+            <MyViolationsList />
+          </section>
 
           {/* Achievements */}
           {profile?.achievements && profile.achievements.length > 0 && (

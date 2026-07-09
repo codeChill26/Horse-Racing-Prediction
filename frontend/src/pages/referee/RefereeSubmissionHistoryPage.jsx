@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { refereeSubmissionService } from "../../services/refereeService";
+import { useToast } from "../../hooks/useToast";
 import "./RefereeSubmissionHistoryPage.css";
 
 // ============================================================
@@ -49,6 +50,22 @@ const FILTER_OPTIONS = [
   { value: "Matched", label: "Đã khớp" },
   { value: "Conflict", label: "Xung đột" },
 ];
+
+/**
+ * BE submission shape (RefereeSubmission):
+ *   { submissionId, raceId, refereeId, rawResults: [...], submittedAt }
+ * FE cần biết "comparison status" cho filter/UI.
+ *
+ * Mặc định BE chưa join OfficialRaceResult vào /me/submissions.
+ * Status mặc định: "WaitingOtherReferee" (PENDING_PARTNER).
+ * Nếu sau này BE trả về thêm `matchStatus` thì dùng trực tiếp.
+ */
+function deriveComparisonStatus(submission) {
+  const m = submission?.matchStatus || submission?.officialRaceResult?.matchStatus;
+  if (m === "AUTO_MATCHED" || m === "RESOLVED") return "AutoMatched";
+  if (m === "CONFLICTED") return "Conflicted";
+  return "WaitingOtherReferee";
+}
 
 // ============================================================
 // SUBMISSION FILTER
@@ -169,9 +186,9 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
       </div>
       <tbody>
         {submissions.map((submission) => {
-          const statusConfig = STATUS_CONFIG[submission.comparisonStatus] || {
+          const statusConfig = STATUS_CONFIG[deriveComparisonStatus(submission)] || {
             variant: "muted",
-            label: submission.comparisonStatus || "—",
+            label: deriveComparisonStatus(submission) || "—",
           };
 
           return (
@@ -251,9 +268,10 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
 function SubmissionDetailModal({ isOpen, onClose, submission }) {
   if (!isOpen || !submission) return null;
 
-  const statusConfig = STATUS_CONFIG[submission.comparisonStatus] || {
+  const derivedStatus = deriveComparisonStatus(submission);
+  const statusConfig = STATUS_CONFIG[derivedStatus] || {
     variant: "muted",
-    label: submission.comparisonStatus || "—",
+    label: derivedStatus || "—",
   };
 
   const renderStatusIcon = (status) => {
@@ -284,16 +302,16 @@ function SubmissionDetailModal({ isOpen, onClose, submission }) {
           {/* Status Banner */}
           <div className={`submission-detail-status submission-detail-status--${statusConfig.variant}`}>
             <div className="submission-detail-status__icon">
-              {renderStatusIcon(submission.comparisonStatus)}
+              {renderStatusIcon(derivedStatus)}
             </div>
             <div className="submission-detail-status__content">
               <span className="submission-detail-status__title">{statusConfig.label}</span>
               <span className="submission-detail-status__subtitle">
-                {submission.comparisonStatus === "WaitingOtherReferee" &&
+                {derivedStatus === "WaitingOtherReferee" &&
                   "Trọng tài còn lại chưa submit kết quả."}
-                {submission.comparisonStatus === "AutoMatched" &&
+                {derivedStatus === "AutoMatched" &&
                   "Kết quả khớp với trọng tài còn lại."}
-                {submission.comparisonStatus === "Conflicted" &&
+                {derivedStatus === "Conflicted" &&
                   "Có xung đột kết quả giữa 2 trọng tài."}
               </span>
             </div>
@@ -415,6 +433,7 @@ function EmptyState({ isFiltered }) {
 // ============================================================
 export default function RefereeSubmissionHistoryPage() {
   const navigate = useNavigate();
+  const toastify = useToast();
 
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -426,23 +445,29 @@ export default function RefereeSubmissionHistoryPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Fetch submissions on mount with cancellation guard
+  const [error, setError] = useState("");
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError("");
       try {
-        const subs = await refereeSubmissionService.getMySubmissions();
-        if (!cancelled) setSubmissions(subs);
-      } catch (e) {
-        if (!cancelled) console.error("Failed to load submissions:", e);
-      } finally {
-        if (!cancelled) setLoading(false);
+      const subs = await refereeSubmissionService.getMySubmissions();
+      if (!cancelled) setSubmissions(subs);
+    } catch (e) {
+      if (!cancelled) {
+        console.error("Failed to load submissions:", e);
+        setError(e?.message || "Không thể tải lịch sử submission");
+        toastify?.error?.(e?.message || "Không thể tải lịch sử submission");
+      }
+    } finally {
+      if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [toastify]);
 
   // Filter submissions
   const filteredSubmissions = useMemo(() => {
@@ -451,13 +476,13 @@ export default function RefereeSubmissionHistoryPage() {
     return submissions.filter((sub) => {
       // Status filter
       if (statusFilter !== "ALL") {
-        if (statusFilter === "Waiting" && sub.comparisonStatus !== "WaitingOtherReferee") {
+        if (statusFilter === "Waiting" && deriveComparisonStatus(sub) !== "WaitingOtherReferee") {
           return false;
         }
-        if (statusFilter === "Matched" && sub.comparisonStatus !== "AutoMatched") {
+        if (statusFilter === "Matched" && deriveComparisonStatus(sub) !== "AutoMatched") {
           return false;
         }
-        if (statusFilter === "Conflict" && sub.comparisonStatus !== "Conflicted") {
+        if (statusFilter === "Conflict" && deriveComparisonStatus(sub) !== "Conflicted") {
           return false;
         }
       }
@@ -526,6 +551,48 @@ export default function RefereeSubmissionHistoryPage() {
     );
   }
 
+  // Error state
+  if (error && submissions.length === 0) {
+    return (
+      <div className="submission-history-page">
+        <div className="submission-history-page__inner">
+          <button
+            type="button"
+            className="submission-btn submission-btn--back"
+            onClick={() => navigate("/referee")}
+          >
+            <ArrowLeft size={16} /> Quay lại Dashboard
+          </button>
+
+          <header className="submission-history-page__header">
+            <div>
+              <p className="submission-history-page__eyebrow">Referee</p>
+              <h1 className="submission-history-page__title">Lịch sử Submission</h1>
+              <p className="submission-history-page__subtitle">
+                Theo dõi tất cả kết quả bạn đã submit.
+              </p>
+            </div>
+          </header>
+
+          <div className="submission-alert submission-alert--error" role="alert">
+            <AlertTriangle size={18} aria-hidden="true" />
+            <div>
+              <strong>Không thể tải lịch sử submission.</strong>
+              <p>{error}</p>
+            </div>
+            <button
+              type="button"
+              className="submission-btn submission-btn--primary"
+              onClick={() => window.location.reload()}
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="submission-history-page">
       <div className="submission-history-page__inner">
@@ -553,6 +620,13 @@ export default function RefereeSubmissionHistoryPage() {
             </span>
           </div>
         </header>
+
+        {error ? (
+          <div className="submission-alert submission-alert--error" role="alert">
+            <AlertTriangle size={16} aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        ) : null}
 
         {/* Toolbar */}
         <div className="submission-history-page__toolbar">

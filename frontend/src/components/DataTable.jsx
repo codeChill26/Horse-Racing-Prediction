@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight, Filter, Download } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function DataTable({
     columns,
@@ -16,8 +16,6 @@ export default function DataTable({
     onExternalSearchChange,
     hideSearch = false,
     onRowClick,
-    actionButtonText,
-    onActionButtonClick,
     title
 }) {
     const [localSearchValue, setLocalSearchValue] = useState("");

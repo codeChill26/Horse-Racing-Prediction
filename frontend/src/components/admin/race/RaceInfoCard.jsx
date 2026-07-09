@@ -9,7 +9,6 @@
  * Component hiển thị thông tin cơ bản của race.
  */
 
-import React from "react";
 import { MapPin, Calendar, Flag, Trophy, Clock } from "lucide-react";
 import { formatDate } from "../../../utils/formatter";
 import { mapStatusToVietnamese } from "../../../utils/formatter";

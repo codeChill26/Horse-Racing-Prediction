@@ -9,7 +9,6 @@
  * Component hiển thị thống kê của race.
  */
 
-import React from "react";
 import { Users, DollarSign, TrendingUp, Star } from "lucide-react";
 
 function StatCard({ icon: Icon, label, value, subValue, variant }) {

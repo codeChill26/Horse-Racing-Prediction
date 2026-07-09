@@ -13,8 +13,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import {
-  JockeyPageHeader,
-  JockeyStatCard,
   JockeyErrorAlert,
   JockeySkeleton,
   JockeyRaceStatusBadge,
@@ -33,7 +31,7 @@ export default function JockeyRaceDetailPage() {
   const [competitors, setCompetitors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [showScratchModal, setShowScratchModal] = useState(false);
   const [scratchReason, setScratchReason] = useState("");
 

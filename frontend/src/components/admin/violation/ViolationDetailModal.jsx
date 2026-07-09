@@ -9,13 +9,12 @@
  * Modal hiển thị chi tiết đầy đủ của một violation.
  */
 
-import React from "react";
-import { X, Clock, User, AlertTriangle, FileText, History, Ban } from "lucide-react";
+import { X, Clock, User, AlertTriangle, FileText, History, CheckCircle2, XCircle, MessageSquare } from "lucide-react";
 import { SeverityBadge, RoleBadge } from "../../ui/Badges";
 import { ViolationStatusBadge } from "./ViolationStatusBadge";
 import { formatDate, formatPoints } from "../../../utils/formatter";
 
-function HistoryItem({ item, index }) {
+function HistoryItem({ item, index, total }) {
   const actionLabels = {
     CREATED: "Được tạo",
     REVIEWING: "Đang xem xét",
@@ -27,7 +26,7 @@ function HistoryItem({ item, index }) {
     <div className="vio-history-item">
       <div className="vio-history-item__marker">
         <div className="vio-history-item__dot" />
-        {index < 1 && <div className="vio-history-item__line" />}
+        {index < total - 1 && <div className="vio-history-item__line" />}
       </div>
       <div className="vio-history-item__content">
         <div className="vio-history-item__header">
@@ -49,23 +48,41 @@ function HistoryItem({ item, index }) {
   );
 }
 
-export function ViolationDetailModal({ violation, onClose }) {
+export function ViolationDetailModal({
+  violation,
+  onClose,
+  onStartReview,
+  onResolve,
+  onDismiss,
+}) {
   if (!violation) return null;
 
+  const status = String(violation.status || "").toUpperCase();
+  const canStartReview = status === "OPEN" && typeof onStartReview === "function";
+  const canAction =
+    (status === "OPEN" || status === "REVIEWING") &&
+    (typeof onResolve === "function" || typeof onDismiss === "function");
+
   return (
-    <div className="vio-modal-overlay" onClick={onClose}>
-      <div className="vio-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="vio-modal-overlay" onClick={onClose} role="presentation">
+      <div
+        className="vio-modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="vio-detail-title"
+      >
         {/* Header */}
         <div className="vio-modal__header">
           <div className="vio-modal__title-wrap">
             <div className="vio-modal__id">{violation.id}</div>
-            <h2 className="vio-modal__title">{violation.type}</h2>
+            <h2 id="vio-detail-title" className="vio-modal__title">{violation.type}</h2>
             <div className="vio-modal__badges">
               <SeverityBadge severity={violation.severity} />
               <ViolationStatusBadge status={violation.status} />
             </div>
           </div>
-          <button type="button" className="vio-modal__close" onClick={onClose}>
+          <button type="button" className="vio-modal__close" onClick={onClose} aria-label="Đóng">
             <X size={18} />
           </button>
         </div>
@@ -158,7 +175,12 @@ export function ViolationDetailModal({ violation, onClose }) {
               </div>
               <div className="vio-modal__history">
                 {violation.history.map((item, index) => (
-                  <HistoryItem key={index} item={item} index={index} />
+                  <HistoryItem
+                    key={index}
+                    item={item}
+                    index={index}
+                    total={violation.history.length}
+                  />
                 ))}
               </div>
             </section>
@@ -170,6 +192,39 @@ export function ViolationDetailModal({ violation, onClose }) {
           <button type="button" className="vio-modal__btn vio-modal__btn--ghost" onClick={onClose}>
             Đóng
           </button>
+          {canStartReview && (
+            <button
+              type="button"
+              className="vio-modal__btn vio-modal__btn--info"
+              onClick={() => onStartReview(violation)}
+              aria-label="Bắt đầu xem xét"
+            >
+              <MessageSquare size={14} aria-hidden="true" />
+              Bắt đầu xem xét
+            </button>
+          )}
+          {canAction && typeof onResolve === "function" && (
+            <button
+              type="button"
+              className="vio-modal__btn vio-modal__btn--ok"
+              onClick={() => onResolve(violation)}
+              aria-label="Xử lý vi phạm"
+            >
+              <CheckCircle2 size={14} aria-hidden="true" />
+              Xử lý
+            </button>
+          )}
+          {canAction && typeof onDismiss === "function" && (
+            <button
+              type="button"
+              className="vio-modal__btn vio-modal__btn--err"
+              onClick={() => onDismiss(violation)}
+              aria-label="Bỏ qua"
+            >
+              <XCircle size={14} aria-hidden="true" />
+              Bỏ qua
+            </button>
+          )}
         </div>
       </div>
     </div>

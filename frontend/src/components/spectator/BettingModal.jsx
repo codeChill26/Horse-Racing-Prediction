@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { X, Coins, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { bettingService } from '../../services/bettingService'
 import { formatPoints } from '../../utils/formatter'

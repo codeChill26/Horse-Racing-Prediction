@@ -16,11 +16,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Calendar, MapPin, Clock, RefreshCcw, X, Eye, Hash, Filter, Trophy, CheckCircle2 } from "lucide-react"
+import { Calendar, MapPin, Clock, X, Eye, Hash, Filter, Trophy, CheckCircle2 } from "lucide-react"
 import {
   AdminModal,
   AdminModalSection,
-  AdminModalField,
 } from "../../components/ui/AdminModal"
 import { StatusBadge } from "../../components/ui/Badges"
 import { Skeleton } from "../../components/ui/Skeleton"
@@ -403,8 +402,6 @@ function ScheduleRow({ race, onView }) {
 
 /* ============== DETAIL MODAL ============== */
 function ScheduleDetailModal({ race, horses, onClose }) {
-  if (!race) return null
-  const myEntries = race.ownerEntries || []
   const horsesById = useMemo(() => {
     const map = {}
     for (const h of horses || []) {
@@ -413,6 +410,8 @@ function ScheduleDetailModal({ race, horses, onClose }) {
     }
     return map
   }, [horses])
+  if (!race) return null
+  const myEntries = race.ownerEntries || []
 
   return (
     <AdminModal

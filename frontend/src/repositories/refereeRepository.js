@@ -2,190 +2,196 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Repository cho Referee — tổng hợp dữ liệu từ mock.
- * Pattern giống các repository khác trong dự án.
+ * Referee Repository — gọi API thật tới `/api/referee/*` theo mainflow.md.
  *
- * TODO: Khi backend cung cấp APIs, thay thế các mock bằng fetch thật.
+ * Endpoint ánh xạ:
+ *  - GET  /api/referee/me/races                  → getAssignedRaces
+ *  - GET  /api/referee/me/races/:raceId          → getRaceControlDetail
+ *  - GET  /api/referee/me/submissions            → getMySubmissions
+ *  - GET  /api/referee/me/conflicts              → getConflicts
+ *  - GET  /api/referee/me/profile                → getProfile
+ *  - POST /api/referee/races/:id/start           → startRace
+ *  - POST /api/referee/races/:id/submit          → submitRaceResult
+ *
+ * NOTE:
+ * - Backend dùng status ENUM in hoa (SCHEDULED / IN_PROGRESS / PENDING_RESULT /
+ *   PAUSED / FINISHED / CANCELLED). FE phải normalize nếu cần.
+ * - Backend đã tự trả về `legs[].mySubmissionStatus` / `otherRefereeStatus`
+ *   theo service `getAssignedRaces` ở backend.
  */
 
 import { getAccessToken } from "../utils/token";
-import {
-  MOCK_ASSIGNED_RACES,
-  MOCK_MY_SUBMISSIONS,
-  MOCK_CONFLICTS,
-  MOCK_REFEREE_PROFILE,
-} from "../data/mockRefereeData";
 
-function authHeaders() {
+function authHeaders(extra = {}) {
   const token = getAccessToken();
   return {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
+    ...extra,
   };
 }
 
-function delay(ms) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+async function readError(res, fallback) {
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* empty */
+  }
+  const msg =
+    data?.error ||
+    data?.message ||
+    (typeof data === "string" ? data : null) ||
+    `${fallback} (${res.status})`;
+  throw new Error(msg);
+}
+
+async function getJson(path, params) {
+  const url = new URL(path, window.location.origin);
+  if (params && typeof params === "object") {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") {
+        url.searchParams.set(k, String(v));
+      }
+    });
+  }
+  const res = await fetch(url.toString().replace(window.location.origin, ""), {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  if (!res.ok) await readError(res, "Yêu cầu thất bại");
+  return res.json();
+}
+
+async function postJson(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: authHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) await readError(res, "Yêu cầu thất bại");
+  return res.json();
+}
+
+/** Normalize BE enum về dạng phổ biến Capitalized để UI dễ đọc. */
+export function normalizeRaceStatus(status) {
+  if (!status) return status;
+  const map = {
+    SCHEDULED: "Scheduled",
+    IN_PROGRESS: "InProgress",
+    PENDING_RESULT: "PendingResult",
+    PAUSED: "Paused",
+    FINISHED: "Finished",
+    CANCELLED: "Cancelled",
+  };
+  return map[status] || status;
 }
 
 /**
- * Referee Race Repository
- * TODO: Backend chưa có APIs riêng cho referee.
- * Hiện dùng mock data + local state management.
+ * Race Repository
  */
 export const refereeRaceRepository = {
   /**
-   * Lấy danh sách race được phân công cho referee hiện tại.
-   * MOCK: Trả về MOCK_ASSIGNED_RACES.
-   *
-   * Backend khi có sẽ cần: GET /api/referees/me/races
+   * GET /api/referee/me/races?status=...&date=YYYY-MM-DD
+   * Trả về danh sách race kèm leg + entries (chuẩn BE).
    */
-  async getAssignedRaces() {
-    // TODO: Replace mock with real API
-    // const res = await fetch('/api/referees/me/races', { headers: authHeaders() });
-    // if (!res.ok) await readError(res, 'Không tải được race được phân công');
-    // return (await res.json()).races;
-    await delay(400);
-    return structuredClone(MOCK_ASSIGNED_RACES);
+  async getAssignedRaces(params = {}) {
+    const data = await getJson("/api/referee/me/races", params);
+    return Array.isArray(data?.races) ? data.races : [];
   },
 
   /**
-   * Lấy chi tiết race để điều khiển.
-   * MOCK: Tìm trong mock theo raceId.
-   *
-   * Backend khi có sẽ cần: GET /api/referees/me/races/:raceId
+   * GET /api/referee/me/races/:raceId
    */
   async getRaceControlDetail(raceId) {
-    await delay(300);
-    const race = MOCK_ASSIGNED_RACES.find(
-      (r) => String(r.id) === String(raceId) || r.raceId === Number(raceId),
-    );
-    if (!race) throw new Error("Không tìm thấy race");
-    return structuredClone(race);
+    if (!raceId) throw new Error("Thiếu mã race");
+    const data = await getJson(`/api/referee/me/races/${raceId}`);
+    return data?.race ?? data;
   },
 
   /**
-   * Start race — chuyển trạng thái từ Scheduled → InProgress.
-   * MOCK: Cập nhật local state.
-   *
-   * Backend khi có sẽ cần: POST /api/referees/races/:raceId/start
+   * POST /api/referee/races/:id/start
+   * Sau khi gọi, race sẽ chuyển sang IN_PROGRESS và lock cược mới.
    */
   async startRace(raceId) {
-    // TODO: Replace mock with real API
-    // const res = await fetch(`/api/referees/races/${raceId}/start`, {
-    //   method: 'POST', headers: authHeaders(),
-    // });
-    // if (!res.ok) await readError(res, 'Không thể bắt đầu race');
-    // return await res.json();
-    void raceId; // currently unused, kept for signature stability
-    await delay(600);
-    return { message: "Race đã bắt đầu", status: "InProgress" };
+    if (!raceId) throw new Error("Thiếu mã race");
+    const data = await postJson(`/api/referee/races/${raceId}/start`);
+    return data?.race ?? data;
   },
 };
 
 /**
- * Referee Submission Repository
+ * Submission Repository
  */
 export const refereeSubmissionRepository = {
   /**
-   * Gửi kết quả leg.
-   * MOCK: Lưu vào localStorage.
+   * POST /api/referee/races/:id/submit
+   * body: { rawResults: [{ entryId, rank, isDnf, isDq }] }
    *
-   * Backend khi có sẽ cần: POST /api/referees/races/:raceId/legs/:legId/results
+   * Response 3 dạng:
+   *  - { status: 'PENDING_PARTNER', message }  (chỉ có 1 người nộp)
+   *  - { status: 'AUTO_MATCHED',    message }  (2 người nộp + khớp)
+   *  - { status: 'CONFLICTED',      message }  (2 người nộp + lệch)
    */
-  async submitLegResult({ raceId, legId, results, refereeNote }) {
-    // TODO: Replace mock with real API
-    // const res = await fetch(`/api/referees/races/${raceId}/legs/${legId}/results`, {
-    //   method: 'POST',
-    //   headers: authHeaders(),
-    //   body: JSON.stringify({ results, refereeNote }),
-    // });
-    // if (!res.ok) await readError(res, 'Gửi kết quả thất bại');
-    // return await res.json();
-    await delay(800);
-
-    const entry = {
-      raceId,
-      legId,
-      results,
-      refereeNote,
-      submittedAt: new Date().toISOString(),
-      comparisonStatus: "WaitingOtherReferee",
-    };
-
-    const KEY = `referee_submissions_${raceId}_${legId}`;
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(entry));
-    } catch { /* quota */ }
-
-    return {
-      message: "Kết quả đã được gửi. Bạn không thể chỉnh sửa sau khi submit.",
-      entry,
-    };
+  async submitRaceResult({ raceId, rawResults }) {
+    if (!raceId) throw new Error("Thiếu mã race");
+    if (!Array.isArray(rawResults) || rawResults.length === 0) {
+      throw new Error("Phải có kết quả cho ít nhất một entry");
+    }
+    const data = await postJson(`/api/referee/races/${raceId}/submit`, {
+      rawResults,
+    });
+    return data;
   },
 
   /**
-   * Lấy lịch sử submission của referee hiện tại.
-   * MOCK: Trả về MOCK_MY_SUBMISSIONS.
-   *
-   * Backend khi có sẽ cần: GET /api/referees/me/submissions
+   * GET /api/referee/me/submissions
    */
   async getMySubmissions() {
-    // TODO: Replace mock with real API
-    await delay(400);
-    return structuredClone(MOCK_MY_SUBMISSIONS);
+    const data = await getJson("/api/referee/me/submissions");
+    return Array.isArray(data?.submissions) ? data.submissions : [];
   },
 };
 
 /**
- * Referee Conflict Repository
+ * Conflict Repository
  */
 export const refereeConflictRepository = {
   /**
-   * Lấy danh sách conflict.
-   * MOCK: Trả về MOCK_CONFLICTS.
-   *
-   * Backend khi có sẽ cần: GET /api/referees/me/conflicts
+   * GET /api/referee/me/conflicts
    */
   async getConflicts() {
-    // TODO: Replace mock with real API
-    await delay(400);
-    return structuredClone(MOCK_CONFLICTS);
+    const data = await getJson("/api/referee/me/conflicts");
+    return Array.isArray(data?.conflicts) ? data.conflicts : [];
   },
 };
 
 /**
- * Referee Profile Repository
+ * Profile Repository
  */
 export const refereeProfileRepository = {
   /**
-   * Lấy profile referee.
-   * MOCK: Trả về MOCK_REFEREE_PROFILE.
-   *
-   * Có thể dùng GET /api/auth/profile (endpoint thật) làm fallback.
+   * GET /api/referee/me/profile (BE có sẵn — kèm stats race)
+   * Nếu thất bại thì fallback về /api/auth/profile.
    */
   async getProfile() {
-    // Thử dùng API thật trước
     try {
-      const res = await fetch("/api/auth/profile", { headers: authHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        // Bổ sung stats mock
-        return {
-          ...data.user,
-          stats: {
-            totalRacesAssigned: 24,
-            totalLegsSubmitted: 67,
-            autoMatchedRate: 82.1,
-            conflictCount: 5,
-            pendingConflicts: 1,
-          },
-        };
-      }
-    } catch { /* fallback to mock */ }
-
-    // TODO: Replace mock with real API when backend provides /api/referees/me/profile
-    await delay(300);
-    return structuredClone(MOCK_REFEREE_PROFILE);
+      const data = await getJson("/api/referee/me/profile");
+      return data?.user ?? data;
+    } catch (_err) {
+      // fallback
+      const data = await getJson("/api/auth/profile");
+      const user = data?.user ?? data;
+      return {
+        ...user,
+        stats: {
+          totalRacesAssigned: 0,
+          totalLegsSubmitted: 0,
+          autoMatchedRate: 0,
+          conflictCount: 0,
+          pendingConflicts: 0,
+        },
+      };
+    }
   },
 };

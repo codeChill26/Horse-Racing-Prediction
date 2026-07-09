@@ -1,16 +1,26 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Deviation Repository
  *
- * API chưa tồn tại - sử dụng mock data tạm thời.
- * TODO: waiting backend API
+ * Repository cho Deviation/Discrepancy — Flow 5 (Discrepancy Resolution)
+ *
+ * Endpoint (theo D:\PRM\project\.cursor\prompts\mainflow.md FLOW 5):
+ *   - GET  /api/admin/discrepancies?status=...
+ *   - GET  /api/admin/discrepancies/:id
+ *   - POST /api/admin/discrepancies/:id/resolve
+ *       body: { finalResults: [selected ranking], reason: '...' (BẮT BUỘC) }
+ *   - POST /api/admin/discrepancies/:id/reject
+ *       body: { reason: '...' }
+ *
+ * Lưu ý: Tính đến 2026-07-10, endpoint chưa có trên backend
+ * (ghi trong D:\PRM\project\PROCESS.md Mục 2.8). File này gọi đúng endpoint
+ * theo mainflow.md và graceful fallback khi nhận 404 để FE không vỡ khi deploy.
  */
 
 import { getAccessToken } from "../utils/token";
+
+const USE_API =
+  (import.meta.env.VITE_USE_API_DEVIATION ?? "true").toLowerCase() === "true";
 
 async function readError(res, fallback) {
   let data = null;
@@ -26,11 +36,54 @@ function authHeaders() {
   const token = getAccessToken();
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
 }
 
-// TODO: waiting backend API
+/**
+ * Chuẩn hoá response BE về shape FE components đang dùng.
+ *
+ * BE shape (theo mainflow.md): { discrepancyId, raceId, raceName, type,
+ *   severity, status, description, reporterA, reporterB, rawResultsA, rawResultsB,
+ *   finalResults, resolveReason, resolvedById, createdAt, updatedAt, history: [...] }
+ *
+ * FE shape (mock hiện dùng ở DeviationTable/Modal):
+ *   { id, type, raceId, raceName, reporter, reporterRole, description,
+ *     severity, status, createdAt, history, adminNote, finalResults? }
+ */
+function mapDiscrepancyResponse(v = {}) {
+  if (!v) return null;
+  const createdAt = v.createdAt || v.recordedAt || null;
+  return {
+    id: v.discrepancyId ?? v.id,
+    type: v.type || "—",
+    raceId: v.raceId ?? v.race?.raceId ?? null,
+    raceName: v.race?.name ?? v.raceName ?? "—",
+    reporter: v.reporter ?? v.reporterA?.fullName ?? "—",
+    reporterRole: v.reporterRole ?? v.reporterA?.role ?? "SYSTEM",
+    reporterA: v.reporterA ?? null,
+    reporterB: v.reporterB ?? null,
+    rawResultsA: Array.isArray(v.rawResultsA) ? v.rawResultsA : null,
+    rawResultsB: Array.isArray(v.rawResultsB) ? v.rawResultsB : null,
+    description: v.description || "",
+    severity: v.severity || "MEDIUM",
+    status: v.status || "PENDING",
+    createdAt,
+    finalResults: v.finalResults ?? null,
+    adminNote: v.adminNote ?? v.resolveReason ?? null,
+    history: Array.isArray(v.history)
+      ? v.history.map((h) => ({
+          action: h.action || h.eventType || "CREATED",
+          performedBy: h.performedBy ?? h.actor?.fullName ?? "—",
+          at: h.at ?? h.createdAt ?? createdAt,
+          note: h.note || "",
+        }))
+      : [],
+    raw: v,
+  };
+}
+
+// ----- Mock data (fallback) -----
 const MOCK_DEVIATIONS = [
   {
     id: "DEV-001",
@@ -39,7 +92,8 @@ const MOCK_DEVIATIONS = [
     raceName: "Chung kết Belmont Stakes",
     reporter: "Camera Tower A",
     reporterRole: "SYSTEM",
-    description: "Thứ tự về đích vị trí 2 và 3 bị mờ, hai tháp camera ghi nhận khác nhau. Cần xác minh qua camera chủ tốc độ cao.",
+    description:
+      "Thứ tự về đích vị trí 2 và 3 bị mờ, hai tháp camera ghi nhận khác nhau. Cần xác minh qua camera tốc độ cao.",
     severity: "HIGH",
     status: "PENDING",
     createdAt: "2026-06-15T08:32:00Z",
@@ -55,39 +109,13 @@ const MOCK_DEVIATIONS = [
   },
   {
     id: "DEV-002",
-    type: "Thời gian chặng",
-    raceId: 11,
-    raceName: "Vòng loại Kentucky Derby",
-    reporter: "Hệ thống TimingChip",
-    reporterRole: "SYSTEM",
-    description: "Chip thời gian ngựa số 4 báo trễ 0.3s so với camera tự động. Có thể do va chạm làm chip bị văng.",
-    severity: "MEDIUM",
-    status: "REVIEWING",
-    createdAt: "2026-06-14T15:18:00Z",
-    history: [
-      {
-        action: "CREATED",
-        performedBy: "Hệ thống TimingChip",
-        at: "2026-06-14T15:18:00Z",
-        note: "Phát hiện bất thường thời gian.",
-      },
-      {
-        action: "REVIEWING",
-        performedBy: "Trọng tài #3 (Nguyễn Văn B)",
-        at: "2026-06-14T16:45:00Z",
-        note: "Đang kiểm tra lại footage.",
-      },
-    ],
-    adminNote: null,
-  },
-  {
-    id: "DEV-003",
     type: "Trọng tài xung đột",
     raceId: 10,
     raceName: "Preakness Stakes",
     reporter: "Trọng tài #4",
     reporterRole: "RACE_REFEREE",
-    description: "Hai trọng tài đưa ra phán quyết khác nhau về pha chạm rào ở lượt 5. Trọng tài #4 cho rằng chạm, trọng tài #7 không đồng ý.",
+    description:
+      "Hai trọng tài đưa ra phán quyết khác nhau về pha chạm rào ở lượt 5. Trọng tài #4 cho rằng chạm, trọng tài #7 không đồng ý.",
     severity: "CRITICAL",
     status: "PENDING",
     createdAt: "2026-06-13T11:00:00Z",
@@ -102,13 +130,13 @@ const MOCK_DEVIATIONS = [
     adminNote: null,
   },
   {
-    id: "DEV-004",
+    id: "DEV-003",
     type: "Điểm phạt sai",
     raceId: 9,
     raceName: "Tournament GrandStride 2026",
     reporter: "Hệ thống Score",
     reporterRole: "SYSTEM",
-    description: "Tính điểm trừ 2s cho ngựa #7 nhưng hình ảnh không xác nhận lỗi. Ngựa không chạm rào.",
+    description: "Tính điểm trừ 2s cho ngựa #7 nhưng hình ảnh không xác nhận lỗi.",
     severity: "LOW",
     status: "RESOLVED",
     createdAt: "2026-06-12T09:45:00Z",
@@ -128,146 +156,229 @@ const MOCK_DEVIATIONS = [
     ],
     adminNote: "Đã điều chỉnh điểm chính xác. Không có lỗi từ kỵ sĩ.",
   },
-  {
-    id: "DEV-005",
-    type: "Cổng đăng ký",
-    raceId: 8,
-    raceName: "Arc de Triomphe",
-    reporter: "Hệ thống đăng ký",
-    reporterRole: "SYSTEM",
-    description: "Cổng đăng ký đóng trước thời hạn 5 phút do lỗi kỹ thuật. Nhiều chủ ngựa không kịp đăng ký.",
-    severity: "MEDIUM",
-    status: "REJECTED",
-    createdAt: "2026-06-11T16:20:00Z",
-    history: [
-      {
-        action: "CREATED",
-        performedBy: "Hệ thống đăng ký",
-        at: "2026-06-11T16:20:00Z",
-        note: "Lỗi kỹ thuật được ghi nhận.",
-      },
-      {
-        action: "REJECTED",
-        performedBy: "Quản trị viên",
-        at: "2026-06-11T18:00:00Z",
-        note: "Đã khắc phục lỗi. Thời gian đóng cổng là chính xác theo quy định.",
-      },
-    ],
-    adminNote: "Đã khắc phục lỗi. Thời gian đóng cổng là chính xác theo quy định.",
-  },
-  {
-    id: "DEV-006",
-    type: "Thông tin kỵ sĩ",
-    raceId: 14,
-    raceName: "Royal Ascot 2026",
-    reporter: "Hệ thống Registration",
-    reporterRole: "SYSTEM",
-    description: "Kỵ sĩ #7 đăng ký với thông tin không khớp: tên trên hồ sơ và giấy phép khác nhau.",
-    severity: "HIGH",
-    status: "PENDING",
-    createdAt: "2026-06-10T13:25:00Z",
-    history: [
-      {
-        action: "CREATED",
-        performedBy: "Hệ thống Registration",
-        at: "2026-06-10T13:25:00Z",
-        note: "Phát hiện không khớp dữ liệu.",
-      },
-    ],
-    adminNote: null,
-  },
-  {
-    id: "DEV-007",
-    type: "Trang phục kỵ sĩ",
-    raceId: 13,
-    raceName: "Melbourne Cup",
-    reporter: "Trọng tài #2",
-    reporterRole: "RACE_REFEREE",
-    description: "Kỵ sĩ không mặc đúng màu áo được đăng ký. Vi phạm quy định nhận diện.",
-    severity: "LOW",
-    status: "RESOLVED",
-    createdAt: "2026-06-09T10:15:00Z",
-    history: [
-      {
-        action: "CREATED",
-        performedBy: "Trọng tài #2",
-        at: "2026-06-09T10:15:00Z",
-        note: "Ghi nhận vi phạm trang phục.",
-      },
-      {
-        action: "RESOLVED",
-        performedBy: "Quản trị viên",
-        at: "2026-06-09T10:45:00Z",
-        note: "Cảnh cáo kỵ sĩ. Điểm phạt 100 điểm.",
-      },
-    ],
-    adminNote: "Cảnh cáo kỵ sĩ. Điểm phạt 100 điểm.",
-  },
 ];
 
-// TODO: waiting backend API
+async function withFallback(apiCall, mockCall, errorContext) {
+  try {
+    return await apiCall();
+  } catch (err) {
+    const isNotFound = /Not Found|404/.test(err.message);
+    if (USE_API && !isNotFound) {
+      throw err;
+    }
+    if (typeof console !== "undefined" && console.warn) {
+      console.warn(
+        `[deviationRepository] BE endpoint chưa sẵn sàng (${errorContext}). Fallback về mock.`
+      );
+    }
+    return mockCall();
+  }
+}
+
 export const deviationRepository = {
+  /**
+   * GET /api/admin/discrepancies?status=...&severity=...
+   * @param {{ status?: string, severity?: string, raceId?: number|string, q?: string }} filters
+   */
   async getAll(filters = {}) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/discrepancies`, { headers: authHeaders() });
-    // if (!res.ok) await readError(res, "Không tải được danh sách sai lệch");
-    // const data = await res.json();
-    // return Array.isArray(data) ? data : [];
-
-    // Mock delay to simulate network
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return MOCK_DEVIATIONS;
+    return withFallback(
+      async () => {
+        const params = new URLSearchParams();
+        if (filters.status) params.set("status", filters.status);
+        if (filters.severity) params.set("severity", filters.severity);
+        if (filters.raceId != null) params.set("raceId", String(filters.raceId));
+        if (filters.q) params.set("q", filters.q);
+        const qs = params.toString();
+        const url = `/api/admin/discrepancies${qs ? `?${qs}` : ""}`;
+        const res = await fetch(url, { headers: authHeaders() });
+        if (!res.ok) await readError(res, "Không tải được danh sách sai lệch");
+        const data = await res.json();
+        const list = Array.isArray(data?.discrepancies)
+          ? data.discrepancies
+          : Array.isArray(data)
+            ? data
+            : [];
+        return list.map(mapDiscrepancyResponse);
+      },
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        let list = [...MOCK_DEVIATIONS];
+        if (filters.status) list = list.filter((d) => d.status === filters.status);
+        if (filters.severity)
+          list = list.filter((d) => d.severity === filters.severity);
+        return list;
+      },
+      "getAll"
+    );
   },
 
+  /** GET /api/admin/discrepancies/:id */
   async getById(id) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/discrepancies/${id}`, { headers: authHeaders() });
-    // if (!res.ok) await readError(res, "Không tải được chi tiết sai lệch");
-    // return await res.json();
-
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const deviation = MOCK_DEVIATIONS.find((d) => d.id === id);
-    if (!deviation) {
-      throw new Error("Không tìm thấy sai lệch");
-    }
-    return deviation;
+    return withFallback(
+      async () => {
+        const res = await fetch(`/api/admin/discrepancies/${id}`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) await readError(res, "Không tải được chi tiết sai lệch");
+        const data = await res.json();
+        return mapDiscrepancyResponse(data?.discrepancy ?? data);
+      },
+      async () => {
+        if (!id) throw new Error("Thiếu mã sai lệch");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const found = MOCK_DEVIATIONS.find((d) => d.id === id);
+        if (!found) throw new Error("Không tìm thấy sai lệch");
+        return found;
+      },
+      "getById"
+    );
   },
 
+  /**
+   * POST /api/admin/discrepancies/:id/resolve
+   * mainflow.md: { finalResults, reason: BẮT BUỘC }
+   * @param {string} id
+   * @param {{ finalResults: Array<{entryId, rank}>, reason: string,
+   *          source?: 'A'|'B'|'CUSTOM' }} payload
+   */
+  async resolveDeviation(id, payload = {}) {
+    const { finalResults, reason, source } = payload;
+    return withFallback(
+      async () => {
+        const res = await fetch(
+          `/api/admin/discrepancies/${id}/resolve`,
+          {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({ finalResults, reason, source }),
+          }
+        );
+        if (!res.ok) await readError(res, "Xử lý sai lệch thất bại");
+        const data = await res.json();
+        return mapDiscrepancyResponse(data?.discrepancy ?? data);
+      },
+      async () => {
+        if (!id) throw new Error("Thiếu mã sai lệch");
+        if (!reason || !String(reason).trim()) {
+          throw new Error("Lý do xử lý là bắt buộc");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const v = MOCK_DEVIATIONS.find((d) => d.id === id);
+        if (!v) throw new Error("Không tìm thấy sai lệch");
+        return {
+          ...v,
+          status: "RESOLVED",
+          finalResults: finalResults ?? v.finalResults ?? null,
+          adminNote: reason.trim(),
+          history: [
+            ...(v.history || []),
+            {
+              action: "RESOLVED",
+              performedBy: "Quản trị viên",
+              at: new Date().toISOString(),
+              note: reason.trim(),
+            },
+          ],
+        };
+      },
+      "resolveDeviation"
+    );
+  },
+
+  /** POST /api/admin/discrepancies/:id/reject { reason } */
+  async rejectDeviation(id, reason = "") {
+    return withFallback(
+      async () => {
+        const res = await fetch(
+          `/api/admin/discrepancies/${id}/reject`,
+          {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({ reason }),
+          }
+        );
+        if (!res.ok) await readError(res, "Bác bỏ sai lệch thất bại");
+        const data = await res.json();
+        return mapDiscrepancyResponse(data?.discrepancy ?? data);
+      },
+      async () => {
+        if (!id) throw new Error("Thiếu mã sai lệch");
+        if (!reason || !String(reason).trim()) {
+          throw new Error("Lý do bác bỏ là bắt buộc");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const v = MOCK_DEVIATIONS.find((d) => d.id === id);
+        if (!v) throw new Error("Không tìm thấy sai lệch");
+        return {
+          ...v,
+          status: "REJECTED",
+          adminNote: reason.trim(),
+          history: [
+            ...(v.history || []),
+            {
+              action: "REJECTED",
+              performedBy: "Quản trị viên",
+              at: new Date().toISOString(),
+              note: reason.trim(),
+            },
+          ],
+        };
+      },
+      "rejectDeviation"
+    );
+  },
+
+  /**
+   * POST /api/admin/discrepancies/:id/start-review
+   * PENDING → REVIEWING.
+   */
+  async startReview(id) {
+    return withFallback(
+      async () => {
+        const res = await fetch(
+          `/api/admin/discrepancies/${id}/start-review`,
+          { method: "POST", headers: authHeaders() }
+        );
+        if (!res.ok)
+          await readError(res, "Bắt đầu xem xét sai lệch thất bại");
+        const data = await res.json();
+        return mapDiscrepancyResponse(data?.discrepancy ?? data);
+      },
+      async () => {
+        if (!id) throw new Error("Thiếu mã sai lệch");
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        const v = MOCK_DEVIATIONS.find((d) => d.id === id);
+        if (!v) throw new Error("Không tìm thấy sai lệch");
+        return {
+          ...v,
+          status: "REVIEWING",
+          history: [
+            ...(v.history || []),
+            {
+              action: "REVIEWING",
+              performedBy: "Quản trị viên",
+              at: new Date().toISOString(),
+              note: "Bắt đầu xem xét sai lệch.",
+            },
+          ],
+        };
+      },
+      "startReview"
+    );
+  },
+
+  /**
+   * @deprecated Giữ method này cho code cũ. Sẽ xoá khi AdminDeviationPage
+   * được refactor sang dùng resolveDeviation/rejectDeviation trực tiếp.
+   */
   async updateStatus(id, status, adminNote) {
-    // TODO: Replace with real API call
-    // const res = await fetch(`/api/admin/discrepancies/${id}/status`, {
-    //   method: "PATCH",
-    //   headers: authHeaders(),
-    //   body: JSON.stringify({ status, adminNote }),
-    // });
-    // if (!res.ok) await readError(res, "Cập nhật trạng thái thất bại");
-    // return await res.json();
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const deviation = MOCK_DEVIATIONS.find((d) => d.id === id);
-    if (!deviation) {
-      throw new Error("Không tìm thấy sai lệch");
+    if (status === "REVIEWING") return this.startReview(id);
+    if (status === "RESOLVED") {
+      return this.resolveDeviation(id, { reason: adminNote || "(no note)" });
     }
-
-    const actionLabels = {
-      RESOLVED: "Đã xử lý",
-      REJECTED: "Bị bác bỏ",
-      REVIEWING: "Đang xem xét",
-    };
-
-    return {
-      ...deviation,
-      status,
-      adminNote,
-      history: [
-        ...(deviation.history || []),
-        {
-          action: status,
-          performedBy: "Quản trị viên",
-          at: new Date().toISOString(),
-          note: adminNote || actionLabels[status] || status,
-        },
-      ],
-    };
+    if (status === "REJECTED") {
+      return this.rejectDeviation(id, adminNote || "(no reason)");
+    }
+    throw new Error(`Trạng thái không hỗ trợ: ${status}`);
   },
 };

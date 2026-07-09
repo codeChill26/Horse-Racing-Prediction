@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   TrendingUp,
@@ -14,10 +14,7 @@ import {
   AlertTriangle,
   Gavel,
   Wallet,
-  Settings,
-  HelpCircle,
   PlusCircle,
-  Sparkles,
   LogOut
 } from "lucide-react";
 import { horseService } from "../../services/horseService";

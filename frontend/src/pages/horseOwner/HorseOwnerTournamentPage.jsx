@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Search, Trophy, MapPin, Calendar, Eye, Plus, X, RefreshCcw, ChevronRight, ChevronDown, ListChecks, FileCheck2 } from "lucide-react"
+import { Trophy, MapPin, Calendar, Eye, Plus, X, ChevronRight, ChevronDown, ListChecks, FileCheck2 } from "lucide-react"
 import {
   AdminModal,
   AdminModalSection,
@@ -21,14 +21,17 @@ import { Skeleton } from "../../components/ui/Skeleton"
 import { tournamentService } from "../../services/tournamentService"
 import { raceService } from "../../services/raceService"
 import { horseService } from "../../services/horseService"
+import { raceEntryService } from "../../services/raceEntryService"
 import { horseOwnerScheduleService } from "../../services/horseOwnerScheduleService"
+import { getAccessToken } from "../../utils/token"
+import { onSocketEvent } from "../../utils/socket"
+import { useToast } from "../../hooks/useToast"
 import {
   OwnerPageHeader,
   OwnerToolbar,
   OwnerSearchInput,
   OwnerFilterSelect,
   OwnerErrorAlert,
-  OwnerPrimaryButton,
 } from "../../components/horseOwner/OwnerCommon"
 import "./HorseOwnerTournamentPage.css"
 
@@ -67,6 +70,8 @@ const emptyRegisterForm = () => ({
 })
 
 export default function HorseOwnerTournamentPage() {
+  const token = getAccessToken();
+  const toastify = useToast();
   const [tournaments, setTournaments] = useState([])
   const [horses, setHorses] = useState([])
   const [cachedEntries, setCachedEntries] = useState([])
@@ -116,6 +121,35 @@ export default function HorseOwnerTournamentPage() {
     return () => window.clearTimeout(t)
   }, [toast])
 
+  // === Realtime: admin vừa duyệt/từ chối entry của tôi → reload cache ===
+  useEffect(() => {
+    if (!token) return undefined;
+    const refresh = () => {
+      setCachedEntries(horseOwnerScheduleService.getCachedEntries());
+      loadData();
+    };
+    const offEntry = onSocketEvent("entry:status_changed", (payload) => {
+      const entry = payload?.entry;
+      if (!entry) return;
+      const status = String(entry.status || "").toUpperCase();
+      const label =
+        status === "APPROVED"
+          ? "Đã duyệt"
+          : status === "REJECTED"
+            ? "Đã từ chối"
+            : entry.status;
+      const horseName = entry.horseName || `#${entry.horseId}`;
+      toastify?.info?.(
+        `Entry ngựa "${horseName}" vừa được cập nhật: ${label}.`,
+        "Cập nhật entry"
+      );
+      refresh();
+    });
+    return () => {
+      offEntry();
+    };
+  }, [token, toastify, loadData])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return tournaments.filter((t) => {
@@ -145,7 +179,7 @@ export default function HorseOwnerTournamentPage() {
         tournament.tournamentId || tournament.id,
       )
       setTournamentRaces(Array.isArray(list) ? list : [])
-    } catch (e) {
+    } catch {
       setTournamentRaces([])
     } finally {
       setLoadingRaces(false)
@@ -557,7 +591,9 @@ function RegisterHorseModal({ race, horses, cachedEntries, onClose, onSuccess })
 
     setSaving(true)
     try {
-      const entry = await raceService.registerHorseForRace({
+      // Dùng raceEntryService.createEntry theo mainflow.md
+      // POST /api/races/:raceId/entries — entry trực tiếp (không qua invitation)
+      const entry = await raceEntryService.createEntry({
         raceId: Number(race.raceId || race.id),
         horseId: Number(form.horseId),
       })
@@ -607,6 +643,10 @@ function RegisterHorseModal({ race, horses, cachedEntries, onClose, onSuccess })
     >
       <form id="register-form" onSubmit={handleSubmit}>
         {error ? <AdminModalAlert type="error">{error}</AdminModalAlert> : null}
+        <AdminModalAlert type="info">
+          Đăng ký trực tiếp — ngựa sẽ vào danh sách chờ duyệt của admin. Nếu muốn mời
+          kỵ sĩ trước khi đăng ký, hãy dùng trang "Mời kỵ sĩ" trước.
+        </AdminModalAlert>
         {horses.length === 0 ? (
           <AdminModalAlert type="info">
             Bạn chưa có ngựa nào được duyệt. Hãy vào trang "Ngựa của tôi" để đăng ký ngựa trước.

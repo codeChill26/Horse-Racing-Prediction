@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { forgotPassword } from '../../api/auth';
-import { Mail, ArrowLeft, Loader2, Lock } from 'lucide-react';
+import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import './LoginPage.css';
 
 export default function ForgotPasswordPage() {

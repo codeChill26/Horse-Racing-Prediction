@@ -34,8 +34,23 @@ import {
   Eye,
   RefreshCcw,
   X,
+  Flag,
 } from "lucide-react";
-import { refereeRaceService, refereeSubmissionService } from "../../services/refereeService";
+import {
+  refereeRaceService,
+  refereeSubmissionService,
+} from "../../services/refereeService";
+import { showToast } from "../../hooks/showToast";
+import {
+  getSocket,
+  onSocketEvent,
+  onSocketStatus,
+  subscribeRace,
+  unsubscribeRace,
+} from "../../utils/socket";
+import { getAccessToken } from "../../utils/token";
+import RaceStartConfirmModal from "../../components/common/RaceStartConfirmModal";
+import ReportViolationModal from "../../components/referee/ReportViolationModal";
 import "./RefereeRaceControlPage.css";
 
 // ============================================================
@@ -48,6 +63,7 @@ const RACE_STATUS_CONFIG = {
   PendingResult: { variant: "warn", label: "Chờ kết quả" },
   Completed: { variant: "ok", label: "Hoàn thành" },
   Cancelled: { variant: "danger", label: "Đã hủy" },
+  Finished: { variant: "ok", label: "Hoàn thành" },
 };
 
 const LEG_STATUS_CONFIG = {
@@ -231,7 +247,7 @@ function LegSelector({ legs, selectedLegId, onSelectLeg }) {
 // ============================================================
 // HORSE RESULT TABLE
 // ============================================================
-function HorseResultTable({ results, onChange, errors }) {
+function HorseResultTable({ results, onChange, errors, onReportViolation, disabled }) {
   const errorCount = useMemo(() => Object.keys(errors || {}).length, [errors]);
 
   const handleStatusChange = (index, status) => {
@@ -276,6 +292,7 @@ function HorseResultTable({ results, onChange, errors }) {
         <span role="columnheader">Thứ hạng</span>
         <span role="columnheader">Trạng thái</span>
         <span role="columnheader">Ghi chú</span>
+        {onReportViolation && <span role="columnheader">Hành động</span>}
       </div>
       <div className="horse-result-table__body" role="rowgroup">
         {results.map((result, index) => {
@@ -346,6 +363,20 @@ function HorseResultTable({ results, onChange, errors }) {
                   aria-label={`Ghi chú ngựa ${result.horseName || index + 1}`}
                 />
               </div>
+              {onReportViolation && (
+                <div className="horse-result-table__action" role="cell">
+                  <button
+                    type="button"
+                    className="horse-result-table__btn horse-result-table__btn--flag"
+                    onClick={() => onReportViolation(result)}
+                    disabled={disabled || !result.horseId}
+                    aria-label={`Báo cáo vi phạm cho ngựa ${result.horseName || index + 1}`}
+                    title="Báo cáo vi phạm"
+                  >
+                    <Flag size={14} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
@@ -577,6 +608,12 @@ function ErrorState({ message, onRetry }) {
 export default function RefereeRaceControlPage() {
   const navigate = useNavigate();
   const { raceId } = useParams();
+  const toastify = {
+    success: (msg) => showToast.success(msg),
+    error: (msg) => showToast.error(msg),
+    warn: (msg) => showToast.warn(msg),
+    info: (msg) => showToast.info(msg),
+  };
 
   const [race, setRace] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -590,6 +627,11 @@ export default function RefereeRaceControlPage() {
   const [isStarting, setIsStarting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showStartModal, setShowStartModal] = useState(false);
+  const [startError, setStartError] = useState("");
+
+  // FLOW 5 — Referee báo cáo vi phạm
+  const [reportEntry, setReportEntry] = useState(null);
 
   const [submissionStatus, setSubmissionStatus] = useState(null);
   const [toast, setToast] = useState(null);
@@ -655,6 +697,66 @@ export default function RefereeRaceControlPage() {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // FLOW 6 — Realtime: subscribe race room để nhận violation events cho race này.
+  //  - violation:created  (referee khác / camera / system) → toast + reload race
+  //  - violation:resolved → reload race (penalty state đã cập nhật)
+  useEffect(() => {
+    if (!raceId) return undefined;
+    const token = getAccessToken();
+    const currentLoad = loadRace; // capture stable ref mới nhất
+    void currentLoad;
+
+    const offCreated = onSocketEvent("violation:created", (payload) => {
+      const incoming = payload?.violation ?? payload;
+      if (!incoming) return;
+      const incomingRaceId = String(
+        incoming.raceId ?? incoming.race?.raceId ?? ""
+      );
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
+      showToast.info(
+        `Có vi phạm mới trong chặng: ${incoming.type ?? "—"} (mức ${
+          incoming.severity ?? "?"
+        }).`,
+        "FLOW 6 · Vi phạm"
+      );
+      // Reload để cập nhật số liệu tổng quan (best-effort; không block UI)
+      currentLoad().catch(() => {});
+    });
+
+    const offResolved = onSocketEvent("violation:resolved", (payload) => {
+      const incoming = payload?.violation ?? payload;
+      if (!incoming) return;
+      const incomingRaceId = String(
+        incoming.raceId ?? incoming.race?.raceId ?? ""
+      );
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
+      // Im lặng reload — không bắn toast trùng với local toast của mình
+      currentLoad().catch(() => {});
+    });
+
+    // Subscribe race room
+    const sock = getSocket(token);
+    if (sock && sock.connected) {
+      subscribeRace(raceId);
+    }
+    const offStatus = onSocketStatus(({ socket: s }) => {
+      if (s && s.connected) {
+        subscribeRace(raceId);
+      }
+    });
+
+    return () => {
+      offCreated();
+      offResolved();
+      offStatus();
+      try {
+        unsubscribeRace(raceId);
+      } catch {
+        /* noop */
+      }
+    };
+  }, [raceId, loadRace]);
+
   // Handle leg selection
   const handleSelectLeg = (leg) => {
     // BUG-REF-017: Warn if user has unsaved changes
@@ -670,15 +772,18 @@ export default function RefereeRaceControlPage() {
     setErrors({});
 
     // BUG-REF-008: luôn khởi tạo rỗng; không pre-fill rank/status từ mock data.
-    // Leg chưa submit → trạng thái rỗng, không rank.
-    // Leg đã submit (SubmittedByMe, WaitingOtherReferee, Conflicted, AutoMatched) → locked.
-    const isAlreadySubmitted = leg.mySubmissionStatus === "SubmittedByMe" ||
+    // BUG-REF-LEG-STATUS: BE không trả leg.status ∈ {"Conflicted","AutoMatched"} —
+    // giá trị này nằm trên submissionStatus (per-referee) hoặc trên race.matchStatus.
+    // Guard dựa trên leg.mySubmissionStatus + submissionStatus để khớp thực tế.
+    const isAlreadySubmitted =
+      leg.mySubmissionStatus === "SubmittedByMe" ||
       leg.mySubmissionStatus === "WaitingOtherReferee" ||
-      leg.status === "Conflicted" ||
-      leg.status === "AutoMatched";
+      leg.submissionStatus === "SubmittedByMe" ||
+      leg.submissionStatus === "WaitingOtherReferee";
 
     const initialResults = (leg.horses || []).map((h) => ({
       horseId: h.horseId,
+      entryId: h.entryId ?? h.horseId, // BE dùng entryId, FE có thể chỉ có horseId
       gateNumber: h.gateNumber,
       horseName: h.horseName,
       jockeyName: h.jockeyName,
@@ -693,24 +798,34 @@ export default function RefereeRaceControlPage() {
     setRefereeNote(isAlreadySubmitted ? (leg.refereeNote || "") : "");
   };
 
-  // Start race via API (BUG-REF-002)
+  // Start race via API (BUG-REF-002) — FLOW 4 Step 1
   const handleStartRace = async () => {
     setIsStarting(true);
+    setStartError("");
     try {
-      const result = await refereeRaceService.startRace(raceId);
-      setRace((prev) => ({ ...prev, status: "InProgress" }));
-      setToast({
-        type: "success",
-        message: result.message || "Race đã bắt đầu! Cược mới đã bị khóa. Bạn có thể nhập kết quả leg.",
-      });
+      const updated = await refereeRaceService.startRace(raceId);
+      // BE trả về race mới với status chính xác — dùng trực tiếp, không ép cứng.
+      // Trước đây code ép status='InProgress' gây desync với BE khi race chuyển
+      // trạng thái khác (PendingResult / Paused / v.v.).
+      if (updated) {
+        setRace((prev) => ({ ...(prev || {}), ...updated }));
+      }
+      toastify.success(
+        "Race đã bắt đầu! Cược mới đã bị khóa. Bạn có thể nộp kết quả."
+      );
+      setShowStartModal(false);
     } catch (e) {
-      setToast({
-        type: "error",
-        message: e instanceof Error ? e.message : "Không thể bắt đầu race.",
-      });
+      const msg = e instanceof Error ? e.message : "Không thể bắt đầu race.";
+      setStartError(msg);
+      toastify.error(msg);
     } finally {
       setIsStarting(false);
     }
+  };
+
+  const openStartModal = () => {
+    setStartError("");
+    setShowStartModal(true);
   };
 
   // Validate results - sử dụng service validation + additional checks
@@ -771,51 +886,97 @@ export default function RefereeRaceControlPage() {
   // BUG-REF-003: validateResults trả về false → không mở modal
   const handleSubmitResults = async () => {
     if (!validateResults()) {
-      setToast({
-        type: "error",
-        message: "Vui lòng kiểm tra lại thông tin kết quả.",
-      });
+      toastify.error("Vui lòng kiểm tra lại thông tin kết quả.");
       return;
     }
     setShowConfirmModal(true);
   };
 
   // BUG-REF-002: confirmSubmit gọi API thật, reload race sau khi submit thành công
+  // FLOW 4 — Blind Double Entry: BE trả về { status: 'PENDING_PARTNER' | 'AUTO_MATCHED' | 'CONFLICTED' }
   const confirmSubmit = async () => {
     setShowConfirmModal(false);
     setIsSubmitting(true);
 
     try {
-      await refereeSubmissionService.submitLegResult({
+      // Map results từ FE shape (horseId + status) → BE rawResults (entryId + isDnf/isDq + rank)
+      const rawResults = results
+        .filter((r) => r.status) // chỉ gửi những dòng đã chọn status
+        .map((r) => ({
+          horseId: r.horseId, // service sẽ map horseId → entryId
+          rank: r.rank ? Number(r.rank) : null,
+          status: r.status, // 'FINISHED' | 'DNF' | 'DQ'
+          isDnf: r.status === "DNF",
+          isDq: r.status === "DQ",
+        }));
+
+      const data = await refereeSubmissionService.submitRaceResult({
         raceId,
-        legId: selectedLegId,
-        results,
-        refereeNote,
+        rawResults,
       });
 
+      // Sau submit thành công: cập nhật trạng thái phù hợp (FE-only, vì BE
+      // chưa emit socket event `race:auto_matched` / `race:conflicted`)
+      const resultStatus = String(data?.status || "").toUpperCase();
+      if (resultStatus === "AUTO_MATCHED") {
+        setRace((prev) => prev ? {
+          ...prev,
+          status: "PendingResult",
+          _matchStatus: "AutoMatched",
+        } : prev);
+        toastify.success(
+          data?.message ||
+            "Khớp 100% với trọng tài còn lại. Race chuyển sang PENDING_RESULT."
+        );
+      } else if (resultStatus === "CONFLICTED") {
+        setRace((prev) => prev ? {
+          ...prev,
+          status: "Paused",
+          _matchStatus: "Conflicted",
+        } : prev);
+        toastify.warn(
+          data?.message ||
+            "Sai lệch với trọng tài còn lại. Race chuyển sang PAUSED chờ Admin."
+        );
+      } else {
+        // PENDING_PARTNER (chỉ có 1 referee nộp)
+        setSubmissionStatus("WaitingOtherReferee");
+        toastify.info(
+          data?.message ||
+            "Kết quả đã gửi. Đang chờ trọng tài còn lại hoàn thành Blind Submission."
+        );
+      }
+
       // Reset form
-      setSubmissionStatus("WaitingOtherReferee");
       setSelectedLegId(null);
       setResults([]);
-      setOriginalResults([]); // BUG-REF-017: clear after submit
+      setOriginalResults([]);
       setRefereeNote("");
       setErrors({});
 
       // Reload race data để cập nhật trạng thái leg mới nhất
       await loadRace();
-
-      setToast({
-        type: "success",
-        message: "Kết quả đã được gửi! Bạn không thể chỉnh sửa sau khi submit.",
-      });
     } catch (e) {
-      setToast({
-        type: "error",
-        message: e instanceof Error ? e.message : "Không thể gửi kết quả.",
-      });
+      toastify.error(
+        e instanceof Error ? e.message : "Không thể gửi kết quả."
+      );
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // BUG-V-11 — FLOW 5 Step 1: Referee ghi nhận vi phạm cho 1 entry
+  const handleReportViolation = (entry) => {
+    setReportEntry(entry);
+  };
+
+  const handleViolationSubmitted = (created) => {
+    setReportEntry(null);
+    showToast.success(
+      `Đã ghi nhận vi phạm #${created?.id ?? ""} cho entry cổng ${reportEntry?.gateNumber ?? "?"}.`
+    );
+    // Reload race để cập nhật nếu BE cache violation count
+    loadRace();
   };
 
   // Get selected leg
@@ -824,15 +985,20 @@ export default function RefereeRaceControlPage() {
     return race.legs?.find((l) => l.id === selectedLegId || l.legId === selectedLegId);
   }, [selectedLegId, race]);
 
-  // Can submit
+  // Can submit — normalize status (PascalCase / SCREAMING_SNAKE) về 1 dạng để so sánh
+  const normalize = (s) => String(s || "").toLowerCase();
+  const raceStatusLower = normalize(race?.status);
+  const legStatusLower = normalize(selectedLeg?.status);
+  const legSubmissionStatusLower = normalize(selectedLeg?.mySubmissionStatus || selectedLeg?.submissionStatus);
+
   const canSubmit =
-    race?.status === "InProgress" &&
+    (raceStatusLower === "inprogress" || raceStatusLower === "in_progress") &&
     selectedLeg &&
-    selectedLeg.status === "AwaitingSubmission" &&
-    selectedLeg.mySubmissionStatus !== "SubmittedByMe" &&
-    selectedLeg.mySubmissionStatus !== "WaitingOtherReferee" &&
-    selectedLeg.status !== "Conflicted" &&
-    selectedLeg.status !== "AutoMatched";
+    (legStatusLower === "awaitingsubmission" || legStatusLower === "awaiting_submission" || legStatusLower === "not_submitted") &&
+    legSubmissionStatusLower !== "submittedbyme" &&
+    legSubmissionStatusLower !== "submitted_by_me" &&
+    legSubmissionStatusLower !== "waitingotherreferee" &&
+    legSubmissionStatusLower !== "waiting_other_referee";
 
   // Loading state
   if (loading) {
@@ -918,7 +1084,7 @@ export default function RefereeRaceControlPage() {
         {/* Race Header Card */}
         <RaceHeaderCard
           race={race}
-          onStartRace={handleStartRace}
+          onStartRace={openStartModal}
           isStarting={isStarting}
         />
 
@@ -958,6 +1124,10 @@ export default function RefereeRaceControlPage() {
                   results={results}
                   onChange={setResults}
                   errors={errors}
+                  onReportViolation={
+                    race?.status === "InProgress" ? handleReportViolation : null
+                  }
+                  disabled={isSubmitting}
                 />
 
                 {/* Referee Note */}
@@ -1004,6 +1174,30 @@ export default function RefereeRaceControlPage() {
         isSubmitting={isSubmitting}
         legName={selectedLeg?.name}
       />
+
+      {/* Start Race Confirm Modal — FLOW 4 Step 1 */}
+      {showStartModal ? (
+        <RaceStartConfirmModal
+          race={race}
+          refereeRole={race?.assignedRole || "Referee"}
+          busy={isStarting}
+          error={startError}
+          onClose={() => {
+            if (!isStarting) setShowStartModal(false);
+          }}
+          onConfirm={handleStartRace}
+        />
+      ) : null}
+
+      {/* Report Violation Modal — FLOW 5 Step 1 */}
+      {reportEntry ? (
+        <ReportViolationModal
+          raceId={raceId}
+          entry={reportEntry}
+          onClose={() => setReportEntry(null)}
+          onSubmitted={handleViolationSubmitted}
+        />
+      ) : null}
     </div>
   );
 }

@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Pencil,
   RefreshCw,
   Power,
-  Trash2,
   Award,
   Flag,
   CheckCircle2,
@@ -25,7 +24,7 @@ export default function AdminRefereePage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState(null);
+  const [busyId] = useState(null);
 
   const loadReferees = useCallback(async () => {
     setLoading(true);

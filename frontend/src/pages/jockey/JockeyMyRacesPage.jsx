@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Flag, Filter, Search, Plus } from "lucide-react";
+import { Flag } from "lucide-react";
 import {
   JockeyPageHeader,
   JockeyToolbar,
@@ -13,7 +13,6 @@ import {
   JockeyErrorAlert,
 } from "../../components/jockey/JockeyCommon";
 import { jockeyRaceService } from "../../services/jockeyService";
-import { RACE_STATUS } from "../../data/mockJockeyData";
 import "./JockeyMyRacesPage.css";
 
 const STATUS_OPTIONS = [

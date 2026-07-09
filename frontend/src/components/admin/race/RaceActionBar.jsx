@@ -9,7 +9,6 @@
  * Component chứa các actions cho race: edit, cancel, open/close registration.
  */
 
-import React from "react";
 import { Edit, XCircle, Lock, Unlock, RefreshCw } from "lucide-react";
 
 function RaceActionBarSkeleton() {
