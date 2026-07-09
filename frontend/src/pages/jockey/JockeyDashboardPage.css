@@ -1,0 +1,366 @@
+/* Jockey Dashboard Page Styles */
+
+.jock-page {
+  min-height: 100vh;
+  background: #0f172a;
+}
+
+.jock-page-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+/* ============================================
+   Stats Grid
+   ============================================ */
+
+.jock-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1200px) {
+  .jock-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .jock-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   Dashboard Grid
+   ============================================ */
+
+.jock-dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1024px) {
+  .jock-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.jock-dashboard-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.jock-dashboard-section--wide {
+  grid-column: span 1;
+}
+
+.jock-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.jock-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.jock-section-title svg {
+  color: #f59e0b;
+}
+
+.jock-text-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-text-btn:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* ============================================
+   Next Race Card
+   ============================================ */
+
+.jock-next-race-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.02) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.jock-next-race-card:hover {
+  border-color: #f59e0b;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(245, 158, 11, 0.15);
+}
+
+.jock-next-race-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.jock-next-race-date {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.jock-next-race-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+}
+
+.jock-next-race-tournament {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0 0 20px 0;
+}
+
+.jock-next-race-details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .jock-next-race-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.jock-next-race-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-detail-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-detail-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.jock-next-race-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid #334155;
+}
+
+.jock-odds-display,
+.jock-form-display {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jock-odds-label,
+.jock-form-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-odds-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.jock-form-display .jock-form-badge {
+  margin-top: 4px;
+}
+
+/* ============================================
+   Profile Quick View
+   ============================================ */
+
+.jock-profile-quick {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #334155;
+}
+
+.jock-profile-info {
+  flex: 1;
+}
+
+.jock-profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 4px 0;
+}
+
+.jock-profile-license {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.jock-profile-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jock-rating-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.jock-rating-stars {
+  font-size: 14px;
+  color: #f59e0b;
+  letter-spacing: 1px;
+}
+
+.jock-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.jock-profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.jock-profile-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.jock-profile-stat-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+   Performance List
+   ============================================ */
+
+.jock-performance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jock-performance-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.jock-performance-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.jock-performance-position {
+  min-width: 60px;
+}
+
+.jock-performance-info {
+  flex: 1;
+}
+
+.jock-performance-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 4px 0;
+}
+
+.jock-performance-date {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.jock-performance-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 768px) {
+  .jock-page-content {
+    padding: 20px;
+  }
+
+  .jock-next-race-name {
+    font-size: 20px;
+  }
+
+  .jock-next-race-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .jock-odds-display,
+  .jock-form-display {
+    align-items: center;
+  }
+}

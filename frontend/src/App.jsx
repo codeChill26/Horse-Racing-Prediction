@@ -14,8 +14,12 @@ import HorseOwnerInviteJockeyPage from "./pages/horseOwner/HorseOwnerInviteJocke
 import HorseOwnerSchedulePage from "./pages/horseOwner/HorseOwnerSchedulePage";
 import HorseOwnerTournamentPage from "./pages/horseOwner/HorseOwnerTournamentPage";
 import JockeyLayout from "./components/jockey/JockeyLayout";
-import JockeyHomePage from "./pages/jockey/JockeyHomePage";
+import JockeyDashboardPage from "./pages/jockey/JockeyDashboardPage";
+import JockeyMyRacesPage from "./pages/jockey/JockeyMyRacesPage";
+import JockeyRaceDetailPage from "./pages/jockey/JockeyRaceDetailPage";
+import JockeySchedulePage from "./pages/jockey/JockeySchedulePage";
 import JockeyProfilePage from "./pages/jockey/JockeyProfilePage";
+import JockeyNotificationsPage from "./pages/jockey/JockeyNotificationsPage";
 import SpectatorLayout from "./components/spectator/SpectatorLayout";
 import SpectatorHomePage from "./pages/spectator/SpectatorHomePage";
 import SpectatorProfilePage from "./pages/spectator/SpectatorProfilePage";
@@ -29,6 +33,8 @@ import AdminRaceStagePage from "./pages/admin/AdminRaceStagePage";
 import AdminDeviationPage from "./pages/admin/AdminDeviationPage";
 import AdminViolationPage from "./pages/admin/AdminViolationPage";
 import AdminWalletPointPage from "./pages/admin/AdminWalletPointPage";
+import AdminRaceDetailPage from "./pages/admin/AdminRaceDetailPage";
+import AdminRefereePage from "./pages/admin/AdminRefereePage";
 
 // New spectator pages
 import TournamentsPage from "./pages/tournaments/TournamentsPage";
@@ -68,8 +74,10 @@ function App() {
           <Route path="tournaments" element={<AdminTournamentsPage />} />
           <Route path="horses" element={<AdminHorseListPage />} />
           <Route path="races" element={<AdminRaceStagePage />} />
+          <Route path="races/:raceId" element={<AdminRaceDetailPage />} />
           <Route path="discrepancies" element={<AdminDeviationPage />} />
           <Route path="violations" element={<AdminViolationPage />} />
+          <Route path="referees" element={<AdminRefereePage />} />
           <Route path="points" element={<AdminWalletPointPage />} />
         </Route>
         <Route
@@ -94,7 +102,11 @@ function App() {
             </RequireRole>
           }
         >
-          <Route index element={<JockeyHomePage />} />
+          <Route index element={<JockeyDashboardPage />} />
+          <Route path="races" element={<JockeyMyRacesPage />} />
+          <Route path="races/:raceId" element={<JockeyRaceDetailPage />} />
+          <Route path="schedule" element={<JockeySchedulePage />} />
+          <Route path="notifications" element={<JockeyNotificationsPage />} />
           <Route path="profile" element={<JockeyProfilePage />} />
         </Route>
         <Route

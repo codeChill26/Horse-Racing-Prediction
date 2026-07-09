@@ -1,0 +1,280 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * ViolationTable Component
+ *
+ * Component hiển thị danh sách violation dạng bảng (desktop) hoặc card (mobile).
+ */
+
+import React from "react";
+import { Eye, MessageSquare, CheckCircle2, XCircle } from "lucide-react";
+import { SeverityBadge, RoleBadge } from "../../ui/Badges";
+import { ViolationStatusBadge } from "./ViolationStatusBadge";
+import { ViolationTableSkeleton } from "./ViolationTableSkeleton";
+import { formatDate, formatPoints } from "../../../utils/formatter";
+
+function truncate(value, max = 28) {
+  if (!value) return "—";
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+// Mobile Card Component
+function ViolationCard({ violation, onView, onStartReview, onResolve, onDismiss, busyId }) {
+  const isBusy = busyId === violation.id;
+
+  return (
+    <div className="vio-card">
+      <div className="vio-card__header">
+        <span className="vio-card__id">{violation.id}</span>
+        <SeverityBadge severity={violation.severity} />
+      </div>
+
+      <div className="vio-card__body">
+        <h3 className="vio-card__subject">{violation.subject}</h3>
+        <div className="vio-card__role">
+          <RoleBadge role={violation.subjectRole} />
+        </div>
+        <p className="vio-card__type">
+          <span className="vio-card__label">Loại:</span> {truncate(violation.type, 35)}
+        </p>
+        <p className="vio-card__race">
+          <span className="vio-card__label">Chặng:</span> {violation.raceName || "N/A"}
+        </p>
+        <p className="vio-card__penalty">
+          <span className="vio-card__label">Phạt:</span>{" "}
+          <span className={violation.penalty > 0 ? "vio-card__penalty-value" : ""}>
+            {violation.penalty > 0 ? `-${formatPoints(violation.penalty)} điểm` : "Không phạt"}
+          </span>
+        </p>
+        <div className="vio-card__status">
+          <span className="vio-card__label">Trạng thái:</span>
+          <ViolationStatusBadge status={violation.status} />
+        </div>
+      </div>
+
+      <div className="vio-card__actions">
+        <button
+          type="button"
+          className="vio-card__btn vio-card__btn--view"
+          onClick={() => onView(violation)}
+        >
+          <Eye size={14} />
+          Chi tiết
+        </button>
+
+        {violation.status === "OPEN" && (
+          <button
+            type="button"
+            className="vio-card__btn vio-card__btn--info"
+            onClick={() => onStartReview(violation)}
+            disabled={isBusy}
+          >
+            <MessageSquare size={14} />
+            Xem xét
+          </button>
+        )}
+
+        {(violation.status === "OPEN" || violation.status === "REVIEWING") && (
+          <>
+            <button
+              type="button"
+              className="vio-card__btn vio-card__btn--ok"
+              onClick={() => onResolve(violation)}
+              disabled={isBusy}
+            >
+              <CheckCircle2 size={14} />
+              Xử lý
+            </button>
+            <button
+              type="button"
+              className="vio-card__btn vio-card__btn--err"
+              onClick={() => onDismiss(violation)}
+              disabled={isBusy}
+            >
+              <XCircle size={14} />
+              Bỏ qua
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ViolationTable({
+  violations,
+  loading,
+  busyId,
+  onView,
+  onStartReview,
+  onResolve,
+  onDismiss,
+}) {
+  if (loading) {
+    return (
+      <div className="vio-panel">
+        <div className="vio-table-wrap">
+          <table className="vio-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Đối tượng</th>
+                <th>Loại vi phạm</th>
+                <th>Chặng</th>
+                <th>Mức độ</th>
+                <th>Trạng thái</th>
+                <th>Phạt</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ViolationTableSkeleton rows={5} />
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  if (!loading && violations.length === 0) {
+    return (
+      <div className="vio-panel">
+        <div className="vio-empty">
+          <div className="vio-empty__icon">⚖️</div>
+          <p className="vio-empty__title">Không có vi phạm</p>
+          <p className="vio-empty__desc">Không có vi phạm nào phù hợp với bộ lọc hiện tại.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="vio-panel">
+      {/* Desktop Table */}
+      <div className="vio-table-wrap">
+        <table className="vio-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Đối tượng</th>
+              <th>Loại vi phạm</th>
+              <th>Chặng</th>
+              <th>Mức độ</th>
+              <th>Trạng thái</th>
+              <th>Phạt</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {violations.map((v) => {
+              const isBusy = busyId === v.id;
+              return (
+                <tr key={v.id}>
+                  <td>
+                    <span className="vio-code">{v.id}</span>
+                  </td>
+                  <td>
+                    <div className="vio-subject">{v.subject}</div>
+                    <div className="vio-meta">
+                      <RoleBadge role={v.subjectRole} />
+                    </div>
+                  </td>
+                  <td>
+                    <div className="vio-type" title={v.type}>
+                      {truncate(v.type, 28)}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="vio-race" title={v.raceName || "N/A"}>
+                      {truncate(v.raceName || "N/A", 20)}
+                    </div>
+                  </td>
+                  <td>
+                    <SeverityBadge severity={v.severity} />
+                  </td>
+                  <td>
+                    <ViolationStatusBadge status={v.status} />
+                  </td>
+                  <td>
+                    {v.penalty > 0 ? (
+                      <span className="vio-penalty">-{formatPoints(v.penalty)}</span>
+                    ) : (
+                      <span className="vio-penalty vio-penalty--none">—</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="vio-actions">
+                      <button
+                        type="button"
+                        className="vio-icon-btn"
+                        title="Xem chi tiết"
+                        onClick={() => onView(v)}
+                      >
+                        <Eye size={14} />
+                      </button>
+
+                      {v.status === "OPEN" && (
+                        <button
+                          type="button"
+                          className="vio-icon-btn vio-icon-btn--info"
+                          title="Bắt đầu xem xét"
+                          disabled={isBusy}
+                          onClick={() => onStartReview(v)}
+                        >
+                          <MessageSquare size={14} />
+                        </button>
+                      )}
+
+                      {(v.status === "OPEN" || v.status === "REVIEWING") && (
+                        <>
+                          <button
+                            type="button"
+                            className="vio-icon-btn vio-icon-btn--ok"
+                            title="Xử lý xong"
+                            disabled={isBusy}
+                            onClick={() => onResolve(v)}
+                          >
+                            <CheckCircle2 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="vio-icon-btn vio-icon-btn--err"
+                            title="Bỏ qua"
+                            disabled={isBusy}
+                            onClick={() => onDismiss(v)}
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="vio-cards">
+        {violations.map((v) => (
+          <ViolationCard
+            key={v.id}
+            violation={v}
+            onView={onView}
+            onStartReview={onStartReview}
+            onResolve={onResolve}
+            onDismiss={onDismiss}
+            busyId={busyId}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default ViolationTable;

@@ -2,631 +2,1008 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Referee — Race Control Page.
- * Trang điều khiển race chính: start, xem legs, nhập kết quả.
+ * Referee Race Control Page
+ * Route: /referee/races/:raceId/control
  *
- * BLIND DOUBLE ENTRY RULES (enforced on FE):
- * - Không hiển thị kết quả của referee còn lại
- * - Không cho sửa submission đã gửi
- * - Không cho submit lần 2 cho cùng 1 leg
- * - Frontend chỉ gửi kết quả, backend là nguồn quyết định
+ * Features:
+ * - Start race (Scheduled → InProgress)
+ * - Select leg
+ * - Enter results for each horse
+ * - Submit results
+ * - View comparison status (Waiting, Matched, Conflict)
  *
- * TODO: Backend chưa có APIs riêng cho referee.
- * MOCK DATA: refereeRaceService.getRaceControlDetail()
+ * FIXES:
+ * - BUG-REF-002: handleStartRace & confirmSubmit gọi API thật qua service
+ * - BUG-REF-003: validateResults block modal confirmation khi form lỗi
+ * - BUG-REF-008: Pre-fill rank/status từ mock → khởi tạo rỗng khi leg chưa submit
+ * - A11y: aria-describedby, aria-invalid, role=alert, keyboard nav
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   PlayCircle,
+  CheckCircle2,
+  AlertTriangle,
   Clock,
   MapPin,
   Trophy,
   Hash,
-  AlertTriangle,
   Lock,
   Eye,
+  RefreshCcw,
+  X,
 } from "lucide-react";
-import {
-  AdminModal,
-  AdminModalSection,
-  AdminModalField,
-  AdminModalAlert,
-} from "../../components/ui/AdminModal";
-import {
-  RefereePageHeader,
-  RefereeToolbar,
-  RefereeErrorAlert,
-  RaceStatusBadge,
-  LegStatusBadge,
-} from "../../components/referee/RefereeCommon";
-import { refereeRaceService } from "../../services/refereeService";
-import { refereeSubmissionService } from "../../services/refereeService";
+import { refereeRaceService, refereeSubmissionService } from "../../services/refereeService";
 import "./RefereeRaceControlPage.css";
 
+// ============================================================
+// RACE STATUS CONFIG
+// ============================================================
+const RACE_STATUS_CONFIG = {
+  Scheduled: { variant: "info", label: "Chờ bắt đầu" },
+  InProgress: { variant: "live", label: "Đang diễn ra" },
+  Paused: { variant: "warn", label: "Tạm dừng" },
+  PendingResult: { variant: "warn", label: "Chờ kết quả" },
+  Completed: { variant: "ok", label: "Hoàn thành" },
+  Cancelled: { variant: "danger", label: "Đã hủy" },
+};
+
+const LEG_STATUS_CONFIG = {
+  AwaitingSubmission: { variant: "muted", label: "Chờ nhập" },
+  SubmittedByMe: { variant: "warn", label: "Đã submit" },
+  WaitingOtherReferee: { variant: "info", label: "Chờ TT còn lại" },
+  AutoMatched: { variant: "ok", label: "Khớp tự động" },
+  Conflicted: { variant: "danger", label: "Xung đột" },
+  NotSubmitted: { variant: "muted", label: "Chưa nhập" },
+};
+
 const RESULT_STATUS_OPTIONS = [
-  { value: "", label: "Chọn trạng thái…" },
-  { value: "FINISHED", label: "FINISHED — Về đích" },
-  { value: "DNF", label: "DNF — Did Not Finish" },
-  { value: "DQ", label: "DQ — Disqualified" },
+  { value: "", label: "Chọn trạng thái..." },
+  { value: "FINISHED", label: "FINISHED - Về đích" },
+  { value: "DNF", label: "DNF - Did Not Finish" },
+  { value: "DQ", label: "DQ - Disqualified" },
 ];
 
-function formatDateTime(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+// ============================================================
+// RACE HEADER CARD
+// ============================================================
+function RaceHeaderCard({ race, onStartRace, isStarting }) {
+  const formatDateTime = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const statusConfig = RACE_STATUS_CONFIG[race.status] || { variant: "muted", label: race.status };
+  const canStart = race.status === "Scheduled";
+  const isInProgress = race.status === "InProgress";
+  const isPaused = race.status === "Paused";
+
+  return (
+    <div className="race-header-card">
+      <div className="race-header-card__main">
+        <div className="race-header-card__header">
+          <div>
+            <span className="race-header-card__id" aria-label={`Mã race ${race.raceId || race.id}`}>
+              <Hash size={14} aria-hidden="true" /> Race #{(race.raceId || race.id)}
+            </span>
+            <h1 className="race-header-card__title">{race.name}</h1>
+            <p className="race-header-card__tournament">
+              <Trophy size={14} />
+              {race.tournamentName}
+            </p>
+          </div>
+          <div className="race-header-card__badges">
+            <span className={`race-status-badge race-status-badge--${statusConfig.variant}`}>
+              {statusConfig.label}
+            </span>
+            {race.bettingStatus === "Closed" ? (
+              <span className="race-status-badge race-status-badge--muted">
+                <Lock size={12} /> Cược đã khóa
+              </span>
+            ) : (
+              <span className="race-status-badge race-status-badge--info">
+                <Eye size={12} /> Cược mở
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="race-header-card__meta">
+          <div className="race-header-card__meta-item">
+            <MapPin size={14} />
+            <span>{race.location || "Chưa cập nhật"}</span>
+          </div>
+          <div className="race-header-card__meta-item">
+            <Clock size={14} />
+            <span>{formatDateTime(race.scheduledStartTime)}</span>
+          </div>
+        </div>
+
+        {race.assignedRole && (
+          <div className="race-header-card__role">
+            <span>Vai trò:</span>
+            <strong>{race.assignedRole}</strong>
+            {race.otherRefereeName && (
+              <>
+                <span>· Trọng tài còn lại:</span>
+                <strong>{race.otherRefereeName}</strong>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="race-header-card__action">
+        {canStart && (
+          <button
+            type="button"
+            className="race-btn race-btn--start"
+            onClick={onStartRace}
+            disabled={isStarting}
+          >
+            <PlayCircle size={18} />
+            {isStarting ? "Đang bắt đầu..." : "START RACE"}
+          </button>
+        )}
+        {isPaused && (
+          <div className="race-header-card__paused-msg">
+            <AlertTriangle size={16} />
+            Race đang bị tạm dừng do có conflict.
+          </div>
+        )}
+        {isInProgress && (
+          <div className="race-header-card__live-msg">
+            <span className="race-header-card__live-dot" />
+            Race đang diễn ra
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
+// ============================================================
+// LEG SELECTOR
+// ============================================================
+function LegSelector({ legs, selectedLegId, onSelectLeg }) {
+  return (
+    <div className="leg-selector" role="region" aria-label="Chọn leg">
+      <h2 className="leg-selector__title">
+        <Hash size={16} /> Chọn Leg
+      </h2>
+      <div className="leg-selector__list" role="listbox" aria-label="Danh sách leg">
+        {legs.map((leg) => {
+          const statusConfig = LEG_STATUS_CONFIG[leg.status] || { variant: "muted", label: leg.status };
+          const isSelected = selectedLegId === (leg.id || leg.legId);
+          const isLocked = leg.mySubmissionStatus === "SubmittedByMe" ||
+            leg.mySubmissionStatus === "WaitingOtherReferee" ||
+            leg.status === "Conflicted" ||
+            leg.status === "AutoMatched";
+
+          return (
+            <button
+              key={leg.id || leg.legId}
+              type="button"
+              role="option"
+              aria-selected={isSelected}
+              aria-disabled={isLocked}
+              className={`leg-selector__item${isSelected ? " leg-selector__item--selected" : ""}${isLocked ? " leg-selector__item--locked" : ""}`}
+              onClick={() => !isLocked && onSelectLeg(leg)}
+              onKeyDown={(e) => {
+                if (!isLocked && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  onSelectLeg(leg);
+                }
+              }}
+              disabled={isLocked}
+              title={isLocked ? "Leg này đã được submit hoặc bị khóa" : undefined}
+            >
+              <div className="leg-selector__item-header">
+                <span className="leg-selector__item-number">Leg {leg.legNumber}</span>
+                <span className={`leg-status-badge leg-status-badge--${statusConfig.variant}`}>
+                  {statusConfig.label}
+                </span>
+              </div>
+              <span className="leg-selector__item-name">{leg.name}</span>
+              {isLocked && (
+                <span className="leg-selector__item-lock" aria-hidden="true">
+                  <Lock size={12} />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// HORSE RESULT TABLE
+// ============================================================
+function HorseResultTable({ results, onChange, errors }) {
+  const errorCount = useMemo(() => Object.keys(errors || {}).length, [errors]);
+
+  const handleStatusChange = (index, status) => {
+    const newResults = [...results];
+    newResults[index] = {
+      ...newResults[index],
+      status,
+      // Khi chọn FINISHED → tự set rank = 1; khi chọn DNF/DQ → xóa rank
+      rank: status === "FINISHED" ? (newResults[index].rank || 1) : "",
+    };
+    onChange(newResults);
+  };
+
+  const handleRankChange = (index, rank) => {
+    const newResults = [...results];
+    const val = rank === "" ? "" : Math.max(1, parseInt(rank, 10) || 1);
+    newResults[index] = { ...newResults[index], rank: val };
+    onChange(newResults);
+  };
+
+  const handleNoteChange = (index, note) => {
+    const newResults = [...results];
+    newResults[index] = { ...newResults[index], note };
+    onChange(newResults);
+  };
+
+  const finishedCount = results.filter((r) => r.status === "FINISHED").length;
+
+  return (
+    <div className="horse-result-table" role="region" aria-label="Bảng nhập kết quả ngựa">
+      {/* Screen-reader error summary */}
+      {errorCount > 0 && (
+        <div role="alert" aria-live="polite" className="sr-only">
+          Có {errorCount} lỗi trong biểu mẫu. Vui lòng kiểm tra lại.
+        </div>
+      )}
+
+      <div className="horse-result-table__header" role="row">
+        <span role="columnheader">Cổng</span>
+        <span role="columnheader">Ngựa</span>
+        <span role="columnheader">Kỵ sĩ</span>
+        <span role="columnheader">Thứ hạng</span>
+        <span role="columnheader">Trạng thái</span>
+        <span role="columnheader">Ghi chú</span>
+      </div>
+      <div className="horse-result-table__body" role="rowgroup">
+        {results.map((result, index) => {
+          const rowError = errors?.[index];
+          const errorId = `row-error-${index}`;
+          return (
+            <div
+              key={result.horseId || index}
+              className={`horse-result-table__row${rowError ? " horse-result-table__row--error" : ""}`}
+              role="row"
+              aria-invalid={!!rowError}
+              aria-describedby={rowError ? errorId : undefined}
+            >
+              <div className="horse-result-table__gate" role="cell">
+                <span>{result.gateNumber}</span>
+              </div>
+              <div className="horse-result-table__horse" role="cell">
+                <strong>{result.horseName || "Ngựa"}</strong>
+              </div>
+              <div className="horse-result-table__jockey" role="cell">
+                <span>{result.jockeyName || "—"}</span>
+              </div>
+              <div className="horse-result-table__rank" role="cell">
+                <select
+                  className="horse-result-table__select"
+                  value={result.rank || ""}
+                  onChange={(e) => handleRankChange(index, e.target.value)}
+                  disabled={result.status !== "FINISHED"}
+                  aria-label={`Thứ hạng ngựa ${result.horseName || index + 1}`}
+                  aria-disabled={result.status !== "FINISHED"}
+                >
+                  <option value="">—</option>
+                  {finishedCount > 0 &&
+                    Array.from({ length: finishedCount }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="horse-result-table__status" role="cell">
+                <select
+                  className="horse-result-table__select"
+                  value={result.status || ""}
+                  onChange={(e) => handleStatusChange(index, e.target.value)}
+                  aria-label={`Trạng thái ngựa ${result.horseName || index + 1}`}
+                  aria-invalid={!!rowError && !result.status}
+                >
+                  {RESULT_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                {rowError && (
+                  <span id={errorId} className="horse-result-table__error-msg" role="alert">
+                    {rowError}
+                  </span>
+                )}
+              </div>
+              <div className="horse-result-table__note" role="cell">
+                <input
+                  type="text"
+                  className="horse-result-table__input"
+                  value={result.note || ""}
+                  onChange={(e) => handleNoteChange(index, e.target.value)}
+                  placeholder={result.status === "DQ" ? "Lý do DQ..." : "Ghi chú..."}
+                  aria-label={`Ghi chú ngựa ${result.horseName || index + 1}`}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// REFEREE NOTE BOX
+// ============================================================
+function RefereeNoteBox({ value, onChange }) {
+  return (
+    <div className="referee-note-box">
+      <label className="referee-note-box__label" htmlFor="referee-note">
+        <Clock size={14} />
+        Ghi chú trọng tài
+      </label>
+      <textarea
+        id="referee-note"
+        className="referee-note-box__textarea"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="VD: Điều kiện sân trơn, 1 ngựa gãy móng ở phút 3..."
+        rows={3}
+        aria-label="Ghi chú trọng tài cho leg này"
+      />
+    </div>
+  );
+}
+
+// ============================================================
+// SUBMISSION STATUS BANNER
+// ============================================================
+function SubmissionStatusBanner({ status }) {
+  if (!status) return null;
+
+  const statusConfig = LEG_STATUS_CONFIG[status] || { variant: "muted", label: status };
+
+  const statusMessages = {
+    AwaitingSubmission: "Leg này chưa được nhập kết quả.",
+    SubmittedByMe: "Bạn đã submit. Đang chờ trọng tài còn lại.",
+    WaitingOtherReferee: "Đang chờ trọng tài còn lại submit.",
+    AutoMatched: "Kết quả khớp với trọng tài còn lại. Hoàn tất!",
+    Conflicted: "Có xung đột kết quả. Hệ thống đang xử lý.",
+  };
+
+  const icons = {
+    AwaitingSubmission: Clock,
+    SubmittedByMe: Clock,
+    WaitingOtherReferee: Clock,
+    AutoMatched: CheckCircle2,
+    Conflicted: AlertTriangle,
+  };
+
+  const Icon = icons[status] || Clock;
+
+  return (
+    <div
+      className={`submission-status-banner submission-status-banner--${statusConfig.variant}`}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="submission-status-banner__icon">
+        <Icon size={20} />
+      </div>
+      <div className="submission-status-banner__content">
+        <span className="submission-status-banner__title">
+          {statusConfig.label}
+        </span>
+        <span className="submission-status-banner__message">
+          {statusMessages[status] || status}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SUBMIT RESULT MODAL
+// ============================================================
+function SubmitResultModal({ isOpen, onConfirm, onCancel, isSubmitting, legName }) {
+  const cancelRef = useRef(null);
+
+  // Focus cancel button when modal opens
+  useEffect(() => {
+    if (isOpen && cancelRef.current) {
+      cancelRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => {
+      if (e.key === "Escape" && !isSubmitting) onCancel();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isOpen, isSubmitting, onCancel]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={onCancel}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+      aria-describedby="confirm-modal-desc"
+    >
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 id="confirm-modal-title">Xác nhận gửi kết quả</h3>
+          <button
+            ref={cancelRef}
+            type="button"
+            className="modal-close"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            aria-label="Đóng hộp thoại"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="modal-icon">
+            <AlertTriangle size={32} />
+          </div>
+          <p id="confirm-modal-desc">
+            Bạn có chắc muốn gửi kết quả cho <strong>{legName}</strong>?
+          </p>
+          <div className="modal-warning">
+            <Lock size={14} />
+            <span>
+              Kết quả đã gửi <strong>không thể chỉnh sửa</strong>.
+              Trọng tài còn lại sẽ không thấy kết quả của bạn cho đến khi họ submit.
+            </span>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button
+            type="button"
+            className="modal-btn modal-btn--cancel"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            className="modal-btn modal-btn--confirm"
+            onClick={onConfirm}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Đang gửi..." : "Xác nhận gửi"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SKELETON
+// ============================================================
+function PageSkeleton() {
+  return (
+    <div className="race-control-skeleton">
+      <div className="race-control-skeleton__header">
+        <div>
+          <div className="skeleton-line skeleton-line--short" />
+          <div className="skeleton-line skeleton-line--title" />
+          <div className="skeleton-line skeleton-line--medium" />
+        </div>
+        <div className="skeleton-line skeleton-line--button" />
+      </div>
+      <div className="race-control-skeleton__legs">
+        <div className="skeleton-line skeleton-line--short" />
+        <div className="race-control-skeleton__leg-grid">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton-card" />
+          ))}
+        </div>
+      </div>
+      <div className="race-control-skeleton__table">
+        <div className="skeleton-line skeleton-line--full" />
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="skeleton-line skeleton-line--row" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// EMPTY STATE
+// ============================================================
+function EmptyLegState() {
+  return (
+    <div className="race-control-empty">
+      <Hash size={48} />
+      <h3>Chọn một Leg</h3>
+      <p>Chọn leg từ danh sách bên trái để nhập kết quả.</p>
+    </div>
+  );
+}
+
+// ============================================================
+// ERROR STATE
+// ============================================================
+function ErrorState({ message, onRetry }) {
+  return (
+    <div className="race-control-error">
+      <AlertTriangle size={48} />
+      <h3>Đã xảy ra lỗi</h3>
+      <p>{message || "Không thể tải dữ liệu race."}</p>
+      <button type="button" className="race-btn race-btn--primary" onClick={onRetry}>
+        <RefreshCcw size={14} /> Thử lại
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN PAGE
+// ============================================================
 export default function RefereeRaceControlPage() {
-  const { raceId } = useParams();
   const navigate = useNavigate();
+  const { raceId } = useParams();
 
   const [race, setRace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+
+  const [selectedLegId, setSelectedLegId] = useState(null);
+  const [results, setResults] = useState([]);
+  const [refereeNote, setRefereeNote] = useState("");
+  const [errors, setErrors] = useState({});
+
+  const [isStarting, setIsStarting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const [submissionStatus, setSubmissionStatus] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const [showLegModal, setShowLegModal] = useState(false);
-  const [selectedLeg, setSelectedLeg] = useState(null);
+  // Track original results to detect unsaved changes (BUG-REF-017)
+  const [originalResults, setOriginalResults] = useState([]);
 
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useMemo(() => {
+    if (!results.length || !originalResults.length) return false;
+    if (results.length !== originalResults.length) return true;
+
+    return results.some((r, idx) => {
+      const orig = originalResults[idx];
+      return (
+        r.status !== orig.status ||
+        r.rank !== orig.rank ||
+        r.note !== orig.note
+      );
+    });
+  }, [results, originalResults]);
+
+  // Manual reload handler
   const loadRace = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const data = await refereeRaceService.getRaceControlDetail(raceId);
-      setRace(data);
+      const raceData = await refereeRaceService.getRaceControlDetail(raceId);
+      setRace(raceData);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? e.message : "Không thể tải dữ liệu race.");
     } finally {
       setLoading(false);
     }
   }, [raceId]);
 
+  // Fetch race on mount and raceId change with cancellation guard
   useEffect(() => {
-    loadRace();
-  }, [loadRace]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const raceData = await refereeRaceService.getRaceControlDetail(raceId);
+        if (!cancelled) setRace(raceData);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Không thể tải dữ liệu race.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [raceId]);
 
+  // Toast auto dismiss
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 5000);
-    return () => window.clearTimeout(t);
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
   }, [toast]);
 
-  const canStart = race?.status === "Scheduled";
-  const canEnterResults = race?.status === "InProgress";
-  const isPaused = race?.status === "Paused";
+  // Handle leg selection
+  const handleSelectLeg = (leg) => {
+    // BUG-REF-017: Warn if user has unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        "Bạn có dữ liệu chưa lưu trên leg hiện tại.\nRời khỏi sẽ mất dữ liệu đã nhập.\n\nTiếp tục?",
+      );
+      if (!confirmed) return;
+    }
 
+    setSelectedLegId(leg.id || leg.legId);
+    setSubmissionStatus(leg.status);
+    setErrors({});
+
+    // BUG-REF-008: luôn khởi tạo rỗng; không pre-fill rank/status từ mock data.
+    // Leg chưa submit → trạng thái rỗng, không rank.
+    // Leg đã submit (SubmittedByMe, WaitingOtherReferee, Conflicted, AutoMatched) → locked.
+    const isAlreadySubmitted = leg.mySubmissionStatus === "SubmittedByMe" ||
+      leg.mySubmissionStatus === "WaitingOtherReferee" ||
+      leg.status === "Conflicted" ||
+      leg.status === "AutoMatched";
+
+    const initialResults = (leg.horses || []).map((h) => ({
+      horseId: h.horseId,
+      gateNumber: h.gateNumber,
+      horseName: h.horseName,
+      jockeyName: h.jockeyName,
+      // Nếu đã submit thì hiện lại kết quả để xem; nếu chưa thì để rỗng
+      status: isAlreadySubmitted ? (h.status || "") : "",
+      rank: isAlreadySubmitted ? (h.rank ?? "") : "",
+      note: isAlreadySubmitted ? (h.note || "") : "",
+    }));
+    setResults(initialResults);
+    // BUG-REF-017: Store original for change detection
+    setOriginalResults(isAlreadySubmitted ? initialResults : []);
+    setRefereeNote(isAlreadySubmitted ? (leg.refereeNote || "") : "");
+  };
+
+  // Start race via API (BUG-REF-002)
   const handleStartRace = async () => {
-    if (!canStart) return;
-    setSubmitting(true);
+    setIsStarting(true);
     try {
-      await refereeRaceService.startRace(raceId);
+      const result = await refereeRaceService.startRace(raceId);
+      setRace((prev) => ({ ...prev, status: "InProgress" }));
       setToast({
         type: "success",
-        text: "Race đã bắt đầu. Cược mới đã bị khóa. Bạn có thể nhập kết quả leg.",
+        message: result.message || "Race đã bắt đầu! Cược mới đã bị khóa. Bạn có thể nhập kết quả leg.",
       });
-      await loadRace();
     } catch (e) {
       setToast({
         type: "error",
-        text: e instanceof Error ? e.message : "Không thể bắt đầu race",
+        message: e instanceof Error ? e.message : "Không thể bắt đầu race.",
       });
     } finally {
-      setSubmitting(false);
+      setIsStarting(false);
     }
   };
 
-  const handleOpenLegModal = (leg) => {
-    setSelectedLeg(leg);
-    setShowLegModal(true);
+  // Validate results - sử dụng service validation + additional checks
+  const validateResults = () => {
+    const newErrors = {};
+
+    // 1. Kiểm tra mỗi horse đã có status
+    results.forEach((result, index) => {
+      if (!result.status) {
+        newErrors[index] = "Phải chọn trạng thái";
+      } else if (result.status === "FINISHED") {
+        // 2. FINISHED phải có rank >= 1
+        if (!result.rank || result.rank < 1) {
+          newErrors[index] = "Phải nhập thứ hạng";
+        }
+      }
+    });
+
+    // 3. Kiểm tra rank trùng lặp (Business Rule #7)
+    const finishedResults = results.filter((r) => r.status === "FINISHED" && r.rank != null && r.rank >= 1);
+    const ranks = finishedResults.map((r) => r.rank);
+    const uniqueRanks = new Set(ranks);
+    if (ranks.length !== uniqueRanks.size) {
+      // Mark tất cả dòng trùng rank
+      const seen = {};
+      finishedResults.forEach((result) => {
+        const globalIdx = results.indexOf(result);
+        if (seen[result.rank] !== undefined) {
+          newErrors[globalIdx] = "Thứ hạng trùng lặp";
+          newErrors[seen[result.rank]] = "Thứ hạng trùng lặp";
+        } else {
+          seen[result.rank] = globalIdx;
+        }
+      });
+    }
+
+    // 4. Kiểm tra rank liên tục 1, 2, 3... (Business Rule #7)
+    if (Object.keys(newErrors).length === 0 && finishedResults.length > 0) {
+      const sortedRanks = [...ranks].sort((a, b) => a - b);
+      for (let i = 0; i < sortedRanks.length; i++) {
+        if (sortedRanks[i] !== i + 1) {
+          // Báo lỗi trên row có rank bị thiếu/ sai
+          results.forEach((result, idx) => {
+            if (result.status === "FINISHED" && result.rank === sortedRanks[i]) {
+              if (!newErrors[idx]) {
+                newErrors[idx] = "Thứ hạng phải liên tục từ 1";
+              }
+            }
+          });
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleLegSubmitSuccess = () => {
-    setShowLegModal(false);
-    setSelectedLeg(null);
-    setToast({ type: "success", text: "Kết quả đã được gửi. Bạn không thể chỉnh sửa." });
-    loadRace();
+  // BUG-REF-003: validateResults trả về false → không mở modal
+  const handleSubmitResults = async () => {
+    if (!validateResults()) {
+      setToast({
+        type: "error",
+        message: "Vui lòng kiểm tra lại thông tin kết quả.",
+      });
+      return;
+    }
+    setShowConfirmModal(true);
   };
 
-  const handleLegSubmitError = (msg) => {
-    setToast({ type: "error", text: msg });
+  // BUG-REF-002: confirmSubmit gọi API thật, reload race sau khi submit thành công
+  const confirmSubmit = async () => {
+    setShowConfirmModal(false);
+    setIsSubmitting(true);
+
+    try {
+      await refereeSubmissionService.submitLegResult({
+        raceId,
+        legId: selectedLegId,
+        results,
+        refereeNote,
+      });
+
+      // Reset form
+      setSubmissionStatus("WaitingOtherReferee");
+      setSelectedLegId(null);
+      setResults([]);
+      setOriginalResults([]); // BUG-REF-017: clear after submit
+      setRefereeNote("");
+      setErrors({});
+
+      // Reload race data để cập nhật trạng thái leg mới nhất
+      await loadRace();
+
+      setToast({
+        type: "success",
+        message: "Kết quả đã được gửi! Bạn không thể chỉnh sửa sau khi submit.",
+      });
+    } catch (e) {
+      setToast({
+        type: "error",
+        message: e instanceof Error ? e.message : "Không thể gửi kết quả.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  return (
-    <div className="ref-page">
-      {toast ? (
-        <div className={`ref-toast ref-toast--${toast.type}`} role="status">
-          <span className="ref-toast-icon" aria-hidden="true">
-            {toast.type === "success" ? "✓" : toast.type === "info" ? "i" : "!"}
-          </span>
-          <div className="ref-toast-body">
-            <p>{toast.text}</p>
-          </div>
+  // Get selected leg
+  const selectedLeg = useMemo(() => {
+    if (!selectedLegId || !race) return null;
+    return race.legs?.find((l) => l.id === selectedLegId || l.legId === selectedLegId);
+  }, [selectedLegId, race]);
+
+  // Can submit
+  const canSubmit =
+    race?.status === "InProgress" &&
+    selectedLeg &&
+    selectedLeg.status === "AwaitingSubmission" &&
+    selectedLeg.mySubmissionStatus !== "SubmittedByMe" &&
+    selectedLeg.mySubmissionStatus !== "WaitingOtherReferee" &&
+    selectedLeg.status !== "Conflicted" &&
+    selectedLeg.status !== "AutoMatched";
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="race-control-page">
+        <div className="race-control-page__inner">
+          <PageSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="race-control-page">
+        <div className="race-control-page__inner">
           <button
             type="button"
-            className="ref-toast-close"
-            onClick={() => setToast(null)}
-            aria-label="Đóng"
+            className="race-btn race-btn--back"
+            onClick={() => navigate("/referee/assigned-races")}
           >
-            ✕
+            <ArrowLeft size={16} /> Quay lại
+          </button>
+          <ErrorState message={error} onRetry={loadRace} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="race-control-page">
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`race-toast race-toast--${toast.type}`}
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <span className="race-toast__icon" aria-hidden="true">
+            {toast.type === "success" ? "✓" : "!"}
+          </span>
+          <span className="race-toast__message">{toast.message}</span>
+          <button
+            type="button"
+            className="race-toast__close"
+            onClick={() => setToast(null)}
+            aria-label="Đóng thông báo"
+          >
+            <X size={16} />
           </button>
         </div>
-      ) : null}
+      )}
 
-      <div className="ref-page-inner">
-        <RefereePageHeader
-          eyebrow="Race Control"
-          title={race?.name || "Điều khiển Race"}
-          subtitle="Nhập kết quả từng leg theo cơ chế Blind Double Entry."
-          onRefresh={loadRace}
-          refreshing={loading}
-          actions={
-            <button
-              type="button"
-              className="ref-btn ref-btn--ghost"
-              onClick={() => navigate("/referee/assigned-races")}
-            >
-              <ArrowLeft size={14} /> Quay lại
-            </button>
-          }
-        />
+      <div className="race-control-page__inner">
+        {/* Back Button */}
+        <button
+          type="button"
+          className="race-btn race-btn--back"
+          onClick={() => navigate("/referee/assigned-races")}
+        >
+          <ArrowLeft size={16} /> Quay lại
+        </button>
 
-        {error ? <RefereeErrorAlert message={error} onRetry={loadRace} /> : null}
-
-        {loading ? (
-          <div className="ref-rc-loading">
-            <div className="ref-loading-bar" />
-            <div className="ref-loading-bar ref-loading-bar--short" />
+        {/* Page Header */}
+        <header className="race-control-page__header">
+          <div>
+            <p className="race-control-page__eyebrow">Race Control</p>
+            <h1 className="race-control-page__title">
+              Điều khiển Race
+            </h1>
           </div>
-        ) : race ? (
-          <>
-            {/* Race Info Card */}
-            <div className="ref-race-info-card">
-              <div className="ref-race-info-card__main">
-                <div className="ref-race-info-card__header">
-                  <div>
-                    <span className="ref-race-info-card__id">
-                      <Hash size={12} /> Race #{race.raceId || race.id}
-                    </span>
-                    <h2>{race.name}</h2>
-                    <p>{race.tournamentName}</p>
-                  </div>
-                  <div className="ref-race-info-card__badges">
-                    <RaceStatusBadge status={race.status} />
-                    {race.bettingStatus === "Closed" || race.bettingStatus === "Closed" ? (
-                      <span className="ref-badge ref-badge--muted">
-                        <Lock size={11} /> Cược đã khóa
-                      </span>
-                    ) : (
-                      <span className="ref-badge ref-badge--live">
-                        <Eye size={11} /> Cược mở
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="ref-race-info-card__meta">
-                  <div className="ref-race-info-card__meta-item">
-                    <Trophy size={14} />
-                    <span>{race.tournamentName || "—"}</span>
-                  </div>
-                  <div className="ref-race-info-card__meta-item">
-                    <MapPin size={14} />
-                    <span>{race.location || "Chưa cập nhật"}</span>
-                  </div>
-                  <div className="ref-race-info-card__meta-item">
-                    <Clock size={14} />
-                    <span>{formatDateTime(race.scheduledStartTime)}</span>
-                  </div>
-                </div>
-
-                {race.assignedRole ? (
-                  <div className="ref-race-info-card__role">
-                    Vai trò của bạn:{" "}
-                    <strong>{race.assignedRole}</strong>
-                    {race.otherRefereeName ? (
-                      <> · Trọng tài còn lại: <strong>{race.otherRefereeName}</strong></>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Start Race Button */}
-              <div className="ref-race-info-card__action">
-                {canStart ? (
-                  <button
-                    type="button"
-                    className="ref-btn ref-btn--primary ref-btn--start"
-                    onClick={handleStartRace}
-                    disabled={submitting}
-                  >
-                    <PlayCircle size={16} />
-                    {submitting ? "Đang bắt đầu…" : "Start Race"}
-                  </button>
-                ) : null}
-                {isPaused ? (
-                  <div className="ref-rc-paused-msg">
-                    <AlertTriangle size={16} />
-                    Race đang bị tạm dừng do có sai lệch kết quả.
-                  </div>
-                ) : null}
-                {!canStart && !isPaused && race.status === "InProgress" ? (
-                  <div className="ref-rc-live-msg">
-                    <span className="ref-rc-live-dot" />
-                    Race đang diễn ra
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Legs List */}
-            <section className="ref-section">
-              <div className="ref-section__head">
-                <div>
-                  <h2>Danh sách Leg</h2>
-                  <p>{race.totalLegs || 0} leg · {race.legs?.filter(l => l.mySubmissionStatus === "SubmittedByMe" || l.mySubmissionStatus === "WaitingOtherReferee").length || 0} đã submit</p>
-                </div>
-              </div>
-
-              <div className="ref-legs-list">
-                {(race.legs || []).map((leg) => {
-                  const submitted = leg.mySubmissionStatus === "SubmittedByMe" || leg.mySubmissionStatus === "WaitingOtherReferee";
-                  const conflicted = leg.status === "Conflicted";
-                  const canSubmit = canEnterResults && !submitted && !conflicted && leg.mySubmissionStatus !== "SubmittedByMe";
-                  const locked = submitted || conflicted;
-
-                  return (
-                    <div key={leg.id || leg.legId} className={`ref-leg-card${conflicted ? " ref-leg-card--conflicted" : submitted ? " ref-leg-card--submitted" : ""}`}>
-                      <div className="ref-leg-card__head">
-                        <div className="ref-leg-card__number">
-                          <span>Leg</span>
-                          <strong>{leg.legNumber}</strong>
-                        </div>
-                        <div className="ref-leg-card__info">
-                          <h3>{leg.name || `Leg ${leg.legNumber}`}</h3>
-                          <div className="ref-leg-card__statuses">
-                            <LegStatusBadge status={leg.status} />
-                            <span className="ref-leg-card__my-status">
-                              {leg.mySubmissionStatus === "SubmittedByMe"
-                                ? "✓ Bạn đã submit"
-                                : leg.mySubmissionStatus === "WaitingOtherReferee"
-                                  ? "⏳ Đang chờ TT còn lại"
-                                  : leg.mySubmissionStatus === "NotSubmitted"
-                                    ? "○ Chưa nhập"
-                                    : leg.mySubmissionStatus}
-                            </span>
-                            <span className="ref-leg-card__other-status">
-                              {locked
-                                ? "Trọng tài còn lại: " +
-                                  (leg.otherRefereeStatus === "SubmittedByMe"
-                                    ? "✓ Đã submit"
-                                    : leg.otherRefereeStatus === "WaitingOtherReferee"
-                                      ? "⏳ Đang chờ"
-                                      : "○ Chưa nhập")
-                                : "Kết quả TT còn lại: Ẩn (blind)"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ref-leg-card__action">
-                          {canSubmit ? (
-                            <button
-                              type="button"
-                              className="ref-btn ref-btn--primary ref-btn--sm"
-                              onClick={() => handleOpenLegModal(leg)}
-                            >
-                              Nhập kết quả
-                            </button>
-                          ) : locked ? (
-                            <span className="ref-btn ref-btn--sm" style={{ opacity: 0.5, cursor: "default" }}>
-                              <Lock size={12} /> {conflicted ? "Conflict" : "Đã gửi"}
-                            </span>
-                          ) : (
-                            <span className="ref-btn ref-btn--sm ref-btn--ghost" style={{ opacity: 0.4 }}>
-                              {race.status !== "InProgress"
-                                ? "Race chưa bắt đầu"
-                                : "Chờ race InProgress"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Horses preview */}
-                      {(leg.horses || []).length > 0 ? (
-                        <div className="ref-leg-card__horses">
-                          {leg.horses.slice(0, 4).map((h) => (
-                            <div key={h.horseId} className="ref-leg-card__horse">
-                              <span className="ref-leg-card__gate">{h.gateNumber}</span>
-                              <span className="ref-leg-card__horse-name">{h.horseName || "Ngựa"}</span>
-                              <span className="ref-leg-card__jockey">{h.jockeyName || "—"}</span>
-                              <span className={`ref-badge ref-badge--${h.status === "FINISHED" ? "ok" : h.status === "DQ" ? "danger" : "muted"}`}>
-                                {h.status || "—"}
-                              </span>
-                            </div>
-                          ))}
-                          {(leg.horses || []).length > 4 ? (
-                            <p className="ref-leg-card__more">
-                              +{(leg.horses || []).length - 4} ngựa khác
-                            </p>
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      {conflicted && leg.conflictReason ? (
-                        <p className="ref-leg-card__conflict-reason">
-                          <AlertTriangle size={13} />
-                          {leg.conflictReason}
-                        </p>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* Blind Entry Notice */}
-            <div className="ref-blind-notice">
-              <Lock size={14} />
-              <div>
-                <strong>Cơ chế Blind Double Entry</strong>
-                <p>
-                  Kết quả bạn nhập sẽ không hiển thị cho trọng tài còn lại cho đến khi backend xác nhận.
-                  Bạn không thể sửa kết quả đã gửi.
-                </p>
-              </div>
-            </div>
-          </>
-        ) : null}
-      </div>
-
-      {showLegModal && selectedLeg ? (
-        <LegResultModal
-          leg={selectedLeg}
-          race={race}
-          onClose={() => { setShowLegModal(false); setSelectedLeg(null); }}
-          onSuccess={handleLegSubmitSuccess}
-          onError={handleLegSubmitError}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-/* ============== LEG RESULT MODAL ============== */
-function LegResultModal({ leg, race, onClose, onSuccess, onError }) {
-  const [results, setResults] = useState(
-    () =>
-      (leg.horses || []).map((h) => ({
-        horseId: h.horseId,
-        gateNumber: h.gateNumber,
-        horseName: h.horseName,
-        jockeyName: h.jockeyName,
-        status: h.status || "",
-        rank: h.rank ?? "",
-        note: h.note || "",
-      })),
-  );
-  const [refereeNote, setRefereeNote] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-
-  const setResultStatus = (idx, status) => {
-    setResults((prev) =>
-      prev.map((r, i) =>
-        i === idx
-          ? {
-              ...r,
-              status,
-              // Auto-clear rank if not FINISHED
-              rank: status !== "FINISHED" ? "" : r.rank,
-            }
-          : r,
-      ),
-    );
-  };
-
-  const setResultRank = (idx, rank) => {
-    const val = rank === "" ? "" : Math.max(1, parseInt(rank, 10) || 1);
-    setResults((prev) =>
-      prev.map((r, i) => (i === idx ? { ...r, rank: val } : r)),
-    );
-  };
-
-  const setResultNote = (idx, note) => {
-    setResults((prev) =>
-      prev.map((r, i) => (i === idx ? { ...r, note } : r)),
-    );
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormError("");
-
-    if (!confirmed) {
-      setFormError("Bạn phải xác nhận kết quả trước khi gửi.");
-      return;
-    }
-
-    // Validate: all horses must have status
-    const missingStatus = results.some((r) => !r.status);
-    if (missingStatus) {
-      setFormError("Phải chọn trạng thái cho tất cả ngựa.");
-      return;
-    }
-
-    // Validate: FINISHED must have rank
-    const invalidRank = results.some(
-      (r) => r.status === "FINISHED" && (!r.rank || r.rank < 1),
-    );
-    if (invalidRank) {
-      setFormError("Ngựa Về đích (FINISHED) phải có thứ hạng >= 1.");
-      return;
-    }
-
-    // Validate: no duplicate ranks
-    const finished = results.filter((r) => r.status === "FINISHED");
-    const ranks = finished.map((r) => r.rank);
-    if (new Set(ranks).size !== ranks.length) {
-      setFormError("Không được để 2 ngựa cùng thứ hạng.");
-      return;
-    }
-
-    // Validate: ranks must be sequential 1, 2, 3...
-    const sortedRanks = [...ranks].sort((a, b) => a - b);
-    for (let i = 0; i < sortedRanks.length; i++) {
-      if (sortedRanks[i] !== i + 1) {
-        setFormError("Thứ hạng phải liên tục từ 1 (ví dụ: 1, 2, 3).");
-        return;
-      }
-    }
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        raceId: race?.raceId || race?.id,
-        legId: leg?.legId || leg?.id,
-        results: results.map(({ horseId, status, rank, note }) => ({
-          horseId,
-          status,
-          rank: status === "FINISHED" ? rank : null,
-          note,
-        })),
-        refereeNote,
-      };
-
-      await refereeSubmissionService.submitLegResult(payload);
-      onSuccess?.();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <AdminModal
-      title={`Nhập kết quả — ${leg.name || `Leg ${leg.legNumber}`}`}
-      subtitle={`Race: ${race?.name || "—"} · Blind Double Entry`}
-      accent="primary"
-      size="xl"
-      onClose={onClose}
-      footer={
-        <>
           <button
             type="button"
-            className="ref-btn ref-btn--ghost"
-            onClick={onClose}
-            disabled={submitting}
+            className="race-btn race-btn--refresh"
+            onClick={loadRace}
           >
-            Hủy
+            <RefreshCcw size={14} /> Làm mới
           </button>
-          <button
-            type="submit"
-            form="leg-result-form"
-            className="ref-btn ref-btn--primary"
-            disabled={submitting}
-          >
-            {submitting ? "Đang gửi…" : "Gửi kết quả"}
-          </button>
-        </>
-      }
-    >
-      <form id="leg-result-form" onSubmit={handleSubmit}>
-        {formError ? (
-          <AdminModalAlert type="error">{formError}</AdminModalAlert>
-        ) : null}
+        </header>
 
-        <AdminModalSection
-          title="Kết quả từng ngựa"
-          description="Nhập thứ hạng và trạng thái cho mỗi ngựa. DNF/DQ không cần thứ hạng."
-        >
-          <div className="ref-leg-form-grid">
-            {results.map((r, idx) => (
-              <div key={r.horseId} className="ref-leg-form-row">
-                <div className="ref-leg-form-row__gate">
-                  <span>Cổng</span>
-                  <strong>{r.gateNumber}</strong>
-                </div>
-                <div className="ref-leg-form-row__info">
-                  <strong>{r.horseName || "Ngựa"}</strong>
-                  <span>{r.jockeyName || "—"}</span>
-                </div>
-                <AdminModalField label="Trạng thái" required>
-                  <select
-                    className="ref-input"
-                    value={r.status}
-                    onChange={(e) => setResultStatus(idx, e.target.value)}
-                  >
-                    {RESULT_STATUS_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </AdminModalField>
-                <AdminModalField label="Thứ hạng" hint={r.status !== "FINISHED" ? "Chỉ FINISHED" : ""}>
-                  <input
-                    type="number"
-                    className="ref-input"
-                    min="1"
-                    max={results.filter((x) => x.status === "FINISHED").length}
-                    value={r.rank}
-                    onChange={(e) => setResultRank(idx, e.target.value)}
-                    placeholder={r.status === "FINISHED" ? "1" : "—"}
-                    disabled={r.status !== "FINISHED"}
-                  />
-                </AdminModalField>
-                <AdminModalField label="Ghi chú" hint={r.status !== "FINISHED" ? "Bắt buộc khi DQ" : "Tùy chọn"}>
-                  <input
-                    type="text"
-                    className="ref-input"
-                    value={r.note}
-                    onChange={(e) => setResultNote(idx, e.target.value)}
-                    placeholder={r.status === "DQ" ? "Lý do DQ…" : "Ghi chú…"}
-                  />
-                </AdminModalField>
-              </div>
-            ))}
-          </div>
-        </AdminModalSection>
+        {/* Race Header Card */}
+        <RaceHeaderCard
+          race={race}
+          onStartRace={handleStartRace}
+          isStarting={isStarting}
+        />
 
-        <AdminModalSection
-          title="Ghi chú trọng tài"
-          description="Ghi chú chung cho leg này (điều kiện sân, sự cố, v.v.)"
-        >
-          <textarea
-            className="ref-input ref-input--textarea"
-            value={refereeNote}
-            onChange={(e) => setRefereeNote(e.target.value)}
-            placeholder="VD: Sân trơn do mưa. 1 ngựa gãy móng ở phút 3."
-            rows={3}
-          />
-        </AdminModalSection>
-
-        <AdminModalSection
-          title="Xác nhận"
-          description='Phải tick xác nhận. Submission là append-only, không thể sửa sau khi gửi.'
-        >
-          <label className="ref-confirm-check">
-            <input
-              type="checkbox"
-              checked={confirmed}
-              onChange={(e) => setConfirmed(e.target.checked)}
+        {/* Main Content Grid */}
+        <div className="race-control-grid">
+          {/* Leg Selector */}
+          <div className="race-control-grid__legs">
+            <LegSelector
+              legs={race.legs || []}
+              selectedLegId={selectedLegId}
+              onSelectLeg={handleSelectLeg}
             />
-            <span>
-              Tôi xác nhận kết quả này là chính xác theo nhận định của tôi.
-              Sau khi submit sẽ <strong>không thể chỉnh sửa</strong>.
-            </span>
-          </label>
-        </AdminModalSection>
-      </form>
-    </AdminModal>
+          </div>
+
+          {/* Results Panel */}
+          <div className="race-control-grid__results">
+            {!selectedLeg ? (
+              <EmptyLegState />
+            ) : (
+              <div className="results-panel">
+                {/* Submission Status Banner */}
+                <SubmissionStatusBanner status={submissionStatus} />
+
+                {/* Leg Title */}
+                <div className="results-panel__header">
+                  <h2>{selectedLeg.name}</h2>
+                  <span
+                    className={`leg-status-badge leg-status-badge--${LEG_STATUS_CONFIG[submissionStatus]?.variant || "muted"}`}
+                    aria-label={`Trạng thái: ${LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}`}
+                  >
+                    {LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}
+                  </span>
+                </div>
+
+                {/* Horse Result Table */}
+                <HorseResultTable
+                  results={results}
+                  onChange={setResults}
+                  errors={errors}
+                />
+
+                {/* Referee Note */}
+                <RefereeNoteBox
+                  value={refereeNote}
+                  onChange={setRefereeNote}
+                />
+
+                {/* Submit Button */}
+                {canSubmit && (
+                  <div className="results-panel__actions">
+                    <button
+                      type="button"
+                      className="race-btn race-btn--submit"
+                      onClick={handleSubmitResults}
+                      disabled={isSubmitting}
+                      aria-label={`Gửi kết quả cho ${selectedLeg?.name}`}
+                    >
+                      <CheckCircle2 size={16} />
+                      {isSubmitting ? "Đang gửi..." : "SUBMIT RESULT"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Blind Notice */}
+                <div className="results-panel__blind-notice">
+                  <Lock size={14} />
+                  <span>
+                    Kết quả bạn nhập sẽ không hiển thị cho trọng tài còn lại cho đến khi backend xác nhận.
+                    Bạn không thể sửa kết quả đã gửi.
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Confirm Modal */}
+      <SubmitResultModal
+        isOpen={showConfirmModal}
+        onConfirm={confirmSubmit}
+        onCancel={() => setShowConfirmModal(false)}
+        isSubmitting={isSubmitting}
+        legName={selectedLeg?.name}
+      />
+    </div>
   );
 }

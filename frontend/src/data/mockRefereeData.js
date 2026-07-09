@@ -382,6 +382,8 @@ export const MOCK_MY_SUBMISSIONS = [
 // ============================================================
 // CONFLICTS (các leg đang conflict)
 // ============================================================
+// BUG-REF-006: Mock data có đủ mySubmission, otherSubmission, differences
+// để ConflictComparison hiển thị đúng.
 export const MOCK_CONFLICTS = [
   {
     id: "conflict-001",
@@ -391,19 +393,22 @@ export const MOCK_CONFLICTS = [
     legId: 8,
     legName: "Leg 1 — Opening",
     legNumber: 1,
-    status: "Conflicted",   // Conflicted | UnderReview | Resolved | Rejected
+    status: "Conflicted",
     detectedAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
     description: "Kết quả Leg 1 có sự khác biệt giữa 2 trọng tài. Hệ thống đã tạm dừng race.",
-    refereeSubmission: {
-      legId: 8,
-      submittedAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
-      results: [
-        { horseId: 15, gateNumber: 1, horseName: "Shadow Runner", status: "FINISHED", rank: 1 },
-        { horseId: 16, gateNumber: 2, horseName: "Crimson King", status: "FINISHED", rank: 2 },
-        { horseId: 17, gateNumber: 3, horseName: "Desert Wind", status: "FINISHED", rank: 3 },
-        { horseId: 18, gateNumber: 4, horseName: "Arctic Star", status: "FINISHED", rank: 4 },
-      ],
-    },
+    mySubmission: [
+      { horseId: 15, gateNumber: 1, horseName: "Shadow Runner", jockeyName: "Bạch Thị Thanh", status: "FINISHED", rank: 1, note: "" },
+      { horseId: 16, gateNumber: 2, horseName: "Crimson King", jockeyName: "Hứa Văn Thành", status: "FINISHED", rank: 2, note: "" },
+      { horseId: 17, gateNumber: 3, horseName: "Desert Wind", jockeyName: "Chu Thị Hương", status: "FINISHED", rank: 3, note: "" },
+      { horseId: 18, gateNumber: 4, horseName: "Arctic Star", jockeyName: "Tạ Đình Phong", status: "FINISHED", rank: 4, note: "" },
+    ],
+    otherSubmission: [
+      { horseId: 15, gateNumber: 1, horseName: "Shadow Runner", jockeyName: "Bạch Thị Thanh", status: "FINISHED", rank: 1, note: "" },
+      { horseId: 16, gateNumber: 2, horseName: "Crimson King", jockeyName: "Hứa Văn Thành", status: "FINISHED", rank: 2, note: "" },
+      { horseId: 17, gateNumber: 3, horseName: "Desert Wind", jockeyName: "Chu Thị Hương", status: "FINISHED", rank: 4, note: "" }, // rank khác
+      { horseId: 18, gateNumber: 4, horseName: "Arctic Star", jockeyName: "Tạ Đình Phong", status: "FINISHED", rank: 3, note: "" }, // rank khác
+    ],
+    differences: [17, 18], // horseId của các ngựa có kết quả khác nhau
     systemNote: "Khác biệt ở thứ hạng ngựa #3 và #4. Đã gửi email cho Chief Referee.",
     adminNote: "Đang chờ xem lại video.",
     statements: [],

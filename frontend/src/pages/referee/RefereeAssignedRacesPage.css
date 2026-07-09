@@ -1,168 +1,576 @@
-/* ============================================
-   REFEREE ASSIGNED RACES PAGE - Dark Theme
-   ============================================ */
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Referee Assigned Races Page Styles
+ * Dark theme with emerald green + gold accents
+ */
 
-.ref-page {
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.assigned-races-page {
   min-height: 100%;
   background: var(--ho-bg, #0b141c);
   color: var(--ho-text-secondary, #bfc9bf);
   padding-bottom: 3rem;
 }
 
-/* === RACE TABLE === */
-.ref-race-table {
+.assigned-races-page__inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+}
+
+/* ============================================
+   PAGE HEADER
+   ============================================ */
+.assigned-races-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.assigned-races-page__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ho-primary, #8dd6a6);
+}
+
+.assigned-races-page__title {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  line-height: 1.2;
+}
+
+.assigned-races-page__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ho-text-muted, #8b949e);
+  max-width: 50ch;
+}
+
+.assigned-races-page__stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.assigned-races-page__stats-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ho-text-muted, #8b949e);
+  padding: 0.4rem 0.85rem;
   background: var(--ho-card, #161b22);
   border: 1px solid var(--ho-border, #30363d);
-  border-radius: 14px;
+  border-radius: 8px;
+}
+
+/* ============================================
+   TOOLBAR
+   ============================================ */
+.assigned-races-page__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   SEARCH INPUT
+   ============================================ */
+.race-search {
+  position: relative;
+  flex: 1;
+  min-width: 280px;
+  max-width: 480px;
+}
+
+.race-search__icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ho-text-muted, #8b949e);
+  pointer-events: none;
+}
+
+.race-search__input {
+  width: 100%;
+  padding: 0.65rem 2.5rem 0.65rem 2.5rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--ho-border, #30363d);
+  background: var(--ho-card, #161b22);
+  color: var(--ho-text-primary, #dae3ee);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.race-search__input::placeholder {
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.race-search__input:focus {
+  border-color: var(--ho-primary-border, rgba(141, 214, 166, 0.5));
+  box-shadow: 0 0 0 3px var(--ho-primary-dim, rgba(141, 214, 166, 0.1));
+}
+
+.race-search__clear {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--ho-text-muted, #8b949e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.race-search__clear:hover {
+  color: var(--ho-text-primary, #dae3ee);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   FILTER
+   ============================================ */
+.race-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 12px;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.race-filter__select {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.3rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--ho-text-primary, #dae3ee);
+  cursor: pointer;
+  outline: none;
+}
+
+.race-filter__select:focus {
+  outline: none;
+}
+
+/* ============================================
+   TABLE
+   ============================================ */
+.race-table {
+  width: 100%;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 16px;
   overflow: hidden;
 }
 
-.ref-race-table__header {
+.race-table__header {
   display: grid;
-  grid-template-columns: 2fr 1.5fr 1.5fr 0.6fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr 0.8fr 1.2fr;
   gap: 0.75rem;
-  padding: 0.65rem 1.1rem;
+  padding: 0.85rem 1.25rem;
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid var(--ho-border, #30363d);
-  font-size: 0.7rem;
+}
+
+.race-table__header span {
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--ho-text-muted, #8b949e);
 }
 
-.ref-race-table__row {
+.race-table__row {
   display: grid;
-  grid-template-columns: 2fr 1.5fr 1.5fr 0.6fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr 0.8fr 1.2fr;
   gap: 0.75rem;
-  padding: 0.85rem 1.1rem;
-  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  padding: 1rem 1.25rem;
   align-items: center;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  cursor: pointer;
   transition: background 0.15s;
 }
 
-.ref-race-table__row:last-child {
+.race-table__row:last-child {
   border-bottom: none;
 }
 
-.ref-race-table__row:hover {
-  background: rgba(255, 255, 255, 0.02);
+.race-table__row:hover {
+  background: rgba(141, 214, 166, 0.04);
 }
 
-.ref-race-table__race {
+.race-table__cell {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
   min-width: 0;
 }
 
-.ref-race-table__id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.75rem;
-  color: var(--ho-text-muted, #8b949e);
-  flex-shrink: 0;
+.race-table__cell--race {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
 }
 
-.ref-race-table__race strong {
-  font-size: 0.88rem;
-  font-weight: 700;
+.race-table__cell--action {
+  justify-content: flex-end;
+}
+
+.race-table__race-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.race-table__race-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.race-table__race-name {
+  font-size: 0.92rem;
+  font-weight: 600;
   color: var(--ho-text-primary, #dae3ee);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ref-race-table__cell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.ref-race-table__label {
-  display: none;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--ho-text-muted, #8b949e);
-}
-
-.ref-race-table__cell > span:not(.ref-race-table__label):not(.ref-badge):not(.ref-race-table__time):not(.ref-race-table__role) {
-  font-size: 0.82rem;
+.race-table__tournament {
+  font-size: 0.85rem;
   color: var(--ho-text-secondary, #bfc9bf);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ref-race-table__time {
+.race-table__location {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.78rem;
-  color: var(--ho-text-secondary, #bfc9bf);
+  font-size: 0.82rem;
+  color: var(--ho-text-muted, #8b949e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.race-table__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--ho-text-muted, #8b949e);
   white-space: nowrap;
 }
 
-.ref-race-table__role {
+.race-table__legs {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ho-text-secondary, #bfc9bf);
+}
+
+/* ============================================
+   STATUS BADGE
+   ============================================ */
+.race-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.race-status-badge--info {
+  background: rgba(121, 192, 255, 0.12);
+  color: #79c0ff;
+  border-color: rgba(121, 192, 255, 0.35);
+}
+
+.race-status-badge--live {
+  background: rgba(230, 195, 100, 0.12);
+  color: #e6c364;
+  border-color: rgba(230, 195, 100, 0.35);
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+.race-status-badge--warn {
+  background: rgba(230, 195, 100, 0.12);
+  color: #e6c364;
+  border-color: rgba(230, 195, 100, 0.35);
+}
+
+.race-status-badge--ok {
+  background: rgba(141, 214, 166, 0.12);
+  color: #8dd6a6;
+  border-color: rgba(141, 214, 166, 0.35);
+}
+
+.race-status-badge--danger {
+  background: rgba(255, 180, 171, 0.12);
+  color: #ffb4ab;
+  border-color: rgba(255, 180, 171, 0.35);
+}
+
+.race-status-badge--muted {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ho-text-muted, #8b949e);
+  border-color: var(--ho-border, #30363d);
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* ============================================
+   TABLE BUTTON
+   ============================================ */
+.race-table__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  font-family: inherit;
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--ho-gold, #e6c364) !important;
+  border-radius: 10px;
+  border: 1px solid var(--ho-border, #30363d);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-/* === SKELETON === */
-.ref-skeleton__line {
-  height: 0.75rem !important;
-  background: rgba(255, 255, 255, 0.06) !important;
-  border-radius: 6px;
-  width: 100%;
+.race-table__btn--primary {
+  background: linear-gradient(135deg, #0a5c36 0%, #0a7548 100%);
+  color: #c2f0d2;
+  border-color: rgba(141, 214, 166, 0.4);
 }
 
-.ref-skeleton__line--sm {
-  width: 60%;
+.race-table__btn--primary:hover {
+  background: linear-gradient(135deg, #0a7548 0%, #0a8a55 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.ref-skeleton__line--xs {
-  width: 40%;
+.race-table__btn--ghost {
+  background: transparent;
+  color: var(--ho-text-secondary, #bfc9bf);
 }
 
-/* === RESPONSIVE === */
+.race-table__btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+/* ============================================
+   TABLE SKELETON
+   ============================================ */
+.race-table__skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.race-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: var(--ho-card, #161b22);
+  border: 1px dashed var(--ho-border, #30363d);
+  border-radius: 20px;
+}
+
+.race-empty svg {
+  color: var(--ho-text-muted, #8b949e);
+  opacity: 0.4;
+  margin-bottom: 1rem;
+}
+
+.race-empty h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.race-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ho-text-muted, #8b949e);
+  max-width: 40ch;
+}
+
+/* ============================================
+   ERROR STATE
+   ============================================ */
+.race-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: var(--ho-card, #161b22);
+  border: 1px solid rgba(255, 180, 171, 0.35);
+  border-radius: 20px;
+}
+
+.race-error h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.race-error p {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.race-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.25rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1px solid var(--ho-border, #30363d);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.race-btn--primary {
+  background: linear-gradient(135deg, #0a5c36 0%, #0a7548 100%);
+  color: #c2f0d2;
+  border-color: rgba(141, 214, 166, 0.4);
+}
+
+.race-btn--primary:hover {
+  background: linear-gradient(135deg, #0a7548 0%, #0a8a55 100%);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 @media (max-width: 1024px) {
-  .ref-race-table__header,
-  .ref-race-table__row {
-    grid-template-columns: 2fr 1.5fr 1.2fr 0.8fr 1fr;
+  .race-table__header,
+  .race-table__row {
+    grid-template-columns: 1.5fr 1.2fr 1fr 0.8fr 1fr;
   }
-  .ref-race-table__header > span:nth-child(3),
-  .ref-race-table__row > div:nth-child(3) {
-    display: none;
-  }
-  .ref-race-table__header > span:nth-child(4),
-  .ref-race-table__row > div:nth-child(4) {
+
+  .race-table__header span:nth-child(3),
+  .race-table__row .race-table__cell:nth-child(3) {
     display: none;
   }
 }
 
 @media (max-width: 768px) {
-  .ref-race-table__header {
-    display: none;
-  }
-  .ref-race-table__row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
+  .assigned-races-page__inner {
     padding: 1rem;
   }
-  .ref-race-table__cell {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
+
+  .assigned-races-page__header {
+    flex-direction: column;
+    align-items: stretch;
   }
-  .ref-race-table__label {
-    display: block;
-    min-width: 80px;
+
+  .race-search {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .race-table__header {
+    display: none;
+  }
+
+  .race-table {
+    border-radius: 12px;
+  }
+
+  .race-table__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--ho-border, #30363d);
+  }
+
+  .race-table__row:last-child {
+    border-bottom: none;
+  }
+
+  .race-table__cell {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .race-table__cell::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ho-text-muted, #8b949e);
+  }
+
+  .race-table__cell--action {
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--ho-border, #30363d);
+    margin-top: 0.5rem;
   }
 }

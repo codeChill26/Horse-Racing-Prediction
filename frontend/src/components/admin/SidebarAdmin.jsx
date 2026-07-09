@@ -98,6 +98,11 @@ export default function SidebarAdmin({ onOpenRegisterHorseModal }) {
       icon: Gavel
     },
     {
+      path: "/admin/referees",
+      label: "Trọng Tài",
+      icon: Flag
+    },
+    {
       path: "/admin/points",
       label: "Quản Lý Ví Điểm",
       icon: Wallet

@@ -1,184 +1,197 @@
-/* ============================================
-   REFEREE PROFILE PAGE - Dark Theme
-   ============================================ */
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Referee Profile Page Styles
+ * Dark theme with emerald green + gold accents
+ */
 
-.ref-page {
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.profile-page {
   min-height: 100%;
   background: var(--ho-bg, #0b141c);
   color: var(--ho-text-secondary, #bfc9bf);
   padding-bottom: 3rem;
 }
 
-/* === LOADING === */
-.ref-profile-loading {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+.profile-page__inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
 }
 
-.ref-profile-hero-skeleton {
-  height: 7rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 14px;
-  border: 1px solid var(--ho-border, #30363d);
-  animation: ref-pulse 1.5s ease-in-out infinite;
+/* ============================================
+   PAGE HEADER
+   ============================================ */
+.profile-page__header {
+  margin-bottom: 1.75rem;
 }
 
-.ref-profile-stats-skeleton {
-  height: 5rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 14px;
-  border: 1px solid var(--ho-border, #30363d);
-  animation: ref-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes ref-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.9; }
-}
-
-/* === HERO CARD === */
-.ref-profile-hero {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  background: var(--ho-card, #161b22);
-  border: 1px solid var(--ho-border, #30363d);
-  border-radius: 14px;
-  margin-bottom: 1.25rem;
-}
-
-.ref-profile-hero__avatar {
-  width: 4rem;
-  height: 4rem;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: linear-gradient(140deg, rgba(230, 195, 100, 0.2), rgba(230, 195, 100, 0.1));
-  color: var(--ho-gold, #e6c364);
-  border: 2px solid rgba(230, 195, 100, 0.4);
+.profile-page__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 1.2rem;
-  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ho-primary, #8dd6a6);
 }
 
-.ref-profile-hero__info {
-  flex: 1;
-  min-width: 0;
-}
-
-.ref-profile-hero__info h2 {
-  margin: 0 0 0.5rem;
-  font-size: clamp(1.2rem, 3vw, 1.6rem);
+.profile-page__title {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 700;
   color: var(--ho-text-primary, #dae3ee);
   font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
   line-height: 1.2;
 }
 
-.ref-profile-hero__badges {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+/* ============================================
+   BUTTONS
+   ============================================ */
+.profile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.25rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1px solid var(--ho-border, #30363d);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  background: transparent;
+  color: var(--ho-text-secondary, #bfc9bf);
 }
 
-/* === STATS GRID === */
-.ref-profile-stats-grid {
+.profile-btn:hover {
+  background: var(--ho-surface-high, #222b33);
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+.profile-btn--back {
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   CONTENT GRID
+   ============================================ */
+.profile-page__content {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.85rem;
-  margin-bottom: 1.25rem;
+  grid-template-columns: 340px 1fr;
+  gap: 1.5rem;
+  align-items: start;
 }
 
-@media (max-width: 900px) {
-  .ref-profile-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .ref-profile-stats-grid {
+@media (max-width: 1024px) {
+  .profile-page__content {
     grid-template-columns: 1fr;
   }
 }
 
-.ref-profile-stat-card {
+/* ============================================
+   PROFILE CARD
+   ============================================ */
+.profile-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
   background: var(--ho-card, #161b22);
   border: 1px solid var(--ho-border, #30363d);
-  border-radius: 12px;
+  border-radius: 20px;
 }
 
-.ref-profile-stat-card__icon {
-  width: 2.4rem;
-  height: 2.4rem;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--ho-border, #30363d);
-  color: var(--ho-text-muted, #8b949e);
-}
-
-.ref-profile-stat-card__icon--primary {
-  background: rgba(141, 214, 166, 0.12);
-  border-color: rgba(141, 214, 166, 0.4);
-  color: var(--ho-primary, #8dd6a6);
-}
-
-.ref-profile-stat-card__icon--danger {
-  background: rgba(255, 180, 171, 0.12);
-  border-color: rgba(255, 180, 171, 0.35);
-  color: #ffb4ab;
-}
-
-.ref-profile-stat-card__label {
-  margin: 0 0 0.2rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--ho-text-muted, #8b949e);
-}
-
-.ref-profile-stat-card__value {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--ho-text-primary, #dae3ee);
-  line-height: 1.1;
-}
-
-.ref-profile-stat-card__value--primary {
-  color: var(--ho-primary, #8dd6a6);
-}
-
-.ref-profile-stat-card__value--danger {
-  color: #ffb4ab;
-}
-
-.ref-profile-stat-card__pending {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--ho-gold, #e6c364);
-}
-
-/* === INFO SECTION === */
-.ref-profile-info-section {
-  background: var(--ho-card, #161b22);
-  border: 1px solid var(--ho-border, #30363d);
-  border-radius: 14px;
-  padding: 1.25rem;
+.profile-card__avatar {
+  position: relative;
   margin-bottom: 1.25rem;
 }
 
-.ref-profile-info-section h3 {
+.profile-card__avatar-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--ho-primary, #8dd6a6);
+}
+
+.profile-card__avatar-placeholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ho-surface-high, #222b33);
+  border: 2px dashed var(--ho-border, #30363d);
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.profile-card__role-badge {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--ho-primary, #8dd6a6);
+  color: #0a2e1c;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.profile-card__info {
+  width: 100%;
+}
+
+.profile-card__name {
+  margin: 0 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.profile-card__detail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.88rem;
+  color: var(--ho-text-secondary, #bfc9bf);
+  border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+}
+
+.profile-card__detail:last-child {
+  border-bottom: none;
+}
+
+.profile-card__detail svg {
+  color: var(--ho-text-muted, #8b949e);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   STATISTICS SECTION
+   ============================================ */
+.profile-page__stats {
+  margin-bottom: 1.5rem;
+}
+
+.profile-page__section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0 0 1rem;
   font-size: 1rem;
   font-weight: 700;
@@ -186,72 +199,421 @@
   font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
 }
 
-.ref-profile-info-grid {
+.profile-page__section-title svg {
+  color: var(--ho-primary, #8dd6a6);
+}
+
+.profile-page__stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-@media (max-width: 600px) {
-  .ref-profile-info-grid {
-    grid-template-columns: 1fr;
-  }
+.profile-page__stats-empty {
+  margin-bottom: 1.5rem;
 }
 
-.ref-profile-info-item {
+/* ============================================
+   STATISTIC CARD
+   ============================================ */
+.statistic-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.25rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 16px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.statistic-card:hover {
+  transform: translateY(-2px);
+}
+
+.statistic-card__icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.statistic-card--primary .statistic-card__icon {
+  background: rgba(141, 214, 166, 0.12);
+  color: #8dd6a6;
+}
+
+.statistic-card--success .statistic-card__icon {
+  background: rgba(141, 214, 166, 0.12);
+  color: #8dd6a6;
+}
+
+.statistic-card--warning .statistic-card__icon {
+  background: rgba(230, 195, 100, 0.12);
+  color: #e6c364;
+}
+
+.statistic-card--danger .statistic-card__icon {
+  background: rgba(255, 180, 171, 0.12);
+  color: #ffb4ab;
+}
+
+.statistic-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.statistic-card__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ho-text-muted, #8b949e);
+  margin-bottom: 0.25rem;
+}
+
+.statistic-card__value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.statistic-card__number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", Georgia, serif;
+  line-height: 1;
+}
+
+.statistic-card__suffix {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ho-text-secondary, #bfc9bf);
+}
+
+.statistic-card__description {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+/* ============================================
+   PERFORMANCE CHART
+   ============================================ */
+.performance-chart {
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+
+.performance-chart__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--ho-border, #30363d);
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.performance-chart__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.performance-chart__title svg {
+  color: var(--ho-primary, #8dd6a6);
+}
+
+.performance-chart__toggle {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--ho-surface-lowest, #060f16);
   border-radius: 10px;
 }
 
-.ref-profile-info-item__label {
+.performance-chart__toggle-btn {
+  padding: 0.4rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: transparent;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.performance-chart__toggle-btn:hover {
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+.performance-chart__toggle-btn--active {
+  background: var(--ho-card, #161b22);
+  color: var(--ho-text-primary, #dae3ee);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.performance-chart__legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.performance-chart__legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   font-size: 0.78rem;
-  color: var(--ho-text-muted, #8b949e);
-  font-weight: 500;
+  color: var(--ho-text-secondary, #bfc9bf);
 }
 
-.ref-profile-info-item__value {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--ho-text-primary, #dae3ee);
-  text-align: right;
+.performance-chart__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
 }
 
-/* === NOTICE === */
-.ref-profile-notice {
+.performance-chart__legend-item--submissions .performance-chart__legend-dot {
+  background: #8dd6a6;
+}
+
+.performance-chart__legend-item--conflicts .performance-chart__legend-dot {
+  background: #ffb4ab;
+}
+
+.performance-chart__container {
+  margin: 0 -0.5rem;
+}
+
+.performance-chart__empty {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.9rem 1.1rem;
-  background: rgba(121, 192, 255, 0.06);
-  border: 1px solid rgba(121, 192, 255, 0.25);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.performance-chart__empty svg {
+  color: var(--ho-text-muted, #8b949e);
+  opacity: 0.4;
+  margin-bottom: 1rem;
+}
+
+.performance-chart__empty p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+/* ============================================
+   CHART TOOLTIP
+   ============================================ */
+.chart-tooltip {
+  padding: 0.75rem 1rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
   border-radius: 12px;
-  font-size: 0.82rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.ref-profile-notice svg {
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-  color: #79c0ff;
+.chart-tooltip__label {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ho-text-muted, #8b949e);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.ref-profile-notice strong {
-  display: block;
-  margin-bottom: 0.2rem;
+.chart-tooltip__value {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.chart-tooltip__value strong {
+  font-weight: 700;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.profile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: var(--ho-card, #161b22);
+  border: 1px dashed var(--ho-border, #30363d);
+  border-radius: 16px;
+}
+
+.profile-empty svg {
+  color: var(--ho-text-muted, #8b949e);
+  opacity: 0.4;
+  margin-bottom: 1rem;
+}
+
+.profile-empty h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--ho-text-primary, #dae3ee);
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
 }
 
-.ref-profile-notice p {
+.profile-empty p {
   margin: 0;
-  color: var(--ho-text-secondary, #bfc9bf);
-  line-height: 1.45;
+  font-size: 0.88rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+/* ============================================
+   SKELETON
+   ============================================ */
+.profile-page__skeleton-header {
+  margin-bottom: 1.5rem;
+}
+
+.profile-page__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.skeleton-card {
+  height: 120px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-card--wide {
+  height: auto;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.skeleton-card--chart {
+  height: 400px;
+}
+
+.skeleton-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line--title {
+  width: 60%;
+  height: 24px;
+}
+
+.skeleton-line--medium {
+  width: 80%;
+}
+
+.skeleton-line--short {
+  width: 50%;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+  .profile-page__content {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-page__left {
+    max-width: 400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-page__inner {
+    padding: 1rem;
+  }
+
+  .profile-page__stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .performance-chart__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-card__avatar-img,
+  .profile-card__avatar-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+
+  .statistic-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .statistic-card__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .statistic-card__number {
+    font-size: 1.25rem;
+  }
 }

@@ -1,187 +1,350 @@
-.jockey-profile-page {
-  --jk-primary: #7f1d1d;
-  --jk-accent: #d4a574;
-  --jk-panel: #ffffff;
-  --jk-text: #64748b;
-  --jk-heading: #1c1917;
-  --jk-border: #e7e5e4;
+/* Jockey Profile Page Styles */
+
+.jock-profile-grid {
+  display: grid;
+  gap: 24px;
 }
 
-.jockey-eyebrow--dark {
-  color: var(--jk-primary);
+/* Profile Card */
+.jock-profile-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  overflow: hidden;
 }
 
-.jockey-profile-header {
+/* Profile Header */
+.jock-profile-header {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 32px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.02) 100%);
+  border-bottom: 1px solid #334155;
 }
 
-.jockey-profile-header h1 {
-  margin: 0.25rem 0 0.35rem;
-  font-size: 1.5rem;
-  color: var(--jk-heading);
+@media (max-width: 768px) {
+  .jock-profile-header {
+    flex-direction: column;
+    gap: 24px;
+  }
 }
 
-.jockey-profile-subtitle {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--jk-text);
+.jock-profile-avatar-section {
+  display: flex;
+  gap: 24px;
+  align-items: center;
 }
 
-.jockey-refresh-btn {
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--jk-border);
-  background: var(--jk-panel);
-  color: var(--jk-heading);
-  cursor: pointer;
+.jock-avatar-wrapper {
+  position: relative;
 }
 
-.jockey-refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.jock-avatar-wrapper .jock-avatar {
+  width: 120px;
+  height: 120px;
+  font-size: 36px;
 }
 
-.jockey-profile-loading {
-  color: var(--jk-text);
-  font-size: 0.9rem;
-}
-
-.jockey-profile-hero-card {
+.jock-avatar-edit-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #0f172a;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  padding: 1.35rem 1.5rem;
-  margin-bottom: 1.25rem;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #3b0f1a 0%, #7f1d1d 100%);
-  color: #fef2f2;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.jockey-profile-avatar {
-  width: 4rem;
-  height: 4rem;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  font-size: 1.1rem;
+.jock-avatar-edit-btn:hover {
+  transform: scale(1.1);
+}
+
+.jock-profile-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jock-profile-name {
+  font-size: 28px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(212, 165, 116, 0.5);
-  color: var(--jk-accent);
+  color: #f8fafc;
+  margin: 0;
 }
 
-.jockey-profile-hero-card h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.25rem;
-  color: #fff;
+.jock-profile-license {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #f59e0b;
+  font-weight: 500;
+  margin: 0;
 }
 
-.jockey-profile-hero-card > div > p {
-  margin: 0 0 0.65rem;
-  font-size: 0.88rem;
-  opacity: 0.88;
+.jock-profile-license svg {
+  color: #f59e0b;
 }
 
-.jockey-profile-badge {
-  display: inline-block;
-  font-size: 0.75rem;
+.jock-profile-expiry {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.jock-profile-rating-section {
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .jock-profile-rating-section {
+    text-align: left;
+  }
+}
+
+.jock-rating-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jock-rating-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.jock-rating-count {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* Stats Section */
+.jock-profile-stats-section {
+  padding: 32px;
+  border-bottom: 1px solid #334155;
+}
+
+.jock-section-subtitle {
+  font-size: 16px;
   font-weight: 600;
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
+  color: #f8fafc;
+  margin: 0 0 20px 0;
 }
 
-.jockey-profile-badge.is-complete {
-  background: rgba(34, 197, 94, 0.25);
-  color: #bbf7d0;
-}
-
-.jockey-profile-badge.is-pending {
-  background: rgba(251, 191, 36, 0.25);
-  color: #fde68a;
-}
-
-.jockey-profile-grid {
+.jock-profile-stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
-@media (max-width: 720px) {
-  .jockey-profile-grid {
+@media (max-width: 768px) {
+  .jock-profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.jock-profile-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.jock-profile-stat-item svg {
+  color: #f59e0b;
+}
+
+.jock-profile-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-profile-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.jock-profile-stat-label {
+  font-size: 12px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Info Section */
+.jock-profile-info-section {
+  padding: 32px;
+  border-bottom: 1px solid #334155;
+}
+
+.jock-profile-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.jock-edit-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.jock-profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .jock-profile-info-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.jockey-profile-card {
-  padding: 1.15rem 1.25rem;
+.jock-profile-info-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 12px;
-  background: var(--jk-panel);
-  border: 1px solid var(--jk-border);
 }
 
-.jockey-profile-card h3 {
-  margin: 0 0 1rem;
-  font-size: 1rem;
-  color: var(--jk-heading);
+.jock-info-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.jockey-profile-row {
+.jock-info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-info-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-info-value {
+  font-size: 15px;
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+.jock-info-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.jock-info-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+}
+
+/* Achievements Section */
+.jock-profile-achievements-section {
+  padding: 32px;
+}
+
+.jock-achievements-grid {
   display: grid;
-  grid-template-columns: 9rem 1fr;
-  gap: 0.5rem 1rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--jk-border);
-  font-size: 0.88rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
 }
 
-.jockey-profile-row:last-child {
-  border-bottom: none;
+.jock-achievement-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.02) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 12px;
 }
 
-.jockey-profile-row dt {
-  margin: 0;
+.jock-achievement-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jock-achievement-content {
+  flex: 1;
+}
+
+.jock-achievement-title {
+  font-size: 16px;
   font-weight: 600;
-  color: var(--jk-text);
+  color: #f8fafc;
+  margin: 0 0 4px 0;
 }
 
-.jockey-profile-row dd {
-  margin: 0;
-  color: var(--jk-heading);
-  word-break: break-word;
-}
-
-.jockey-profile-back {
-  margin: 1.5rem 0 0;
-  font-size: 0.9rem;
-}
-
-.jockey-profile-back a {
-  color: var(--jk-primary);
+.jock-achievement-year {
+  font-size: 13px;
   font-weight: 600;
-  text-decoration: none;
+  color: #f59e0b;
+  margin: 0 0 8px 0;
 }
 
-.jockey-profile-back a:hover {
-  text-decoration: underline;
+.jock-achievement-description {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
 }
 
-@media (prefers-color-scheme: dark) {
-  .jockey-profile-page {
-    --jk-panel: #1c1917;
-    --jk-heading: #fafaf9;
-    --jk-text: #a8a29e;
-    --jk-border: #44403c;
+/* Responsive */
+@media (max-width: 768px) {
+  .jock-profile-header,
+  .jock-profile-stats-section,
+  .jock-profile-info-section,
+  .jock-profile-achievements-section {
+    padding: 20px;
   }
 
-  .jockey-refresh-btn {
-    background: #292524;
+  .jock-profile-avatar-section {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .jock-profile-info-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
   }
 }

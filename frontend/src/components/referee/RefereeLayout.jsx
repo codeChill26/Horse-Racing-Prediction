@@ -10,11 +10,10 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LogOut,
   LayoutDashboard,
-  ClipboardList,
-  PlayCircle,
-  Clock,
+  Flag,
+  History,
   AlertTriangle,
-  UserCircle2,
+  User,
   ShieldCheck,
 } from "lucide-react";
 import { logoutUser } from "../../api/auth";
@@ -26,11 +25,11 @@ import {
 import "./RefereeLayout.css";
 
 const NAV_ITEMS = [
-  { to: "/referee", label: "Tổng quan", icon: LayoutDashboard, end: true },
-  { to: "/referee/assigned-races", label: "Race được phân công", icon: ClipboardList, end: false },
-  { to: "/referee/submissions", label: "Lịch sử submit", icon: Clock, end: false },
-  { to: "/referee/conflicts", label: "Conflict", icon: AlertTriangle, end: false },
-  { to: "/referee/profile", label: "Cá nhân", icon: UserCircle2, end: false },
+  { label: "Dashboard", path: "/referee", icon: LayoutDashboard, end: true },
+  { label: "Assigned Races", path: "/referee/assigned-races", icon: Flag, end: false },
+  { label: "Submission History", path: "/referee/submissions", icon: History, end: false },
+  { label: "Conflicts", path: "/referee/conflicts", icon: AlertTriangle, end: false },
+  { label: "Profile", path: "/referee/profile", icon: User, end: false },
 ];
 
 export default function RefereeLayout() {
@@ -64,8 +63,8 @@ export default function RefereeLayout() {
             const Icon = item.icon;
             return (
               <NavLink
-                key={item.to}
-                to={item.to}
+                key={item.path}
+                to={item.path}
                 end={item.end}
                 className={({ isActive }) =>
                   `ref-nav-link${isActive ? " is-active" : ""}`

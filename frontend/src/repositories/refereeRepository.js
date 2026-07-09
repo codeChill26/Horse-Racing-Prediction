@@ -24,14 +24,6 @@ function authHeaders() {
   };
 }
 
-async function readError(res, fallback) {
-  let data = null;
-  try {
-    data = await res.json();
-  } catch { /* empty */ }
-  throw new Error(data?.error || data?.message || `${fallback} (${res.status})`);
-}
-
 function delay(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -85,6 +77,7 @@ export const refereeRaceRepository = {
     // });
     // if (!res.ok) await readError(res, 'Không thể bắt đầu race');
     // return await res.json();
+    void raceId; // currently unused, kept for signature stability
     await delay(600);
     return { message: "Race đã bắt đầu", status: "InProgress" };
   },

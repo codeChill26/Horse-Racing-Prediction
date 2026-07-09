@@ -1,3 +1,44 @@
+@import "tailwindcss";
+
+/* === Tailwind CSS v4 Theme Configuration === */
+@theme {
+  --color-primary: #8dd6a6;
+  --color-on-primary: #00391e;
+  --color-primary-container: #0a5c36;
+  --color-on-primary-container: #89d2a2;
+  --color-inverse-primary: #216b43;
+  --color-secondary: #e6c364;
+  --color-on-secondary: #3d2e00;
+  --color-secondary-container: #785d00;
+  --color-on-secondary-container: #fdd977;
+  --color-background: #0b141c;
+  --color-on-background: #dae3ee;
+  --color-surface: #0b141c;
+  --color-on-surface: #dae3ee;
+  --color-surface-dim: #0b141c;
+  --color-surface-bright: #313a43;
+  --color-surface-container-lowest: #060f16;
+  --color-surface-container-low: #141c24;
+  --color-surface-container: #182028;
+  --color-surface-container-high: #222b33;
+  --color-surface-container-highest: #2d363e;
+  --color-on-surface-variant: #bfc9bf;
+  --color-outline: #89938a;
+  --color-outline-variant: #404941;
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+
+  --font-sans: "Be Vietnam Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria,
+    "Times New Roman", Times, serif;
+
+  --radius-xl: 0.75rem;
+  --radius-xxl: 1rem;
+}
+
+/* === CSS Custom Properties (Legacy) === */
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -160,44 +201,6 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
-}
-@import "tailwindcss";
-
-@theme {
-  --color-primary: #8dd6a6;
-  --color-on-primary: #00391e;
-  --color-primary-container: #0a5c36;
-  --color-on-primary-container: #89d2a2;
-  --color-inverse-primary: #216b43;
-  --color-secondary: #e6c364;
-  --color-on-secondary: #3d2e00;
-  --color-secondary-container: #785d00;
-  --color-on-secondary-container: #fdd977;
-  --color-background: #0b141c;
-  --color-on-background: #dae3ee;
-  --color-surface: #0b141c;
-  --color-on-surface: #dae3ee;
-  --color-surface-dim: #0b141c;
-  --color-surface-bright: #313a43;
-  --color-surface-container-lowest: #060f16;
-  --color-surface-container-low: #141c24;
-  --color-surface-container: #182028;
-  --color-surface-container-high: #222b33;
-  --color-surface-container-highest: #2d363e;
-  --color-on-surface-variant: #bfc9bf;
-  --color-outline: #89938a;
-  --color-outline-variant: #404941;
-  --color-error: #ffb4ab;
-  --color-on-error: #690005;
-  --color-error-container: #93000a;
-  --color-on-error-container: #ffdad6;
-
-  --font-sans: "Be Vietnam Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria,
-    "Times New Roman", Times, serif;
-
-  --radius-xl: 0.75rem;
-  --radius-xxl: 1rem;
 }
 
 /* Custom layout classes matching design specification */

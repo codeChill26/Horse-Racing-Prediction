@@ -1,144 +1,374 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { getMyProfile } from '../../api/auth'
-import { getAccessToken } from '../../utils/token'
-import '../../components/jockey/JockeyLayout.css'
-import './JockeyProfilePage.css'
-
-function initials(name) {
-  if (!name?.trim()) return '?'
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(-2)
-    .map((w) => w[0]?.toUpperCase())
-    .join('')
-}
-
-function formatDateTime(value) {
-  if (!value) return '—'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function ProfileRow({ label, value }) {
-  return (
-    <div className="jockey-profile-row">
-      <dt>{label}</dt>
-      <dd>{value ?? '—'}</dd>
-    </div>
-  )
-}
+import { useState, useEffect, useCallback } from "react";
+import {
+  User,
+  Award,
+  Trophy,
+  TrendingUp,
+  Calendar,
+  Phone,
+  Mail,
+  Edit,
+  Save,
+  X,
+  Shield,
+  Star,
+  Medal,
+  Target,
+} from "lucide-react";
+import {
+  JockeyPageHeader,
+  JockeyAvatar,
+  JockeyStatCard,
+  JockeyErrorAlert,
+  JockeySkeleton,
+  JockeySuccessAlert,
+} from "../../components/jockey/JockeyCommon";
+import { jockeyProfileService, jockeyStatsService } from "../../services/jockeyService";
+import "./JockeyProfilePage.css";
 
 export default function JockeyProfilePage() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const loadProfile = useCallback(async () => {
-    const token = getAccessToken()
-    if (!token) {
-      setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')
-      setLoading(false)
-      return
-    }
+  const fetchProfileData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError("");
 
-    setLoading(true)
-    setError('')
     try {
-      const data = await getMyProfile(token)
-      setUser(data)
+      const [profileData, statsData] = await Promise.all([
+        jockeyProfileService.getProfile(),
+        jockeyStatsService.getCareerStats(),
+      ]);
+      setProfile(profileData);
+      setStats(statsData);
+      setEditForm({
+        name: profileData.name,
+        email: profileData.email,
+        phone: profileData.phone,
+      });
     } catch (e) {
-      setUser(null)
-      setError(e instanceof Error ? e.message : String(e))
+      setError(e.message || "Failed to load profile");
     } finally {
-      setLoading(false)
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadProfile()
-  }, [loadProfile])
+    fetchProfileData();
+  }, [fetchProfileData]);
 
-  const profileComplete = user?.isProfileComplete === true
+  const handleEdit = () => {
+    setEditForm({
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+    });
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditForm({});
+  };
+
+  const handleSave = async () => {
+    try {
+      await jockeyProfileService.updateProfile(editForm);
+      setProfile({ ...profile, ...editForm });
+      setIsEditing(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (e) {
+      alert(e.message || "Failed to update profile");
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await jockeyProfileService.updateAvatar(file);
+      setProfile({ ...profile, avatar: result.avatarUrl });
+    } catch (e) {
+      alert(e.message || "Failed to update avatar");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="jock-page">
+        <div className="jock-page-content">
+          <JockeyPageHeader
+            eyebrow="Profile"
+            title="My Profile"
+            subtitle="Manage your jockey profile"
+          />
+          <div className="jock-profile-grid">
+            <JockeySkeleton type="card" count={1} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="jock-page">
+        <div className="jock-page-content">
+          <JockeyPageHeader
+            eyebrow="Profile"
+            title="My Profile"
+            subtitle="Manage your jockey profile"
+          />
+          <JockeyErrorAlert message={error} onRetry={() => fetchProfileData()} />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="jockey-page">
-      <div className="jockey-page-inner jockey-profile-page">
-        <header className="jockey-profile-header">
-          <div>
-            <p className="jockey-eyebrow jockey-eyebrow--dark">Hồ sơ hành nghề</p>
-            <h1>Thông tin kỵ sĩ</h1>
-            <p className="jockey-profile-subtitle">Dữ liệu từ tài khoản đăng ký & hệ thống</p>
-          </div>
-          <button type="button" className="jockey-refresh-btn" onClick={loadProfile} disabled={loading}>
-            {loading ? 'Đang tải…' : 'Làm mới'}
-          </button>
-        </header>
+    <div className="jock-page">
+      <div className="jock-page-content">
+        <JockeyPageHeader
+          eyebrow="Profile"
+          title="My Profile"
+          subtitle="Manage your jockey profile"
+          onRefresh={() => fetchProfileData(true)}
+          refreshing={refreshing}
+        />
 
-        {error ? (
-          <div className="jockey-alert jockey-alert--error" role="alert">
-            {error}
-          </div>
-        ) : null}
+        {error && <JockeyErrorAlert message={error} onRetry={() => fetchProfileData()} />}
+        {saveSuccess && (
+          <JockeySuccessAlert
+            message="Profile updated successfully!"
+            onDismiss={() => setSaveSuccess(false)}
+          />
+        )}
 
-        {loading && !user ? (
-          <p className="jockey-profile-loading">Đang tải hồ sơ…</p>
-        ) : user ? (
-          <>
-            <section className="jockey-profile-hero-card">
-              <span className="jockey-profile-avatar" aria-hidden="true">
-                {initials(user.fullName)}
-              </span>
-              <div>
-                <h2>{user.fullName}</h2>
-                <p>{user.email}</p>
-                <span
-                  className={`jockey-profile-badge${profileComplete ? ' is-complete' : ' is-pending'}`}
-                >
-                  {profileComplete ? 'Hồ sơ hoàn chỉnh' : 'Cần bổ sung chứng chỉ & cân nặng'}
-                </span>
-              </div>
-            </section>
-
-            <div className="jockey-profile-grid">
-              <section className="jockey-profile-card">
-                <h3>Hồ sơ kỵ sĩ</h3>
-                <dl>
-                  <ProfileRow label="Số chứng chỉ" value={user.licenseNumber} />
-                  <ProfileRow
-                    label="Cân nặng"
-                    value={user.weight != null ? `${user.weight} kg` : null}
+        {/* Profile Header Card */}
+        <div className="jock-profile-card">
+          <div className="jock-profile-header">
+            <div className="jock-profile-avatar-section">
+              <div className="jock-avatar-wrapper">
+                <JockeyAvatar
+                  name={profile?.name}
+                  avatar={profile?.avatar}
+                  size="xl"
+                />
+                <label className="jock-avatar-edit-btn">
+                  <Edit size={16} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleAvatarChange}
+                    style={{ display: "none" }}
                   />
-                  <ProfileRow label="Tiểu sử" value={user.bio} />
-                </dl>
-              </section>
-
-              <section className="jockey-profile-card">
-                <h3>Liên hệ & tài khoản</h3>
-                <dl>
-                  <ProfileRow label="Số điện thoại" value={user.phoneNumber} />
-                  <ProfileRow label="Vai trò" value={user.role?.code || 'JOCKEY'} />
-                  <ProfileRow label="Trạng thái" value={user.isActive ? 'Hoạt động' : 'Không hoạt động'} />
-                  <ProfileRow label="Ngày tạo" value={formatDateTime(user.createdAt)} />
-                  <ProfileRow label="Cập nhật" value={formatDateTime(user.updatedAt)} />
-                </dl>
-              </section>
+                </label>
+              </div>
+              <div className="jock-profile-identity">
+                <h2 className="jock-profile-name">{profile?.name}</h2>
+                <p className="jock-profile-license">
+                  <Shield size={14} />
+                  License: {profile?.licenseNumber}
+                </p>
+                <p className="jock-profile-expiry">
+                  Valid until: {new Date(profile?.licenseExpiry).toLocaleDateString("vi-VN")}
+                </p>
+              </div>
             </div>
-          </>
-        ) : null}
 
-        <p className="jockey-profile-back">
-          <Link to="/jockey">← Về trang chủ</Link>
-        </p>
+            <div className="jock-profile-rating-section">
+              <div className="jock-rating-display">
+                <Star size={24} fill="#f59e0b" stroke="#f59e0b" />
+                <span className="jock-rating-number">{profile?.rating}</span>
+                <span className="jock-rating-count">({profile?.totalRatings} ratings)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Career Stats */}
+          <div className="jock-profile-stats-section">
+            <h3 className="jock-section-subtitle">Career Statistics</h3>
+            <div className="jock-profile-stats-grid">
+              <div className="jock-profile-stat-item">
+                <Trophy size={20} />
+                <div className="jock-profile-stat-content">
+                  <span className="jock-profile-stat-value">{stats?.totalRaces}</span>
+                  <span className="jock-profile-stat-label">Total Races</span>
+                </div>
+              </div>
+              <div className="jock-profile-stat-item">
+                <Medal size={20} />
+                <div className="jock-profile-stat-content">
+                  <span className="jock-profile-stat-value">{stats?.totalWins}</span>
+                  <span className="jock-profile-stat-label">Wins</span>
+                </div>
+              </div>
+              <div className="jock-profile-stat-item">
+                <Target size={20} />
+                <div className="jock-profile-stat-content">
+                  <span className="jock-profile-stat-value">{stats?.winRate}%</span>
+                  <span className="jock-profile-stat-label">Win Rate</span>
+                </div>
+              </div>
+              <div className="jock-profile-stat-item">
+                <Award size={20} />
+                <div className="jock-profile-stat-content">
+                  <span className="jock-profile-stat-value">{stats?.totalTopThree}</span>
+                  <span className="jock-profile-stat-label">Podiums</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Info */}
+          <div className="jock-profile-info-section">
+            <div className="jock-profile-info-header">
+              <h3 className="jock-section-subtitle">Personal Information</h3>
+              {!isEditing ? (
+                <button className="jock-btn jock-btn--secondary" onClick={handleEdit}>
+                  <Edit size={16} />
+                  Edit
+                </button>
+              ) : (
+                <div className="jock-edit-actions">
+                  <button className="jock-btn jock-btn--secondary" onClick={handleCancelEdit}>
+                    <X size={16} />
+                    Cancel
+                  </button>
+                  <button className="jock-btn jock-btn--primary" onClick={handleSave}>
+                    <Save size={16} />
+                    Save
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="jock-profile-info-grid">
+              <div className="jock-profile-info-item">
+                <div className="jock-info-icon">
+                  <User size={18} />
+                </div>
+                <div className="jock-info-content">
+                  <span className="jock-info-label">Full Name</span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      className="jock-info-input"
+                      value={editForm.name || ""}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    />
+                  ) : (
+                    <span className="jock-info-value">{profile?.name}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="jock-profile-info-item">
+                <div className="jock-info-icon">
+                  <Mail size={18} />
+                </div>
+                <div className="jock-info-content">
+                  <span className="jock-info-label">Email</span>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      className="jock-info-input"
+                      value={editForm.email || ""}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    />
+                  ) : (
+                    <span className="jock-info-value">{profile?.email}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="jock-profile-info-item">
+                <div className="jock-info-icon">
+                  <Phone size={18} />
+                </div>
+                <div className="jock-info-content">
+                  <span className="jock-info-label">Phone</span>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      className="jock-info-input"
+                      value={editForm.phone || ""}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    />
+                  ) : (
+                    <span className="jock-info-value">{profile?.phone}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="jock-profile-info-item">
+                <div className="jock-info-icon">
+                  <Calendar size={18} />
+                </div>
+                <div className="jock-info-content">
+                  <span className="jock-info-label">Date of Birth</span>
+                  <span className="jock-info-value">
+                    {new Date(profile?.dateOfBirth).toLocaleDateString("vi-VN")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="jock-profile-info-item">
+                <div className="jock-info-icon">
+                  <TrendingUp size={18} />
+                </div>
+                <div className="jock-info-content">
+                  <span className="jock-info-label">Years of Experience</span>
+                  <span className="jock-info-value">{profile?.yearsExperience} years</span>
+                </div>
+              </div>
+
+              <div className="jock-profile-info-item">
+                <div className="jock-info-icon">
+                  <User size={18} />
+                </div>
+                <div className="jock-info-content">
+                  <span className="jock-info-label">Height / Weight</span>
+                  <span className="jock-info-value">
+                    {profile?.height}cm / {profile?.weight}kg
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Achievements */}
+          {profile?.achievements && profile.achievements.length > 0 && (
+            <div className="jock-profile-achievements-section">
+              <h3 className="jock-section-subtitle">Achievements</h3>
+              <div className="jock-achievements-grid">
+                {profile.achievements.map((achievement, index) => (
+                  <div key={index} className="jock-achievement-card">
+                    <div className="jock-achievement-icon">
+                      <Award size={24} />
+                    </div>
+                    <div className="jock-achievement-content">
+                      <h4 className="jock-achievement-title">{achievement.title}</h4>
+                      <p className="jock-achievement-year">{achievement.year}</p>
+                      <p className="jock-achievement-description">{achievement.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  )
+  );
 }
