@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { tournamentService } from '../../services/tournamentService'
 import { raceService } from '../../services/raceService'
-import { horseService } from '../../services/horseService'
+import { bettingRepository } from '../../repositories/bettingRepository'
 import { getMyProfile } from '../../api/auth'
 import { getAccessToken } from '../../utils/token'
 import { formatPoints } from '../../utils/formatter'
@@ -108,17 +108,6 @@ const MOCK_RACES = [
   },
 ]
 
-// TODO: Replace mock horses with real API when backend has /api/races/:id/entries
-const MOCK_HORSES = [
-  { id: 1, raceId: 2, gate: 1, horseName: 'Thunder Strike', jockeyName: 'Lê Văn Cường', form: 'Ổn định' },
-  { id: 2, raceId: 2, gate: 2, horseName: 'Golden Wind', jockeyName: 'Phạm Tuấn Kiệt', form: 'Đang lên' },
-  { id: 3, raceId: 2, gate: 3, horseName: 'Diamond Rush', jockeyName: 'Đỗ Mạnh Hùng', form: 'Xuất sắc' },
-  { id: 4, raceId: 2, gate: 4, horseName: 'Silver Arrow', jockeyName: 'Nguyễn Quốc Bảo', form: 'Trung bình' },
-  { id: 5, raceId: 2, gate: 5, horseName: 'Midnight Star', jockeyName: 'Trần Hữu Đức', form: 'Ổn định' },
-  { id: 6, raceId: 2, gate: 6, horseName: 'Phoenix Fire', jockeyName: 'Hoàng Minh Tuấn', form: 'Đang xuống' },
-  { id: 7, raceId: 2, gate: 7, horseName: 'Royal Eagle', jockeyName: 'Vũ Đình Thọ', form: 'Ổn định' },
-  { id: 8, raceId: 2, gate: 8, horseName: 'Cosmic Drift', jockeyName: 'Bùi Anh Khoa', form: 'Bất ổn' },
-]
 
 const TABS = [
   { id: 'all', label: 'Tất cả' },
@@ -409,9 +398,10 @@ export default function TournamentsPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [selectedTournament, setSelectedTournament] = useState(null)
   const [selectedRace, setSelectedRace] = useState(null)
-  const [bettingRace, setBettingRace] = useState(null)
-  const [bettingHorses, setBettingHorses] = useState([])
-  const [userBalance, setUserBalance] = useState(0)
+  const [bettingRace, setBettingRace]       = useState(null)
+  const [bettingEntries, setBettingEntries] = useState([])
+  const [bettingLoading, setBettingLoading] = useState(false)
+  const [userBalance, setUserBalance]       = useState(0)
   const [toast, setToast] = useState(null)
 
   const loadData = useCallback(async () => {
@@ -453,14 +443,20 @@ export default function TournamentsPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  // When opening betting, load horses for that race (mock fallback)
+  // Mở betting: load detail race từ API thực (entries + odds + career stats)
   const openBetting = useCallback(async (race) => {
     setBettingRace(race)
-    // TODO: Replace mock with real API GET /api/races/:id/entries
-    const filtered = MOCK_HORSES.filter(h =>
-      h.raceId === (race.raceId ?? race.id)
-    )
-    setBettingHorses(filtered.length > 0 ? filtered : MOCK_HORSES)
+    setBettingEntries([])
+    setBettingLoading(true)
+    try {
+      const detail = await bettingRepository.getRaceDetails(race.raceId ?? race.id)
+      setBettingEntries(detail?.entries ?? [])
+    } catch {
+      setBettingEntries([])
+      setToast({ type: 'error', text: 'Không tải được thông tin ngựa. Vui lòng thử lại.' })
+    } finally {
+      setBettingLoading(false)
+    }
   }, [])
 
   const filtered = tournaments.filter(t => {
@@ -623,7 +619,7 @@ export default function TournamentsPage() {
       {selectedRace && (
         <RaceDetailModal
           race={selectedRace}
-          horses={MOCK_HORSES.filter(h => h.raceId === (selectedRace.raceId ?? selectedRace.id))}
+          horses={[]}
           onClose={() => setSelectedRace(null)}
         />
       )}
@@ -632,9 +628,9 @@ export default function TournamentsPage() {
       {bettingRace && (
         <BettingModal
           race={bettingRace}
-          horses={bettingHorses}
+          entries={bettingLoading ? [] : bettingEntries}
           userBalance={userBalance}
-          onClose={() => setBettingRace(null)}
+          onClose={() => { setBettingRace(null); setBettingEntries([]) }}
           onPlaced={handlePlacedBet}
         />
       )}

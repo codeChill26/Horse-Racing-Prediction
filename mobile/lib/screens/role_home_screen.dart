@@ -8,7 +8,7 @@ import 'admin/admin_shell.dart';
 import 'horse_owner/horse_owner_shell.dart';
 import 'jockey/jockey_shell.dart';
 import 'login_screen.dart';
-import 'spectator/spectator_shell.dart';
+import 'spectator/home_spectator.dart';
 
 /// Chỉ dùng cho vai trò chưa có màn hình (vd. RACE_REFEREE).
 /// ADMIN / SPECTATOR / JOCKEY / HORSE_OWNER được chuyển sang shell tương ứng.
@@ -46,7 +46,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       case 'ADMIN':
         return AdminShell(showWelcome: widget.showWelcome);
       case 'SPECTATOR':
-        return SpectatorShell(showWelcome: widget.showWelcome);
+        return const HomeSpectator();
       case 'JOCKEY':
         return JockeyShell(showWelcome: widget.showWelcome);
       case 'HORSE_OWNER':

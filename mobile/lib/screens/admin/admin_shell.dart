@@ -5,8 +5,10 @@ import '../../theme/app_theme.dart';
 import '../../widgets/login_welcome.dart';
 import '../home_router.dart';
 import 'admin_horses_screen.dart';
+import 'admin_races_screen.dart';
 import 'admin_tournaments_screen.dart';
 import 'admin_users_screen.dart';
+import 'admin_wallets_screen.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key, this.showWelcome = false});
@@ -45,7 +47,9 @@ class _AdminShellState extends State<AdminShell> {
         index: _tabIndex,
         children: [
           AdminUsersScreen(onLogout: _logout),
+          AdminWalletsScreen(onLogout: _logout),
           AdminTournamentsScreen(onLogout: _logout),
+          AdminRacesScreen(onLogout: _logout),
           AdminHorsesScreen(onLogout: _logout),
         ],
       ),
@@ -61,9 +65,19 @@ class _AdminShellState extends State<AdminShell> {
             label: 'Người dùng',
           ),
           NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'Ví điểm',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events),
             label: 'Giải đấu',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.flag_outlined),
+            selectedIcon: Icon(Icons.flag),
+            label: 'Cuộc đua',
           ),
           NavigationDestination(
             icon: Icon(Icons.pets_outlined),
