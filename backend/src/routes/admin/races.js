@@ -36,5 +36,7 @@ router.put('/:id/registration-gate', authMiddleware, adminOnly, raceEntriesContr
 router.post('/:id/assign-referees', authMiddleware, adminOnly, adminRefereeController.assignReferees);
 router.get('/:id/review-conflict', authMiddleware, adminOnly, adminRefereeController.reviewConflict);
 router.post('/:id/resolve-conflict', authMiddleware, adminOnly, adminRefereeController.resolveConflict);
+router.put('/:id/registration-gate', adminRacesController.updateRegistrationGate);
+router.post('/:id/assign-referees', adminRacesController.assignReferees);
 
 module.exports = router;

@@ -112,12 +112,11 @@ async function bulkReviewEntries(req, res) {
 
 async function listAllRaces(req, res) {
   try {
-    const status = req.query?.status || undefined;
-    const races = await adminRacesService.listAllRaces({ status });
-    return res.status(200).json({ races });
+    const { page, pageSize, status } = req.query;
+    const result = await adminRacesService.listAllRaces({ page, pageSize, status });
+    return res.status(200).json(result);
   } catch (error) {
-    const status = error.status || 400;
-    return res.status(status).json({ error: error.message });
+    return res.status(error.status || 500).json({ error: error.message });
   }
 }
 
@@ -126,6 +125,28 @@ async function handleRaceList(req, res) {
     return listRacesByTournament(req, res);
   } else {
     return listAllRaces(req, res);
+  }
+}
+
+async function updateRegistrationGate(req, res) {
+  try {
+    const { id } = req.params;
+    const { isOpen } = req.body;
+    const race = await adminRacesService.updateRegistrationGate(id, isOpen);
+    return res.status(200).json({ message: 'Cập nhật cổng đăng ký thành công', race });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
+async function assignReferees(req, res) {
+  try {
+    const { id } = req.params;
+    const { refereeAId, refereeBId } = req.body;
+    const race = await adminRacesService.assignReferees(id, refereeAId, refereeBId);
+    return res.status(200).json({ message: 'Phân công trọng tài thành công', race });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
   }
 }
 
@@ -139,4 +160,6 @@ module.exports = {
   bulkReviewEntries,
   listAllRaces,
   handleRaceList,
+  updateRegistrationGate,
+  assignReferees,
 };
