@@ -25,20 +25,20 @@ class AdminDeviationsController {
 
   // POST /api/admin/deviations/:id/resolve
   async resolveDeviation(req, res) {
-    try {
-      const { id } = req.params; // id của trận đấu (raceId)
-      const { finalResults, reason } = req.body;
-      const adminUserId = Number(req.user.sub) || req.user.userId;
+  try {
+    const { id } = req.params; // id = officialResultId (nhất quán với GET /api/admin/deviations/:id ở trên)
+    const { finalResults, reason } = req.body;
+    const adminUserId = Number(req.user.sub) || req.user.userId;
 
-      const result = await adminRefereeService.resolveResultConflict(id, adminUserId, finalResults, reason);
-      return res.status(200).json({ 
-        message: 'Đã phân xử thành công kết quả xung đột', 
-        race: result 
-      });
-    } catch (error) {
-      return res.status(error.status || 400).json({ error: error.message });
-    }
+    const result = await adminRefereeService.resolveDeviationById(id, adminUserId, finalResults, reason);
+    return res.status(200).json({ 
+      message: 'Đã phân xử thành công kết quả xung đột', 
+      race: result 
+    });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
   }
+}
 }
 
 module.exports = new AdminDeviationsController();

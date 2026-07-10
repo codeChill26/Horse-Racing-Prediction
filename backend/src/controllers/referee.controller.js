@@ -14,7 +14,7 @@ class RefereeController {
         data: result
       });
     } catch (error) {
-      return res.status(400).json({ success: false, message: error.message });
+      return res.status(error.status || 400).json({ success: false, message: error.message });
     }
   }
 
@@ -36,7 +36,7 @@ class RefereeController {
         message: report.message
       });
     } catch (error) {
-      return res.status(400).json({ success: false, message: error.message });
+      return res.status(error.status || 400).json({ success: false, message: error.message });
     }
   }
 
@@ -49,7 +49,7 @@ class RefereeController {
       const races = await refereeService.getAssignedRaces(refereeId, req.query);
       return res.status(200).json({ races: races, pagination: { page: 1, pageSize: races.length, total: races.length } });
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res.status(error.status || 400).json({ message: error.message });
     }
   }
 
@@ -62,7 +62,7 @@ class RefereeController {
       if (!race) return res.status(404).json({ message: 'Trận đấu không tồn tại hoặc không thuộc quyền quản lý của bạn.' });
       return res.status(200).json(race);
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res.status(error.status || 400).json({ message: error.message });
     }
   }
 
@@ -72,7 +72,7 @@ class RefereeController {
       const submissions = await refereeService.getSubmissionsHistory(refereeId, req.query);
       return res.status(200).json({ submissions: submissions });
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res.status(error.status || 400).json({ message: error.message });
     }
   }
 
@@ -82,7 +82,7 @@ class RefereeController {
       const conflicts = await refereeService.getConflictsList(refereeId);
       return res.status(200).json({ conflicts: conflicts });
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res.status(error.status || 400).json({ message: error.message });
     }
   }
 
@@ -92,7 +92,7 @@ class RefereeController {
       const profile = await refereeService.getRefereeProfile(refereeId);
       return res.status(200).json(profile);
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res.status(error.status || 400).json({ message: error.message });
     }
   }
 
