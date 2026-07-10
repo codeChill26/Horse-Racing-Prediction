@@ -128,12 +128,24 @@ async function getViolationsList(req, res) {
   }
 }
 
-async function reportViolation(req, res) {
+async function getViolationById(req, res) {
   try {
-    const result = await adminUsersService.reportViolation(req.body);
-    return res.status(201).json(result);
+    const { id } = req.params;
+    const result = await adminUsersService.getViolationById(id);
+    return res.status(200).json(result);
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
+async function startReviewViolation(req, res) {
+  try {
+    const { id } = req.params;
+    const adminId = Number(req.user.sub);
+    const result = await adminUsersService.startReviewViolation(id, adminId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
   }
 }
 
@@ -141,7 +153,20 @@ async function resolveViolation(req, res) {
   try {
     const { id } = req.params;
     const { penalty, note } = req.body;
-    const result = await adminUsersService.resolveViolation(id, penalty, note);
+    const adminId = Number(req.user.sub);
+    const result = await adminUsersService.resolveViolation(id, penalty, note, adminId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
+async function dismissViolation(req, res) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const adminId = Number(req.user.sub);
+    const result = await adminUsersService.dismissViolation(id, reason, adminId);
     return res.status(200).json(result);
   } catch (error) {
     return res.status(error.status || 400).json({ error: error.message });
@@ -158,6 +183,8 @@ module.exports = {
   deactivateUser,
   getMyViolations,
   getViolationsList,
-  reportViolation,
+  getViolationById,
+  startReviewViolation,
   resolveViolation,
+  dismissViolation
 };
