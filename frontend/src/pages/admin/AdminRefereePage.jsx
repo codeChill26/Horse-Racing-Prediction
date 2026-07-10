@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { listReferees } from "../../api/admin";
 import { formatDate } from "../../utils/formatter";
+import ConfirmModal from "../../components/ui/ConfirmModal";
 import "./AdminRefereePage.css";
 
 export default function AdminRefereePage() {
@@ -25,6 +26,7 @@ export default function AdminRefereePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   const loadReferees = useCallback(async () => {
     setLoading(true);
@@ -263,9 +265,7 @@ export default function AdminRefereePage() {
                             title={referee.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"}
                             disabled={isBusy}
                             onClick={() =>
-                              window.confirm(
-                                `${referee.isActive ? "Khóa" : "Mở khóa"} tài khoản trọng tài ${referee.fullName}?`
-                              ) && console.log("Toggle active:", referee.userId)
+                              setConfirmModal({ referee })
                             }
                           >
                             <Power size={14} />
@@ -280,6 +280,24 @@ export default function AdminRefereePage() {
           </div>
         )}
       </div>
+
+      {confirmModal && (
+        <ConfirmModal
+          key={`toggle-ref-${confirmModal.referee.userId}`}
+          open={true}
+          title={confirmModal.referee.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+          message={`${confirmModal.referee.isActive ? "Khóa" : "Mở khóa"} tài khoản trọng tài ${confirmModal.referee.fullName}?`}
+          confirmLabel="Xác nhận"
+          confirmTone={confirmModal.referee.isActive ? "danger" : "primary"}
+          busy={!!busyId}
+          onConfirm={async () => {
+            // Toggle active — placeholder for actual API call
+            console.log("Toggle active:", confirmModal.referee.userId);
+            setConfirmModal(null);
+          }}
+          onClose={() => setConfirmModal(null)}
+        />
+      )}
     </div>
   );
 }

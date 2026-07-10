@@ -80,6 +80,7 @@ function mapViolationResponse(v = {}) {
     raceName: v.race?.name ?? v.raceName ?? "—",
     severity: v.severity || "MINOR",
     penalty: v.penalty ?? 0,
+    penaltyType: v.penaltyType ?? v.penaltyKind ?? null,
     status: v.status || "OPEN",
     recordedAt,
     description: v.description || "",
@@ -162,6 +163,7 @@ const MOCK_VIOLATIONS = [
     raceName: "N/A",
     severity: "MINOR",
     penalty: 1000,
+    penaltyType: "DEDUCT_POINTS",
     status: "RESOLVED",
     recordedAt: "2026-06-13T10:20:00Z",
     description: "Chủ ngựa đăng ký trễ 3 lần trong 2 tháng qua.",
@@ -333,9 +335,12 @@ export const violationRepository = {
         await new Promise((resolve) => setTimeout(resolve, 250));
         const v = MOCK_VIOLATIONS.find((x) => x.id === id);
         if (!v) throw new Error("Không tìm thấy vi phạm");
+        const appliedPenalty = penalty || "WARNING";
         return {
           ...v,
           status: "RESOLVED",
+          penaltyType: appliedPenalty,
+          penalty: appliedPenalty === "DEDUCT_POINTS" ? (v.penalty || 5000) : 0,
           resolutionNote: note.trim(),
           history: [
             ...(v.history || []),

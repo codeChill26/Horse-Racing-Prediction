@@ -268,6 +268,99 @@
   background: rgba(248, 81, 73, 0.25);
 }
 
+.rab-btn--primary {
+  background: rgba(110, 168, 254, 0.18);
+  border-color: rgba(110, 168, 254, 0.45);
+  color: #79b8ff;
+  font-weight: 700;
+}
+
+.rab-btn--primary:hover:not(:disabled) {
+  background: rgba(110, 168, 254, 0.3);
+}
+
+/* ============================
+   FLOW 8: RaceStatisticsCard settlement section
+   ============================ */
+.rsc-settlement {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #30363d;
+}
+
+.rsc-settlement__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #79b8ff;
+}
+
+.rsc-settlement__badge {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: rgba(110, 168, 254, 0.15);
+  color: #79b8ff;
+  border: 1px solid rgba(110, 168, 254, 0.35);
+  border-radius: 6px;
+}
+
+.rsc-settlement__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.6rem;
+}
+
+.rsc-settlement__cell {
+  background: rgba(110, 168, 254, 0.05);
+  border: 1px solid rgba(110, 168, 254, 0.18);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.rsc-settlement__label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.rsc-settlement__value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dae3ee;
+}
+
+.rsc-settlement__value--ok {
+  color: #8dd6a6;
+}
+
+.rsc-settlement__value--err {
+  color: #ffb4ab;
+}
+
+.rsc-settlement__sub {
+  font-size: 0.7rem;
+  color: #8b949e;
+}
+
+.rsc-settlement__meta {
+  margin-top: 0.85rem;
+  font-size: 0.72rem;
+  color: #8b949e;
+}
+
 .rab-spin {
   animation: spin 1s linear infinite;
 }
@@ -989,11 +1082,20 @@
 .ard-reason-modal {
   width: 100%;
   max-width: 400px;
+  max-height: calc(100vh - 2rem);
   background: var(--ard-card);
   border: 1px solid var(--ard-border);
   border-radius: var(--ard-radius);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.ard-confirm-modal__body,
+.ard-reason-modal__body {
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
 
 .ard-confirm-modal__bar,
@@ -1032,6 +1134,58 @@
 .ard-confirm-modal__icon--warn { color: var(--ard-warn); }
 .ard-confirm-modal__icon--danger { color: var(--ard-danger); }
 .ard-reason-modal__icon { color: var(--ard-danger); }
+.ard-reason-modal__icon--warn { color: var(--ard-warn); }
+
+.ard-reason-modal__bar--warn {
+  background: linear-gradient(90deg, var(--ard-warn), #d4a82c);
+}
+
+.ard-alert--warn {
+  background: rgba(230, 195, 100, 0.08);
+  border-color: rgba(230, 195, 100, 0.3);
+  color: var(--ard-warn);
+}
+
+.ard-btn--warn {
+  background: rgba(230, 195, 100, 0.2);
+  border-color: rgba(230, 195, 100, 0.5);
+  color: var(--ard-warn);
+}
+
+.ard-btn--warn:hover:not(:disabled) {
+  background: rgba(230, 195, 100, 0.3);
+}
+
+.ard-btn--primary {
+  background: rgba(110, 168, 254, 0.18);
+  border-color: rgba(110, 168, 254, 0.45);
+  color: #79b8ff;
+  font-weight: 700;
+}
+
+.ard-btn--primary:hover:not(:disabled) {
+  background: rgba(110, 168, 254, 0.3);
+}
+
+.ard-reason-modal__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 0.7rem 0.9rem;
+  background: rgba(230, 195, 100, 0.06);
+  border: 1px solid rgba(230, 195, 100, 0.25);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #dae3ee;
+  cursor: pointer;
+}
+
+.ard-reason-modal__check input[type="checkbox"] {
+  margin-top: 0.15rem;
+  accent-color: var(--ard-warn);
+  cursor: pointer;
+}
 
 .ard-confirm-modal__title,
 .ard-reason-modal__title {

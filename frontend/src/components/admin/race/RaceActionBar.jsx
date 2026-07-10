@@ -6,10 +6,17 @@
 /**
  * RaceActionBar Component
  *
- * Component chứa các actions cho race: edit, cancel, open/close registration.
+ * Component chứa các actions cho race:
+ *   - Edit / Cancel (Flow 3, 4)
+ *   - Open / Close registration gate (Flow 2)
+ *   - Refresh
+ *   - Publish / Unpublish (Flow 8) — Result Publication
+ *
+ * Status guard cho Publish/Unpublish được nhận qua prop `canPublish` / `canUnpublish`
+ * (client-side) — service sẽ double-check ở backend.
  */
 
-import { Edit, XCircle, Lock, Unlock, RefreshCw } from "lucide-react";
+import { Edit, XCircle, Lock, Unlock, RefreshCw, CheckCircle2, Undo2 } from "lucide-react";
 
 function RaceActionBarSkeleton() {
   return (
@@ -34,6 +41,8 @@ export function RaceActionBar({
   onCancel,
   onOpenRegistration,
   onCloseRegistration,
+  onPublish,
+  onUnpublish,
   onRefresh,
   loading = false,
   busy = false,
@@ -44,12 +53,19 @@ export function RaceActionBar({
 
   if (!race) return null;
 
-  const isScheduled = race.status === "SCHEDULED";
-  const isOngoing = race.status === "ONGOING";
-  const isFinished = race.status === "FINISHED";
-  const isCancelled = race.status === "CANCELLED";
+  const status = String(race.status || "").toUpperCase();
+  const isScheduled = status === "SCHEDULED";
+  const isOngoing = status === "ONGOING";
+  const isPendingResult = status === "PENDING_RESULT";
+  const isFinished = status === "FINISHED";
+  const isCancelled = status === "CANCELLED";
   const canModify = isScheduled || isOngoing;
   const isRegOpen = race.registrationOpen || race.isRegistrationOpen;
+
+  // Flow 8: status guard cho publish/unpublish.
+  // Service sẽ validate lại — đây chỉ là UI affordance.
+  const showPublish   = isPendingResult; // PENDING_RESULT → FINISHED
+  const showUnpublish = isFinished;      // FINISHED     → PENDING_RESULT
 
   return (
     <div className="rab-bar">
@@ -108,6 +124,34 @@ export function RaceActionBar({
             >
               <XCircle size={16} />
               Hủy
+            </button>
+          )}
+
+          {/* Flow 8: Publish race → settle bets */}
+          {showPublish && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--primary"
+              onClick={onPublish}
+              disabled={busy}
+              title="Settle bets + xuất bản kết quả"
+            >
+              <CheckCircle2 size={16} />
+              Publish kết quả
+            </button>
+          )}
+
+          {/* Flow 8: Unpublish / Rollback settlement */}
+          {showUnpublish && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--warn"
+              onClick={onUnpublish}
+              disabled={busy}
+              title="Rollback settlement (race quay lại PENDING_RESULT)"
+            >
+              <Undo2 size={16} />
+              Rollback
             </button>
           )}
         </div>

@@ -805,6 +805,11 @@
   color: #ff7b72;
 }
 
+.vio-modal__penalty--dq {
+  color: #ff4d4f;
+  font-size: 0.85rem;
+}
+
 .vio-modal__resolution-note {
   font-size: 0.85rem;
   line-height: 1.6;

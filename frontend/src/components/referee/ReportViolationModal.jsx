@@ -28,6 +28,14 @@ const VIOLATION_TYPES = [
 
 const SEVERITY_OPTIONS = VIOLATION_SEVERITY.filter((s) => s !== "ALL");
 
+const SEVERITY_LABELS = {
+  WARNING: "Cảnh báo",
+  MINOR: "Nhẹ",
+  MAJOR: "Nặng",
+  SEVERE: "Nghiêm trọng",
+  CRITICAL: "Cực kỳ nghiêm trọng",
+};
+
 export default function ReportViolationModal({
   raceId,
   entry, // { entryId, horseName, jockeyName, gateNumber }
@@ -202,7 +210,7 @@ export default function ReportViolationModal({
               >
                 {SEVERITY_OPTIONS.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {SEVERITY_LABELS[s] ?? s}
                   </option>
                 ))}
               </select>

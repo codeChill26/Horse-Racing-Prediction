@@ -38,6 +38,22 @@ export const bettingRepository = {
     return data?.predictions ?? []
   },
 
+  /**
+   * GET /api/predictions/stats — thống kê tổng quan của spectator.
+   * Trả về:
+   *   {
+   *     totalBets, totalSpent, totalWon, totalPayout, winRate, totalRaces,
+   *     avgOdds, bestStreak, favoriteHorse, favoriteJockey,
+   *     recentPerformance: [{ predictionId, raceName, result, profit, placedAt }]
+   *   }
+   */
+  async getMyStats() {
+    const res = await fetch('/api/predictions/stats', { headers: authHeaders() })
+    if (!res.ok) await readError(res, 'Không tải được thống kê đặt cược')
+    const data = await res.json()
+    return data?.stats ?? data
+  },
+
   /** GET /api/predictions/:id — chi tiết một vé cược */
   async getBetDetails(predictionId) {
     const res = await fetch(`/api/predictions/${predictionId}`, { headers: authHeaders() })

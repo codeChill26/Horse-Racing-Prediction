@@ -34,6 +34,7 @@ import { useSocket } from "../../hooks/useSocket";
 import { onSocketEvent } from "../../utils/socket";
 import { useToast } from "../../hooks/useToast";
 import { getAccessToken } from "../../utils/token";
+import ConfirmModal from "../ui/ConfirmModal";
 import "./JockeyInvitationInbox.css";
 
 const STATUS_FILTER_OPTIONS = [
@@ -280,6 +281,7 @@ export default function JockeyInvitationInbox() {
   const [busyId, setBusyId] = useState(null);
   const [declineModal, setDeclineModal] = useState(null);
   const [declineError, setDeclineError] = useState("");
+  const [acceptConfirmModal, setAcceptConfirmModal] = useState(null);
 
   // Luôn load TẤT CẢ invitation (status=ALL) để tab-count stats phản ánh đúng.
   // Trước đây filter server-side theo statusFilter nên tab-counts sai lệch:
@@ -376,12 +378,13 @@ export default function JockeyInvitationInbox() {
   };
 
   const handleAccept = async (inv) => {
-    const ok = window.confirm(
-      `Chấp nhận lời mời cưỡi ngựa "${inv.horse?.name || inv.horseName}" tại chặng "${
-        inv.race?.name || inv.raceName
-      }"?`
-    );
-    if (!ok) return;
+    setAcceptConfirmModal(inv);
+  };
+
+  const handleConfirmAccept = async () => {
+    const inv = acceptConfirmModal;
+    if (!inv) return;
+    setAcceptConfirmModal(null);
     setBusyId(inv.invitationId || inv.id);
     try {
       const updated = await invitationService.acceptInvitation(
@@ -539,6 +542,22 @@ export default function JockeyInvitationInbox() {
           onConfirm={handleConfirmDecline}
         />
       ) : null}
+
+      {acceptConfirmModal && (
+        <ConfirmModal
+          key={`accept-inv-${acceptConfirmModal.invitationId ?? acceptConfirmModal.id}`}
+          open={true}
+          title="Chấp nhận lời mời"
+          message={`Chấp nhận lời mời cưỡi ngựa "${acceptConfirmModal.horse?.name || acceptConfirmModal.horseName}" tại chặng "${
+            acceptConfirmModal.race?.name || acceptConfirmModal.raceName
+          }"?`}
+          confirmLabel="Chấp nhận"
+          confirmTone="primary"
+          busy={!!busyId}
+          onConfirm={handleConfirmAccept}
+          onClose={() => setAcceptConfirmModal(null)}
+        />
+      )}
     </div>
   );
 }

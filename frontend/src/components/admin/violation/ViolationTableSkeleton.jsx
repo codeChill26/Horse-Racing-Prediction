@@ -32,6 +32,9 @@ export function ViolationTableSkeleton({ rows = 5 }) {
             <div className="vio-skeleton vio-skeleton--badge" />
           </td>
           <td>
+            <div className="vio-skeleton vio-skeleton--badge" />
+          </td>
+          <td>
             <div className="vio-skeleton vio-skeleton--sm" />
           </td>
           <td>

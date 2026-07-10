@@ -18,6 +18,7 @@ import {
   roleLabelVi,
 } from "../../utils/roleLabels";
 import { RoleBadge, StatusBadge } from "../../components/ui/Badges";
+import ConfirmModal from "../../components/ui/ConfirmModal";
 import AdminUserFormModal from "./AdminUserFormModal";
 import "./AdminUsersPage.css";
 
@@ -29,6 +30,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [modal, setModal] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -103,12 +105,16 @@ export default function AdminUsersPage() {
 
   const handleChangeRole = async (user, nextRole) => {
     if (!nextRole || nextRole === user.role?.code) return;
-    const ok = window.confirm(
-      `Đổi vai trò user #${user.userId} (${user.email})\n\n` +
-        `${roleLabelVi(user.role?.code)} → ${roleLabelVi(nextRole)}?`
-    );
-    if (!ok) return;
+    setConfirmModal({
+      type: "role",
+      user,
+      nextRole,
+    });
+  };
 
+  const handleConfirmRoleChange = async () => {
+    const { user, nextRole } = confirmModal;
+    setConfirmModal(null);
     setBusyId(user.userId);
     try {
       const updated = await changeAdminUserRole(user.userId, nextRole);
@@ -121,12 +127,12 @@ export default function AdminUsersPage() {
   };
 
   const handleDeactivate = async (user) => {
-    const ok = window.confirm(
-      `Vô hiệu hóa user #${user.userId} (${user.email})?\n\n` +
-        "Tài khoản sẽ bị deactivate và thu hồi phiên đăng nhập."
-    );
-    if (!ok) return;
+    setConfirmModal({ type: "deactivate", user });
+  };
 
+  const handleConfirmDeactivate = async () => {
+    const { user } = confirmModal;
+    setConfirmModal(null);
     setBusyId(user.userId);
     try {
       const updated = await deleteAdminUser(user.userId);
@@ -335,6 +341,36 @@ export default function AdminUsersPage() {
           userId={modal.id}
           onClose={() => setModal(null)}
           onSaved={loadUsers}
+        />
+      )}
+
+      {confirmModal?.type === "role" && (
+        <ConfirmModal
+          key={`role-${confirmModal.user.userId}`}
+          open={true}
+          title="Đổi vai trò user"
+          message={`Đổi vai trò user #${confirmModal.user.userId} (${confirmModal.user.email})?\n\n` +
+            `${roleLabelVi(confirmModal.user.role?.code)} → ${roleLabelVi(confirmModal.nextRole)}?`}
+          confirmLabel="Đổi vai trò"
+          confirmTone="primary"
+          busy={!!busyId}
+          onConfirm={handleConfirmRoleChange}
+          onClose={() => setConfirmModal(null)}
+        />
+      )}
+
+      {confirmModal?.type === "deactivate" && (
+        <ConfirmModal
+          key={`deactivate-${confirmModal.user.userId}`}
+          open={true}
+          title="Vô hiệu hóa user"
+          message={`Vô hiệu hóa user #${confirmModal.user.userId} (${confirmModal.user.email})?\n\n` +
+            "Tài khoản sẽ bị deactivate và thu hồi phiên đăng nhập."}
+          confirmLabel="Vô hiệu hóa"
+          confirmTone="danger"
+          busy={!!busyId}
+          onConfirm={handleConfirmDeactivate}
+          onClose={() => setConfirmModal(null)}
         />
       )}
     </div>

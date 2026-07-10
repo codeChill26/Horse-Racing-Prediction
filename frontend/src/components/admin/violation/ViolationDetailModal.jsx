@@ -143,10 +143,16 @@ export function ViolationDetailModal({
                 <span className="vio-modal__info-value">{formatDate(violation.recordedAt)}</span>
               </div>
               <div className="vio-modal__info-item">
-                <span className="vio-modal__info-label">Điểm phạt</span>
+                <span className="vio-modal__info-label">Hình thức phạt</span>
                 <span className="vio-modal__info-value">
-                  {violation.penalty > 0 ? (
-                    <span className="vio-modal__penalty">-{formatPoints(violation.penalty)} điểm</span>
+                  {violation.penaltyType === "DQ" ? (
+                    <span className="vio-modal__penalty vio-modal__penalty--dq">
+                      Loại khỏi chặng (DQ)
+                    </span>
+                  ) : violation.penaltyType === "DEDUCT_POINTS" && violation.penalty > 0 ? (
+                    <span className="vio-modal__penalty">
+                      -{formatPoints(violation.penalty)} điểm
+                    </span>
                   ) : (
                     "Không phạt"
                   )}

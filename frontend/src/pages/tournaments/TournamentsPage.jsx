@@ -26,87 +26,10 @@ import { StatusBadge } from '../../components/ui/Badges'
 import BettingModal from '../../components/spectator/BettingModal'
 import './TournamentsPage.css'
 
-// Mock data fallback khi backend chưa có endpoint
-const MOCK_TOURNAMENTS = [
-  {
-    id: 1,
-    tournamentId: 1,
-    name: 'Giải Vô địch mùa xuân 2026',
-    description: 'Giải đua thường niên quy tụ những con ngựa xuất sắc nhất cả nước.',
-    startAt: '2026-06-15',
-    endAt: '2026-06-20',
-    status: 'OPEN',
-    location: 'Trường đua Bình Dương',
-    totalPrize: 2000000000,
-    participants: 45,
-  },
-  {
-    id: 2,
-    tournamentId: 2,
-    name: 'Cúp Tốc độ Quốc gia',
-    description: 'Giải đua tốc độ với những chặng đua ngắn, kịch tính.',
-    startAt: '2026-06-22',
-    endAt: '2026-06-25',
-    status: 'OPEN',
-    location: 'Trường đua Phú Thọ',
-    totalPrize: 900000000,
-    participants: 30,
-  },
-  {
-    id: 3,
-    tournamentId: 3,
-    name: 'Chặng Đua Mở Rộng',
-    description: 'Giải đua mở rộng với nhiều hạng mục thi đấu.',
-    startAt: '2026-01-10',
-    endAt: '2026-01-12',
-    status: 'FINISHED',
-    location: 'Trường đua Long An',
-    totalPrize: 1200000000,
-    participants: 60,
-  },
-]
-
-const MOCK_RACES = [
-  {
-    id: 'r1',
-    raceId: 1,
-    tournamentId: 1,
-    name: 'Chặng 1 - Bình Dương',
-    raceName: 'Chặng 1',
-    scheduledAt: '2026-06-15T08:00:00Z',
-    registrationDeadline: '2026-06-14T17:00:00Z',
-    status: 'BETTING_CLOSED',
-    location: 'Trường đua Bình Dương',
-    prizePool: 300000000,
-    horseCount: 8,
-  },
-  {
-    id: 'r2',
-    raceId: 2,
-    tournamentId: 1,
-    name: 'Chặng 2 - Bình Dương',
-    raceName: 'Chặng 2',
-    scheduledAt: '2026-06-16T08:00:00Z',
-    registrationDeadline: '2026-06-15T17:00:00Z',
-    status: 'BETTING_OPEN',
-    location: 'Trường đua Bình Dương',
-    prizePool: 400000000,
-    horseCount: 10,
-  },
-  {
-    id: 'r3',
-    raceId: 3,
-    tournamentId: 2,
-    name: 'Chặng 1 - Phú Thọ',
-    raceName: 'Chặng 1',
-    scheduledAt: '2026-06-22T08:00:00Z',
-    registrationDeadline: '2026-06-21T17:00:00Z',
-    status: 'SCHEDULED',
-    location: 'Trường đua Phú Thọ',
-    prizePool: 250000000,
-    horseCount: 8,
-  },
-]
+// FIX BUG-7.04: đã loại bỏ MOCK_TOURNAMENTS / MOCK_RACES — silent mock fallback.
+// Theo pattern B-002 (giống BettingHistoryPage/StatisticsPage đã fix): nếu API
+// trả [] hoặc lỗi → hiển thị empty state có CTA, KHÔNG tự fill mock data
+// (mock chỉ dùng khi env `VITE_FALLBACK_TO_MOCK=true`).
 
 
 const TABS = [
@@ -115,7 +38,7 @@ const TABS = [
   { id: 'ONGOING', label: 'Đang diễn ra' },
   { id: 'DRAFT', label: 'Nháp' },
   { id: 'FINISHED', label: 'Đã kết thúc' },
-]
+]                      
 
 function formatDateRange(start, end) {
   if (!start) return '—'
@@ -194,12 +117,17 @@ function TournamentCard({ tournament, raceCount, onClick }) {
   )
 }
 
-function TournamentModal({ tournament, races, onClose, onBet, onOpenRace }) {
+function TournamentModal({ tournament, races, walletFrozen = false, onClose, onBet, onOpenRace }) {
   if (!tournament) return null
 
-  const tournamentRaces = races?.filter(r =>
-    r.tournamentId === tournament.tournamentId || r.tournamentId === tournament.id
-  ) || []
+  // FIX BUG-7.15: cũ dùng `r.tournamentId === tournament.tournamentId || r.tournamentId === tournament.id`
+  // — vẫn giữ logic nhưng bổ sung NaN-safe. Nếu BE trả id không tồn tại thì bỏ qua.
+  const tournamentId = Number(tournament.tournamentId ?? tournament.id)
+  const tournamentRaces = (Array.isArray(races) ? races : []).filter(r => {
+    if (!r) return false
+    const rId = Number(r.tournamentId)
+    return Number.isFinite(rId) && rId === tournamentId
+  })
 
   return (
     <div className="sp-modal-overlay" onClick={onClose}>
@@ -284,9 +212,11 @@ function TournamentModal({ tournament, races, onClose, onBet, onOpenRace }) {
                         type="button"
                         className="t-btn t-btn--gold"
                         onClick={() => onBet(race)}
+                        disabled={walletFrozen}
+                        title={walletFrozen ? 'Ví đang bị đóng băng' : ''}
                       >
                         <Coins size={14} />
-                        Đặt cược
+                        {walletFrozen ? 'Ví bị đóng băng' : 'Đặt cược'}
                       </button>
                       <button
                         type="button"
@@ -402,22 +332,43 @@ export default function TournamentsPage() {
   const [bettingEntries, setBettingEntries] = useState([])
   const [bettingLoading, setBettingLoading] = useState(false)
   const [userBalance, setUserBalance]       = useState(0)
+  const [walletFrozen, setWalletFrozen]     = useState(false)
   const [toast, setToast] = useState(null)
 
+  // Đóng gói refresh balance để truyền xuống BettingModal — modal sẽ gọi hàm này
+  // ngay trước khi submit để chắc chắn maxAllowed đúng (tránh submit với balance cũ).
+  const refreshBalance = useCallback(async () => {
+    const token = getAccessToken()
+    if (!token) return 0
+    try {
+      const p = await getMyProfile(token)
+      const balance = p?.pointWallet?.balance ?? 0
+      setUserBalance(balance)
+      setWalletFrozen(Boolean(p?.pointWallet?.isFrozen))
+      return balance
+    } catch {
+      return userBalance
+    }
+  }, [userBalance])
+
+  // FIX BUG-7.04: bỏ silent mock fallback.
+  // - Nếu API trả [] → empty tournaments/races array → empty state với CTA.
+  // - Nếu API lỗi → error state có Retry.
+  // - KHÔNG fill MOCK_TOURNAMENTS/MOCK_RACES nữa.
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
       const [tournamentList, raceList] = await Promise.all([
-        tournamentService.getTournamentsList().catch(() => []),
-        raceService.getRacesList().catch(() => []),
+        tournamentService.getTournamentsList(),
+        raceService.getRacesList(),
       ])
-
-      setTournaments(tournamentList.length > 0 ? tournamentList : MOCK_TOURNAMENTS)
-      setRaces(raceList.length > 0 ? raceList : MOCK_RACES)
-    } catch {
-      setTournaments(MOCK_TOURNAMENTS)
-      setRaces(MOCK_RACES)
+      setTournaments(Array.isArray(tournamentList) ? tournamentList : [])
+      setRaces(Array.isArray(raceList) ? raceList : [])
+    } catch (e) {
+      setError(e?.message || 'Không tải được danh sách giải đấu')
+      setTournaments([])
+      setRaces([])
     } finally {
       setLoading(false)
     }
@@ -432,7 +383,10 @@ export default function TournamentsPage() {
     const token = getAccessToken()
     if (!token) return
     getMyProfile(token)
-      .then(p => setUserBalance(p?.pointWallet?.balance ?? 0))
+      .then(p => {
+        setUserBalance(p?.pointWallet?.balance ?? 0)
+        setWalletFrozen(Boolean(p?.pointWallet?.isFrozen))
+      })
       .catch(() => setUserBalance(0))
   }, [])
 
@@ -445,6 +399,10 @@ export default function TournamentsPage() {
 
   // Mở betting: load detail race từ API thực (entries + odds + career stats)
   const openBetting = useCallback(async (race) => {
+    if (walletFrozen) {
+      setToast({ type: 'error', text: 'Ví của bạn đang bị đóng băng — không thể đặt cược.' })
+      return
+    }
     setBettingRace(race)
     setBettingEntries([])
     setBettingLoading(true)
@@ -457,10 +415,15 @@ export default function TournamentsPage() {
     } finally {
       setBettingLoading(false)
     }
-  }, [])
+  }, [walletFrozen])
 
+  // FIX BUG-7.15: tab filter normalize status về UPPERCASE để chịu BE trả
+  // 'Open'/'OPEN'/'open' (case-insensitive). Cũ: `t.status === activeTab` so sánh
+  // nhạy cảm.
   const filtered = tournaments.filter(t => {
-    const matchesTab = activeTab === 'all' || t.status === activeTab
+    const tabUpper = String(activeTab || '').toUpperCase()
+    const statusUpper = String(t.status || '').toUpperCase()
+    const matchesTab = tabUpper === 'ALL' || statusUpper === tabUpper
     const q = search.trim().toLowerCase()
     const matchesSearch = !q ||
       t.name?.toLowerCase().includes(q) ||
@@ -470,22 +433,19 @@ export default function TournamentsPage() {
   })
 
   const tabCounts = TABS.reduce((acc, tab) => {
-    if (tab.id === 'all') {
+    const tabIdUpper = String(tab.id || '').toUpperCase()
+    if (tabIdUpper === 'ALL') {
       acc[tab.id] = tournaments.length
     } else {
-      acc[tab.id] = tournaments.filter(t => t.status === tab.id).length
+      acc[tab.id] = tournaments.filter(t =>
+        String(t.status || '').toUpperCase() === tabIdUpper
+      ).length
     }
     return acc
   }, {})
 
-  const handlePlacedBet = () => {
-    // Refresh balance
-    const token = getAccessToken()
-    if (token) {
-      getMyProfile(token)
-        .then(p => setUserBalance(p?.pointWallet?.balance ?? 0))
-        .catch(() => {})
-    }
+  const handlePlacedBet = async () => {
+    await refreshBalance()
     setToast({ type: 'success', text: 'Đặt cược thành công! Chúc bạn may mắn.' })
   }
 
@@ -510,6 +470,14 @@ export default function TournamentsPage() {
             </div>
           </div>
         </div>
+
+        {/* G9: Cảnh báo ví đóng băng */}
+        {walletFrozen && (
+          <div className="sp-alert sp-alert--error" role="alert" style={{ marginBottom: '1rem' }}>
+            <Coins size={16} />
+            <span>Ví điểm của bạn đang bị đóng băng bởi Admin — không thể đặt cược cho tới khi được mở.</span>
+          </div>
+        )}
 
         {/* Toast */}
         {toast && (
@@ -571,9 +539,12 @@ export default function TournamentsPage() {
         ) : filtered.length > 0 ? (
           <div className="t-grid">
             {filtered.map(t => {
-              const raceCount = races.filter(
-                r => r.tournamentId === (t.tournamentId ?? t.id)
-              ).length
+              // FIX BUG-7.15: so sánh số, không so sánh chuỗi nhạy cảm.
+              const tId = Number(t.tournamentId ?? t.id)
+              const raceCount = races.filter(r => {
+                const rId = Number(r.tournamentId)
+                return Number.isFinite(rId) && Number.isFinite(tId) && rId === tId
+              }).length
               return (
                 <TournamentCard
                   key={t.tournamentId ?? t.id}
@@ -603,6 +574,7 @@ export default function TournamentsPage() {
         <TournamentModal
           tournament={selectedTournament}
           races={races}
+          walletFrozen={walletFrozen}
           onClose={() => setSelectedTournament(null)}
           onBet={(race) => {
             setSelectedTournament(null)
@@ -630,6 +602,8 @@ export default function TournamentsPage() {
           race={bettingRace}
           entries={bettingLoading ? [] : bettingEntries}
           userBalance={userBalance}
+          walletFrozen={walletFrozen}
+          onRefreshBalance={refreshBalance}
           onClose={() => { setBettingRace(null); setBettingEntries([]) }}
           onPlaced={handlePlacedBet}
         />

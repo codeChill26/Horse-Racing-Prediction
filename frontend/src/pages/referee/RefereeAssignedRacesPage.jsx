@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { refereeRaceService } from "../../services/refereeService";
-import { normalizeRaceStatus } from "../../repositories/refereeRepository";
+import { normalizeRaceStatus } from "../../utils/raceStatus";
 import { useToast } from "../../hooks/useToast";
 import { useSocket } from "../../hooks/useSocket";
 import { onSocketEvent } from "../../utils/socket";

@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:flow8": "playwright test e2e/flow8-publish-rollback.spec.js"
   },
   "dependencies": {
     "lucide-react": "^0.469.0",
@@ -19,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

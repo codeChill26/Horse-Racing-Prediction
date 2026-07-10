@@ -209,15 +209,7 @@ export const violationService = {
    * trả về [] và component sẽ render empty state.
    */
   async getMyViolations() {
-    try {
-      const list = await violationRepository.getMine();
-      return Array.isArray(list) ? list : [];
-    } catch (e) {
-      // BE chưa sẵn sàng — trả về rỗng, không throw để UI không crash
-      console.warn(
-        `[violationService] /api/me/violations chưa sẵn sàng: ${e.message}`
-      );
-      return [];
-    }
+    const list = await violationRepository.getMine();
+    return Array.isArray(list) ? list : [];
   },
 };

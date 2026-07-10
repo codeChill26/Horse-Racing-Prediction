@@ -22,6 +22,9 @@ import { getAccessToken } from "../utils/token";
 const USE_API =
   (import.meta.env.VITE_USE_API_DEVIATION ?? "true").toLowerCase() === "true";
 
+const FALLBACK_TO_MOCK =
+  (import.meta.env.VITE_FALLBACK_TO_MOCK ?? "false").toLowerCase() === "true";
+
 async function readError(res, fallback) {
   let data = null;
   try {
@@ -166,12 +169,15 @@ async function withFallback(apiCall, mockCall, errorContext) {
     if (USE_API && !isNotFound) {
       throw err;
     }
-    if (typeof console !== "undefined" && console.warn) {
-      console.warn(
-        `[deviationRepository] BE endpoint chưa sẵn sàng (${errorContext}). Fallback về mock.`
-      );
+    if (FALLBACK_TO_MOCK || isNotFound) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(
+          `[deviationRepository] BE endpoint chưa sẵn sàng (${errorContext}). Fallback về mock.`
+        );
+      }
+      return mockCall();
     }
-    return mockCall();
+    throw err;
   }
 }
 

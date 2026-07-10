@@ -346,19 +346,21 @@ export default function AdminViolationPage() {
         </div>
       )}
 
-      {/* Penalty legend — hiển thị 1 lần giúp admin tham khảo */}
-      <div className="avp-penalty-legend">
-        <span className="avp-penalty-legend__label">
-          Loại phạt khi xử lý (RESOLVED):
-        </span>
-        <span className="avp-penalty-chip avp-penalty-chip--warning">
-          Cảnh báo
-        </span>
-        <span className="avp-penalty-chip avp-penalty-chip--deduct">
-          Trừ điểm
-        </span>
-        <span className="avp-penalty-chip avp-penalty-chip--dq">DQ</span>
-      </div>
+      {/* Penalty legend — chỉ hiển thị khi có violations cần xử lý */}
+      {stats.open > 0 && (
+        <div className="avp-penalty-legend">
+          <span className="avp-penalty-legend__label">
+            Loại phạt khi xử lý (RESOLVED):
+          </span>
+          <span className="avp-penalty-chip avp-penalty-chip--warning">
+            Cảnh báo
+          </span>
+          <span className="avp-penalty-chip avp-penalty-chip--deduct">
+            Trừ điểm
+          </span>
+          <span className="avp-penalty-chip avp-penalty-chip--dq">DQ</span>
+        </div>
+      )}
 
       {/* Table */}
       <ViolationTable

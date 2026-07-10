@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff } from "lucide-react";
+import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff, CheckCircle2, Undo2 } from "lucide-react";
 import { raceService } from "../../services/raceService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceDetailService } from "../../services/raceDetailService";
@@ -329,12 +329,38 @@ export default function AdminRaceStagePage() {
       toastify?.warn?.(msg);
     });
 
+    // FLOW 8: race:published → tab khác vừa publish, refresh list
+    const offPublished = onSocketEvent("race:published", (payload) => {
+      refresh();
+      const raceId = String(payload?.race?.raceId ?? payload?.raceId ?? "");
+      if (raceId) {
+        toastify?.success?.(
+          `Race #${raceId} đã được publish — danh sách sẽ cập nhật.`,
+          "Publish"
+        );
+      }
+    });
+
+    // FLOW 8: race:unpublished → rollback settlement
+    const offUnpublished = onSocketEvent("race:unpublished", (payload) => {
+      refresh();
+      const raceId = String(payload?.race?.raceId ?? payload?.raceId ?? "");
+      if (raceId) {
+        toastify?.info?.(
+          `Race #${raceId} đã được rollback về PENDING_RESULT.`,
+          "Rollback"
+        );
+      }
+    });
+
     // Fallback poll mỗi 30s (lỡ event không đến)
     const interval = setInterval(refresh, 30000);
 
     return () => {
       offGateOpen();
       offGateClose();
+      offPublished();
+      offUnpublished();
       clearInterval(interval);
     };
   }, [token, toastify]);
@@ -690,6 +716,30 @@ export default function AdminRaceStagePage() {
                                 </button>
                               )}
                             </>
+                          )}
+
+                          {/* FLOW 8: nút publish / rollback inline */}
+                          {r.status === "PENDING_RESULT" && (
+                            <button
+                              type="button"
+                              className="ars-icon-btn ars-icon-btn--primary"
+                              title="Publish kết quả (settle bets)"
+                              disabled={isBusy}
+                              onClick={() => setDetail(r)}
+                            >
+                              <CheckCircle2 size={14} />
+                            </button>
+                          )}
+                          {r.status === "FINISHED" && (
+                            <button
+                              type="button"
+                              className="ars-icon-btn ars-icon-btn--warn"
+                              title="Rollback settlement"
+                              disabled={isBusy}
+                              onClick={() => setDetail(r)}
+                            >
+                              <Undo2 size={14} />
+                            </button>
                           )}
                         </div>
                       </td>

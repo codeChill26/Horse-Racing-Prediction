@@ -27,6 +27,7 @@ import {
 import { horseService } from "../../services/horseService";
 import { formatDate, mapStatusToVietnamese } from "../../utils/formatter";
 import HorseActionModal from "../../components/admin/horse/HorseActionModal";
+import ConfirmModal from "../../components/ui/ConfirmModal";
 import "./AdminHorseListPage.css";
 
 // Backend hiện KHÔNG hỗ trợ status='INACTIVE' ở PATCH /api/admin/horses/:id/status
@@ -70,6 +71,7 @@ export default function AdminHorseListPage() {
   // { mode: 'reject' | 'revoke', horse }
   const [actionModal, setActionModal] = useState(null);
   const [actionError, setActionError] = useState("");
+  const [approveModal, setApproveModal] = useState(null);
 
   const loadHorses = useCallback(async () => {
     setLoading(true);
@@ -140,10 +142,13 @@ export default function AdminHorseListPage() {
 
   // === ACTIONS ===
   const handleApprove = async (horse) => {
-    const ok = window.confirm(
-      `Duyệt hồ sơ ngựa #${horse.horseId} (${horse.name})?`
-    );
-    if (!ok) return;
+    setApproveModal(horse);
+  };
+
+  const handleConfirmApprove = async () => {
+    const horse = approveModal;
+    if (!horse) return;
+    setApproveModal(null);
     setBusyId(horse.horseId);
     try {
       const updated = await horseService.approveHorse(horse.horseId);
@@ -394,6 +399,21 @@ export default function AdminHorseListPage() {
           error={actionError}
           onClose={closeActionModal}
           onConfirm={handleConfirmAction}
+        />
+      ) : null}
+
+      {/* Confirm Modal: approve horse */}
+      {approveModal ? (
+        <ConfirmModal
+          key={`approve-horse-${approveModal.horseId}`}
+          open={true}
+          title="Xác nhận duyệt ngựa"
+          message={`Duyệt hồ sơ ngựa #${approveModal.horseId} (${approveModal.name})?`}
+          confirmLabel="Duyệt"
+          confirmTone="primary"
+          busy={!!busyId}
+          onConfirm={handleConfirmApprove}
+          onClose={() => setApproveModal(null)}
         />
       ) : null}
     </div>

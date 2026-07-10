@@ -1,20 +1,29 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { X, Coins, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { bettingService } from '../../services/bettingService'
 import { formatPoints } from '../../utils/formatter'
+import { showToast } from '../../hooks/showToast'
+import { onSocketEvent, subscribeRace, unsubscribeRace } from '../../utils/socket'
 import { StatusBadge } from '../ui/Badges'
 import './BettingModal.css'
 
 const BET_TYPES = [
-  { code: 'WIN',      label: 'WIN',      description: 'Ngựa về nhất',              icon: '🥇', color: 'bet-type--gold',   picks: 1 },
-  { code: 'PLACE',    label: 'PLACE',    description: 'Ngựa vào Top 2',            icon: '🥈', color: 'bet-type--silver', picks: 1 },
-  { code: 'SHOW',     label: 'SHOW',     description: 'Ngựa vào Top 3',            icon: '🥉', color: 'bet-type--bronze', picks: 1 },
-  { code: 'QUINELLA', label: 'QUINELLA', description: '2 ngựa nhất+nhì (bất kỳ thứ tự)', icon: '🔁', color: 'bet-type--teal',   picks: 2 },
-  { code: 'EXACTA',   label: 'EXACTA',   description: 'Chỉ định chính xác nhất+nhì',     icon: '🎯', color: 'bet-type--purple', picks: 2 },
+  // FIX BUG-7.13: thêm `multiplier` cho QUINELLA/EXACTA để khớp settlement spec
+  // ở mainflow.md FLOW 8 (payout = betAmount * lockedOdds * multiplier).
+  // WIN/PLACE/SHOW = ×1 (multiplier implicit). MinBet = 10 ở service.
+  { code: 'WIN',      label: 'WIN',      description: 'Ngựa về nhất',                     icon: '🥇', color: 'bet-type--gold',   picks: 1, multiplier: 1.0 },
+  { code: 'PLACE',    label: 'PLACE',    description: 'Ngựa vào Top 2',                   icon: '🥈', color: 'bet-type--silver', picks: 1, multiplier: 0.7 },
+  { code: 'SHOW',     label: 'SHOW',     description: 'Ngựa vào Top 3',                   icon: '🥉', color: 'bet-type--bronze', picks: 1, multiplier: 0.5 },
+  { code: 'QUINELLA', label: 'QUINELLA', description: '2 ngựa nhất+nhì (bất kỳ thứ tự)', icon: '🔁', color: 'bet-type--teal',   picks: 2, multiplier: 1.5 },
+  { code: 'EXACTA',   label: 'EXACTA',   description: 'Chỉ định chính xác nhất+nhì',     icon: '🎯', color: 'bet-type--purple', picks: 2, multiplier: 2.0 },
 ]
 
 const MIN_BET = 10
 const QUICK_AMOUNTS = [100, 500, 1000, 5000]
+
+// Những status mà modal vẫn cho phép đặt cược. Theo spec, chỉ SCHEDULED.
+// Tuy nhiên, BE đôi khi trả BETTING_OPEN — cũng chấp nhận để tránh false negative.
+const BETTABLE_STATUSES = new Set(['SCHEDULED', 'BETTING_OPEN', 'REGISTRATION_OPEN', 'UPCOMING'])
 
 /**
  * Modal đặt cược — hỗ trợ WIN / PLACE / SHOW / QUINELLA / EXACTA.
@@ -28,7 +37,15 @@ const QUICK_AMOUNTS = [100, 500, 1000, 5000]
  *  - onClose()
  *  - onPlaced(prediction) : callback sau khi đặt cược thành công
  */
-export default function BettingModal({ race, entries = [], userBalance = 0, onClose, onPlaced }) {
+export default function BettingModal({
+  race,
+  entries = [],
+  userBalance = 0,
+  walletFrozen = false,
+  onRefreshBalance,
+  onClose,
+  onPlaced,
+}) {
   const [betType, setBetType]       = useState('WIN')
   const [pick1, setPick1]           = useState(null)   // entry object (first pick)
   const [pick2, setPick2]           = useState(null)   // entry object (second pick, QUINELLA/EXACTA only)
@@ -36,10 +53,105 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess]       = useState(null)
   const [error, setError]           = useState('')
+  // FIX BUG-7.05: lưu entries trong state để patch khi nhận `odds:updated` từ socket.
+  // Snapshot ban đầu từ props `entries`.
+  const [liveEntries, setLiveEntries] = useState(entries || [])
+  const [raceStatus, setRaceStatus]   = useState(race?.status)
+  // FIX BUG-7.06: dùng state (không ref) vì phải đọc lúc render trong `canSubmit`.
+  // Initial false; flip thành true khi entry:status_changed có raceStatus mới
+  // không thuộc BETTABLE_STATUSES (race đã start).
+  const [raceChangedDuringOpen, setRaceChangedDuringOpen] = useState(false)
+  const closeRef = useRef(null)
+
+  // Đồng bộ entries prop → state khi parent truyền entries mới (race detail load)
+  useEffect(() => {
+    setLiveEntries(Array.isArray(entries) ? entries : [])
+  }, [entries, race?.raceId])
+
+  // Update raceStatus when race prop changes
+  useEffect(() => {
+    setRaceStatus(race?.status)
+    setRaceChangedDuringOpen(false)
+  }, [race?.raceId, race?.status])
 
   const betTypeDef = BET_TYPES.find(b => b.code === betType)
   const isDual     = betTypeDef?.picks === 2
-  const isOpen     = race?.status === 'SCHEDULED'
+  // FIX BUG-7.06: kiểm tra status thông qua set allowlist thay vì chỉ SCHEDULED.
+  const isOpen     = BETTABLE_STATUSES.has(String(raceStatus || '').toUpperCase())
+
+  // FIX BUG-7.14: ref để ESC listener không re-attach mỗi render (parent
+  // truyền arrow function mới). Cập nhật ref qua effect để không mutate lúc render.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // A11y: focus close button khi modal mount; ESC để đóng (khi không submit).
+  useEffect(() => {
+    if (closeRef.current) closeRef.current.focus()
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !submitting && !success) onCloseRef.current?.()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [submitting, success])
+
+  // FIX BUG-7.05: subscribe `odds:updated` để cập nhật odds real-time trong modal.
+  // Backend (theo socket.js docs) emit `odds:updated` trong room race:${raceId}.
+  // Payload khuyến nghị: { raceId, entries: [{ entryId, oddsFinal }] }
+  useEffect(() => {
+    const raceId = race?.raceId
+    if (!raceId) return undefined
+
+    subscribeRace(raceId)
+    const offOdds = onSocketEvent('odds:updated', (payload) => {
+      const incomingRaceId = String(payload?.raceId ?? payload?.race?.raceId ?? '')
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return
+      const updates = Array.isArray(payload?.entries) ? payload.entries : []
+      if (updates.length === 0) return
+
+      setLiveEntries((prev) =>
+        prev.map((e) => {
+          const patch = updates.find((u) => String(u.entryId ?? u.id) === String(e.entryId))
+          if (!patch) return e
+          return { ...e, oddsFinal: patch.oddsFinal ?? patch.odds ?? e.oddsFinal }
+        })
+      )
+    })
+
+    return () => {
+      offOdds?.()
+      unsubscribeRace(raceId)
+    }
+  }, [race?.raceId])
+
+  // FIX BUG-7.06: subscribe `entry:status_changed` & `race:started` để disable bet
+  // khi race bắt đầu trong lúc user đang chọn. Service không tự check, modal phải
+  // reflect UI ngay.
+  useEffect(() => {
+    const raceId = race?.raceId
+    if (!raceId) return undefined
+
+    const offEntryChange = onSocketEvent('entry:status_changed', (payload) => {
+      const incomingRaceId = String(payload?.raceId ?? '')
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return
+      // Nếu race chuyển sang IN_PROGRESS, status thay đổi → modal tự disable.
+      const newStatus = String(payload?.raceStatus ?? '').toUpperCase()
+        if (newStatus) {
+          setRaceStatus(newStatus)
+          if (newStatus !== 'SCHEDULED' && newStatus !== 'BETTING_OPEN' &&
+              newStatus !== 'REGISTRATION_OPEN' && newStatus !== 'UPCOMING') {
+            // Race đã chuyển sang IN_PROGRESS / FINISHED → disable bet.
+            setRaceChangedDuringOpen(true)
+          }
+        }
+    })
+
+    return () => offEntryChange?.()
+  }, [race?.raceId])
 
   // Reset picks when switching between single/dual mode
   useEffect(() => {
@@ -61,6 +173,11 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
   // Handle entry card click
   function handleEntryClick(entry) {
     if (!isOpen || success) return
+    // FIX BUG-7.06: nếu race đã thay đổi status → block selection.
+    if (raceChangedDuringOpen) {
+      setError('Cuộc đua vừa chuyển trạng thái — không thể chọn ngựa.')
+      return
+    }
     if (!isDual) {
       setPick1(entry)
       return
@@ -93,10 +210,15 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
     return Math.round(((o1 + o2) / 2) * 100) / 100
   }, [pick1, pick2, isDual])
 
+  // FIX BUG-7.13: multiplier cho QUINELLA/EXACTA (settlement spec). WIN/PLACE/SHOW = 1.
+  const betMultiplier = betTypeDef?.multiplier ?? 1.0
+
   const numericAmount  = Number(amount) || 0
   const maxAllowed     = Math.floor(userBalance * 0.5)
-  const potentialPayout = lockedOddsPreview && numericAmount > 0
-    ? Math.floor(numericAmount * lockedOddsPreview)
+  // FIX BUG-7.13: potential payout = numericAmount * lockedOdds * multiplier
+  // khớp với settlement engine ở FLOW 8.
+  const potentialPayout = lockedOddsPreview && numericAmount > 0 && isOpen
+    ? Math.floor(numericAmount * lockedOddsPreview * betMultiplier)
     : 0
 
   const amountError = useMemo(() => {
@@ -107,16 +229,49 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
     return ''
   }, [amount, numericAmount, maxAllowed])
 
-  const picksReady = isDual ? (pick1 && pick2) : !!pick1
-  const canSubmit  = isOpen && !submitting && !success && picksReady &&
-                     numericAmount >= MIN_BET && numericAmount <= maxAllowed && !amountError
+  const picksReady = isDual ? (pick1 && pick2 && pick1.entryId !== pick2.entryId) : !!pick1
+  // FIX BUG-7.06: thêm kiểm tra raceChangedDuringOpen. Service chỉ check
+  // race.status === 'SCHEDULED' qua BE; FE cũng phải ngăn submit.
+  const canSubmit  = isOpen && !submitting && !success && !walletFrozen && picksReady &&
+                     numericAmount >= MIN_BET && numericAmount <= maxAllowed && !amountError &&
+                     !raceChangedDuringOpen && lockedOddsPreview > 0
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!picksReady) { setError(isDual ? 'Vui lòng chọn đủ 2 ngựa.' : 'Vui lòng chọn ngựa.'); return }
+    if (walletFrozen) {
+      setError('Ví của bạn đang bị đóng băng — không thể đặt cược.')
+      return
+    }
+    // FIX BUG-7.06: nếu race đã đổi status (start) trong lúc modal mở → block submit.
+    if (raceChangedDuringOpen) {
+      setError('Cuộc đua vừa chuyển trạng thái — không thể đặt cược nữa.')
+      return
+    }
+    if (!picksReady) { setError(isDual ? 'Vui lòng chọn đủ 2 ngựa khác nhau.' : 'Vui lòng chọn ngựa.'); return }
     if (amountError)  { setError(amountError); return }
     setError('')
     setSubmitting(true)
+
+    // G7: refresh balance ngay trước khi submit để chắc chắn maxAllowed đúng
+    let effectiveBalance = userBalance
+    if (typeof onRefreshBalance === 'function') {
+      try {
+        const fresh = await onRefreshBalance()
+        if (Number.isFinite(fresh)) {
+          effectiveBalance = fresh
+          // Validate lại sau khi refresh
+          const newMax = Math.floor(fresh * 0.5)
+          if (numericAmount > newMax) {
+            setError(`Số dư vừa thay đổi. Tối đa hiện tại là ${formatPoints(newMax)} điểm.`)
+            setSubmitting(false)
+            return
+          }
+        }
+      } catch {
+        // Không block submit nếu refresh fail — service sẽ validate
+      }
+    }
+
     try {
       const entryIds = isDual ? [pick1.entryId, pick2.entryId] : [pick1.entryId]
       const prediction = await bettingService.placeBet({
@@ -124,10 +279,14 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
         betType,
         entryIds,
         betAmount:     numericAmount,
-        walletBalance: userBalance,
+        walletBalance: effectiveBalance,
       })
       setSuccess(prediction)
       onPlaced?.(prediction)
+      showToast.success(
+        `Đặt cược thành công ${formatPoints(numericAmount)} PTS — odds khoá ×${Number(prediction?.lockedOdds ?? 0).toFixed(2)}.`,
+        'Đặt cược'
+      )
     } catch (err) {
       setError(err.message || 'Đặt cược thất bại')
     } finally {
@@ -136,8 +295,15 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
   }
 
   return (
-    <div className="bet-modal-backdrop" onClick={onClose}>
-      <div className="bet-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+    <div className="bet-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="bet-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bet-modal-title"
+        aria-describedby="bet-modal-subtitle"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="bet-modal__bar" />
 
         {/* Header */}
@@ -145,13 +311,20 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
           <div className="bet-modal__title-wrap">
             <Coins className="bet-modal__icon" size={18} />
             <div>
-              <h2 className="bet-modal__title">Đặt cược PTS</h2>
-              <p className="bet-modal__subtitle">{race?.name}</p>
+              <h2 id="bet-modal-title" className="bet-modal__title">Đặt cược PTS</h2>
+              <p id="bet-modal-subtitle" className="bet-modal__subtitle">{race?.name}</p>
             </div>
           </div>
           <div className="bet-modal__header-right">
-            <StatusBadge status={race?.status} />
-            <button type="button" className="bet-modal__close" onClick={onClose} aria-label="Đóng">
+            <StatusBadge status={raceStatus} />
+            <button
+              ref={closeRef}
+              type="button"
+              className="bet-modal__close"
+              onClick={onClose}
+              aria-label="Đóng"
+              disabled={submitting}
+            >
               <X size={18} />
             </button>
           </div>
@@ -161,6 +334,13 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
           <AlertCircle size={14} />
           <span>Odds hiển thị là tỷ lệ tại thời điểm bạn bấm "Xác nhận". Sau đó không thay đổi dù Admin điều chỉnh.</span>
         </div>
+
+        {walletFrozen && (
+          <div className="bet-modal__notice bet-modal__notice--error" role="alert">
+            <AlertCircle size={14} />
+            <span>Ví điểm của bạn đang bị đóng băng bởi Admin — không thể đặt cược cho tới khi được mở.</span>
+          </div>
+        )}
 
         <form id="bet-form" className="bet-modal__body" onSubmit={handleSubmit}>
           {!isOpen && !success && (
@@ -203,11 +383,11 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
               )}
             </h3>
 
-            {entries.length === 0 ? (
+            {liveEntries.length === 0 ? (
               <div className="bet-empty">Chưa có ngựa nào được duyệt cho trận này.</div>
             ) : (
               <div className="bet-horses">
-                {entries.map(entry => {
+                {liveEntries.map(entry => {
                   const isPick1 = pick1?.entryId === entry.entryId
                   const isPick2 = pick2?.entryId === entry.entryId
                   const horse   = entry.horse
@@ -323,6 +503,10 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
                     <span>Odds khoá (trung bình)</span>
                     <strong>×{lockedOddsPreview.toFixed(2)}</strong>
                   </div>
+                  <div className="bet-summary__row">
+                    <span>Hệ số {betType}</span>
+                    <strong>×{betMultiplier.toFixed(2)}</strong>
+                  </div>
                 </>
               ) : (
                 <>
@@ -334,6 +518,12 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
                     <span>Odds khoá</span>
                     <strong>×{lockedOddsPreview.toFixed(2)}</strong>
                   </div>
+                  {betMultiplier !== 1 && (
+                    <div className="bet-summary__row">
+                      <span>Hệ số {betType}</span>
+                      <strong>×{betMultiplier.toFixed(2)}</strong>
+                    </div>
+                  )}
                 </>
               )}
               <div className="bet-summary__row">
@@ -377,7 +567,7 @@ export default function BettingModal({ race, entries = [], userBalance = 0, onCl
                 className="bet-btn bet-btn--primary"
                 disabled={!canSubmit}
               >
-                {submitting ? 'Đang đặt…' : 'Xác nhận đặt cược'}
+                {submitting ? 'Đang đặt…' : walletFrozen ? 'Ví đang bị đóng băng' : 'Xác nhận đặt cược'}
               </button>
             )}
           </div>

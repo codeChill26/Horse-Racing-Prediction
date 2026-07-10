@@ -8,6 +8,13 @@
  *
  * Trang chi tiết chặng đua cho Admin.
  * Route: /admin/races/:raceId
+ *
+ * Refactor (Flow 8 patch):
+ *   - Modals tách sang `components/admin/race/AdminRaceDetailModals.jsx`.
+ *   - Publish/rollback logic tách sang `hooks/useSettlementActions.js`.
+ *   - ConfirmModal nhận `busy` để chống double-click (BUG-8.01).
+ *   - Parent guard khi `race` null để tránh crash (BUG-8.02).
+ *   - ConfirmModal đóng modal SAU KHI onConfirm resolve → không nuốt lỗi (BUG-8.03).
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -15,11 +22,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Edit, XCircle, Wifi, WifiOff } from "lucide-react";
 import { raceDetailService } from "../../services/raceDetailService";
 import { raceEntryService } from "../../services/raceEntryService";
+import { settlementService } from "../../services/settlementService";
 import { RaceInfoCard } from "../../components/admin/race/RaceInfoCard";
 import { EntryReviewTable } from "../../components/admin/race/EntryReviewTable";
 import EntryRejectModal from "../../components/admin/race/EntryRejectModal";
 import { RaceStatisticsCard } from "../../components/admin/race/RaceStatisticsCard";
 import { RaceActionBar } from "../../components/admin/race/RaceActionBar";
+import {
+  ConfirmModal,
+  CancelReasonModal,
+  RollbackReasonModal,
+} from "../../components/admin/race/AdminRaceDetailModals";
+import { useSettlementActions } from "../../hooks/useSettlementActions";
 import { useSocket } from "../../hooks/useSocket";
 import {
   getSocket,
@@ -47,97 +61,6 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-// Confirm Modal
-function ConfirmModal({ title, message, confirmText, onConfirm, onClose, variant = "primary" }) {
-  return (
-    <div className="ard-modal-overlay" onClick={onClose}>
-      <div className="ard-confirm-modal" onClick={(e) => e.stopPropagation()}>
-        <div className={`ard-confirm-modal__bar ard-confirm-modal__bar--${variant}`} />
-        <div className="ard-confirm-modal__header">
-          <AlertTriangle size={24} className={`ard-confirm-modal__icon ard-confirm-modal__icon--${variant}`} />
-          <div>
-            <h2 className="ard-confirm-modal__title">{title}</h2>
-          </div>
-        </div>
-        <div className="ard-confirm-modal__body">
-          <p className="ard-confirm-modal__message">{message}</p>
-        </div>
-        <div className="ard-confirm-modal__footer">
-          <button type="button" className="ard-btn ard-btn--ghost" onClick={onClose}>
-            Hủy
-          </button>
-          <button
-            type="button"
-            className={`ard-btn ard-btn--${variant}`}
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-          >
-            {confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Cancel Reason Modal
-function CancelReasonModal({ raceName, onConfirm, onClose }) {
-  const [reason, setReason] = useState("");
-  const [error, setError] = useState("");
-
-  const handleSubmit = () => {
-    if (!reason.trim()) {
-      setError("Vui lòng nhập lý do hủy chặng đua.");
-      return;
-    }
-    onConfirm(reason.trim());
-    onClose();
-  };
-
-  return (
-    <div className="ard-modal-overlay" onClick={onClose}>
-      <div className="ard-reason-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="ard-reason-modal__bar" />
-        <div className="ard-reason-modal__header">
-          <AlertTriangle size={24} className="ard-reason-modal__icon" />
-          <div>
-            <h2 className="ard-reason-modal__title">Hủy chặng đua</h2>
-            <p className="ard-reason-modal__subtitle">{raceName}</p>
-          </div>
-        </div>
-        <div className="ard-reason-modal__body">
-          {error && <div className="ard-alert ard-alert--error">{error}</div>}
-          <p className="ard-reason-modal__label">Lý do hủy chặng đua:</p>
-          <textarea
-            className="ard-reason-modal__textarea"
-            rows={4}
-            value={reason}
-            onChange={(e) => {
-              setReason(e.target.value);
-              if (error) setError("");
-            }}
-            placeholder="Nhập lý do hủy chặng đua..."
-          />
-        </div>
-        <div className="ard-reason-modal__footer">
-          <button type="button" className="ard-btn ard-btn--ghost" onClick={onClose}>
-            Hủy
-          </button>
-          <button
-            type="button"
-            className="ard-btn ard-btn--danger"
-            onClick={handleSubmit}
-          >
-            Xác nhận hủy
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminRaceDetailPage() {
   const { raceId } = useParams();
   const navigate = useNavigate();
@@ -157,8 +80,10 @@ export default function AdminRaceDetailPage() {
   const [confirmModal, setConfirmModal] = useState(null);
   const [cancelModal, setCancelModal] = useState(false);
   const [rejectEntryModal, setRejectEntryModal] = useState(null);
+  const [rollbackModal, setRollbackModal] = useState(false);
   const [entryBusyId, setEntryBusyId] = useState(null);
   const [entryError, setEntryError] = useState("");
+  const [approveConfirmModal, setApproveConfirmModal] = useState(null);
 
   // Filter entries theo status
   const [entryStatusFilter, setEntryStatusFilter] = useState("ALL");
@@ -170,7 +95,30 @@ export default function AdminRaceDetailPage() {
     setToast({ message, type });
   };
 
+  // === Flow 8: settlement hook (encapsulates publish/rollback + settlement state) ===
+  const onRaceUpdated = useCallback((patch) => {
+    setRace((prev) => (prev ? { ...prev, ...patch } : patch));
+  }, []);
+
+  const {
+    publishBusy,
+    rollbackBusy,
+    settlement,
+    setSettlement,
+    refetchSettlement,
+    publishRace,
+    unpublishRace,
+  } = useSettlementActions({ raceId, onRaceUpdated });
+
+  const closeConfirmModal = useCallback(() => setConfirmModal(null), []);
+  const closeRollbackModal = useCallback(() => setRollbackModal(false), []);
+
   const loadData = useCallback(async () => {
+    if (!raceId) {
+      setError("Thiếu ID chặng đua trong URL.");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -182,12 +130,23 @@ export default function AdminRaceDetailPage() {
       setRace(raceData);
       setEntries(entriesData);
       setStatistics(statsData);
+
+      if (String(raceData?.status || "").toUpperCase() === "FINISHED") {
+        try {
+          const summary = await settlementService.getSettlement(raceId);
+          setSettlement(summary);
+        } catch (_e) {
+          setSettlement(null);
+        }
+      } else {
+        setSettlement(null);
+      }
     } catch (e) {
       setError(e.message || "Không tải được chi tiết chặng đua");
     } finally {
       setLoading(false);
     }
-  }, [raceId]);
+  }, [raceId, setSettlement]);
 
   useEffect(() => {
     loadData();
@@ -197,7 +156,6 @@ export default function AdminRaceDetailPage() {
   useEffect(() => {
     if (!token) return undefined;
 
-    // entry:created → owner vừa submit entry trực tiếp
     const offCreated = onSocketEvent("entry:created", (payload) => {
       const incoming = payload?.entry;
       if (!incoming) return;
@@ -215,7 +173,6 @@ export default function AdminRaceDetailPage() {
       );
     });
 
-    // entry:status_changed → admin vừa duyệt/từ chối → cập nhật lại bảng entries
     const offEntryStatus = onSocketEvent("entry:status_changed", (payload) => {
       const incoming = payload?.entry;
       if (!incoming) return;
@@ -229,7 +186,6 @@ export default function AdminRaceDetailPage() {
         .catch(() => {});
     });
 
-    // odds:updated → BE recalc odds → reload race detail + stats
     const offOdds = onSocketEvent("odds:updated", (payload) => {
       const incomingRaceId = String(payload?.raceId ?? "");
       if (incomingRaceId && incomingRaceId !== String(raceId)) return;
@@ -239,7 +195,6 @@ export default function AdminRaceDetailPage() {
           if (stats) setStatistics(stats);
         })
         .catch(() => {});
-      // Cập nhật lại odds trong bảng entries (EntryReviewTable đang hiển thị odds)
       raceEntryService
         .getEntriesByRace(raceId)
         .then((list) => {
@@ -248,8 +203,41 @@ export default function AdminRaceDetailPage() {
         .catch(() => {});
     });
 
-    // Subscribe room race:${raceId} để server gửi odds:updated về.
-    // Mỗi lần socket reconnect, BE sẽ drop room → cần subscribe lại.
+    // FLOW 8: race:published → tab admin khác vừa publish, refresh detail page
+    const offPublished = onSocketEvent("race:published", (payload) => {
+      const incomingRaceId = String(
+        payload?.race?.raceId ?? payload?.raceId ?? ""
+      );
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
+      onRaceUpdated({
+        status: "FINISHED",
+        publishedAt: payload?.publishedAt ?? new Date().toISOString(),
+      });
+      if (payload?.settlement) {
+        setSettlement(payload.settlement);
+      } else {
+        refetchSettlement();
+      }
+      showToast.success(
+        "Race vừa được publish — trang sẽ tự động cập nhật.",
+        "Realtime"
+      );
+    });
+
+    // FLOW 8: race:unpublished → rollback settlement
+    const offUnpublished = onSocketEvent("race:unpublished", (payload) => {
+      const incomingRaceId = String(
+        payload?.race?.raceId ?? payload?.raceId ?? ""
+      );
+      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
+      onRaceUpdated({ status: "PENDING_RESULT" });
+      setSettlement(null);
+      showToast.info(
+        "Race vừa được rollback — settlement bị hủy.",
+        "Realtime"
+      );
+    });
+
     const sock = getSocket(token);
     if (sock && sock.connected) {
       subscribeRace(raceId);
@@ -264,6 +252,8 @@ export default function AdminRaceDetailPage() {
       offCreated();
       offEntryStatus();
       offOdds();
+      offPublished();
+      offUnpublished();
       offStatus();
       try {
         unsubscribeRace(raceId);
@@ -271,52 +261,53 @@ export default function AdminRaceDetailPage() {
         /* noop */
       }
     };
-  }, [token, raceId, toastify]);
+  }, [token, raceId, toastify, refetchSettlement, onRaceUpdated, setSettlement]);
 
-  const updateRace = (updated) => {
-    setRace((prev) => (prev ? { ...prev, ...updated } : updated));
-  };
+  // === Action handlers (Flow 2/3/8) ===
 
-  const handleOpenRegistration = () => {
+  const openRegistrationConfirm = () => {
     setConfirmModal({
       title: "Mở cổng đăng ký",
       message: `Bạn có muốn mở cổng đăng ký cho chặng "${race?.name}"?`,
       confirmText: "Mở cổng",
       variant: "ok",
-      onConfirm: async () => {
-        setBusy(true);
-        try {
-          const updated = await raceDetailService.openRegistration(raceId);
-          updateRace(updated);
-          showToast("Đã mở cổng đăng ký", "success");
-        } catch (e) {
-          showToast(e.message || "Không thể mở cổng đăng ký", "error");
-        } finally {
-          setBusy(false);
-        }
-      },
     });
   };
 
-  const handleCloseRegistration = () => {
+  const closeRegistrationConfirm = () => {
     setConfirmModal({
       title: "Đóng cổng đăng ký",
       message: `Bạn có muốn đóng cổng đăng ký cho chặng "${race?.name}"?`,
       confirmText: "Đóng cổng",
       variant: "warn",
-      onConfirm: async () => {
-        setBusy(true);
-        try {
-          const updated = await raceDetailService.closeRegistration(raceId);
-          updateRace(updated);
-          showToast("Đã đóng cổng đăng ký", "success");
-        } catch (e) {
-          showToast(e.message || "Không thể đóng cổng đăng ký", "error");
-        } finally {
-          setBusy(false);
-        }
-      },
     });
+  };
+
+  const handleConfirmModalAction = async () => {
+    if (!confirmModal) return;
+    setBusy(true);
+    try {
+      let updated;
+      if (confirmModal.variant === "ok") {
+        updated = await raceDetailService.openRegistration(raceId);
+        showToast("Đã mở cổng đăng ký", "success");
+      } else if (confirmModal.variant === "warn") {
+        updated = await raceDetailService.closeRegistration(raceId);
+        showToast("Đã đóng cổng đăng ký", "success");
+      } else {
+        return;
+      }
+      onRaceUpdated(updated);
+    } catch (e) {
+      const fallback =
+        confirmModal.variant === "ok"
+          ? "Không thể mở cổng đăng ký"
+          : "Không thể đóng cổng đăng ký";
+      showToast(e.message || fallback, "error");
+    } finally {
+      setBusy(false);
+      closeConfirmModal();
+    }
   };
 
   const handleCancel = () => {
@@ -327,8 +318,9 @@ export default function AdminRaceDetailPage() {
     setBusy(true);
     try {
       const updated = await raceDetailService.cancelRace(raceId, reason);
-      updateRace(updated);
+      onRaceUpdated(updated);
       showToast("Đã hủy chặng đua", "success");
+      setCancelModal(false);
     } catch (e) {
       showToast(e.message || "Không thể hủy chặng đua", "error");
     } finally {
@@ -337,8 +329,53 @@ export default function AdminRaceDetailPage() {
   };
 
   const handleEdit = () => {
-    // TODO: Navigate to edit page or open edit modal
     showToast("Chức năng đang phát triển", "info");
+  };
+
+  // === Flow 8: Publish (settle bets) ===
+  const askPublish = () => {
+    setConfirmModal({
+      title: "Publish kết quả chặng đua",
+      message: (
+        <>
+          Publish sẽ <strong>settle tất cả bets</strong> của spectators theo kết quả
+          chính thức, cộng tiền thưởng vào ví và chuyển race sang trạng thái{" "}
+          <strong>FINISHED</strong>.
+          <br />
+          <br />
+          Race <strong>{race?.name}</strong> sẽ được xuất bản với Top 3 hiện tại.{" "}
+          Bạn có chắc đã kiểm tra kỹ thứ hạng?
+        </>
+      ),
+      confirmText: "Publish & Settle",
+      variant: "primary",
+      flow: "publish",
+    });
+  };
+
+  const handlePublishFromConfirm = async () => {
+    if (!confirmModal || confirmModal.flow !== "publish") return;
+    setBusy(true);
+    try {
+      await publishRace(true);
+      closeConfirmModal();
+    } catch (_e) {
+      // publishRace already shows toast on error
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // === Flow 8: Unpublish / Rollback ===
+  const askRollback = () => {
+    setRollbackModal(true);
+  };
+
+  const handleRollback = async (reason) => {
+    const ok = await unpublishRace(reason);
+    if (ok) {
+      setRollbackModal(false);
+    }
   };
 
   // === Flow 2: entry review ===
@@ -356,10 +393,13 @@ export default function AdminRaceDetailPage() {
   };
 
   const handleApproveEntry = async (entry) => {
-    const ok = window.confirm(
-      `Duyệt đơn đăng ký của ngựa "${entry.horseName}"?`
-    );
-    if (!ok) return;
+    setApproveConfirmModal(entry);
+  };
+
+  const handleConfirmApproveEntry = async () => {
+    const entry = approveConfirmModal;
+    if (!entry) return;
+    setApproveConfirmModal(null);
     setEntryError("");
     setEntryBusyId(entry.entryId || entry.id);
     try {
@@ -404,14 +444,20 @@ export default function AdminRaceDetailPage() {
     }
   };
 
+  // === BUG-8.02: parent-level guard tránh crash khi race null ===
+  // RaceActionBar vẫn render skeleton qua prop `loading`,
+  // và chỉ truyền onPublish/onUnpublish khi service cho phép.
+  const canPublish = settlementService.canPublish(race);
+  const canUnpublish = settlementService.canUnpublish(race);
+  const raceStatus = String(race?.status || "").toUpperCase();
+  const isRaceCancellable = raceStatus !== "CANCELLED" && raceStatus !== "FINISHED";
+
   return (
     <div className="ard-page">
-      {/* Toast */}
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
 
-      {/* Header */}
       <header className="ard-page__header">
         <button
           type="button"
@@ -432,7 +478,6 @@ export default function AdminRaceDetailPage() {
         </div>
       </header>
 
-      {/* Error Banner */}
       {error && !loading && (
         <div className="ard-alert ard-alert--error">
           <AlertTriangle size={16} />
@@ -443,29 +488,26 @@ export default function AdminRaceDetailPage() {
         </div>
       )}
 
-      {/* Action Bar */}
       <RaceActionBar
         race={race}
         onEdit={handleEdit}
         onCancel={handleCancel}
-        onOpenRegistration={handleOpenRegistration}
-        onCloseRegistration={handleCloseRegistration}
+        onOpenRegistration={openRegistrationConfirm}
+        onCloseRegistration={closeRegistrationConfirm}
+        onPublish={canPublish ? askPublish : undefined}
+        onUnpublish={canUnpublish ? askRollback : undefined}
         onRefresh={loadData}
         loading={loading}
-        busy={busy}
+        busy={busy || publishBusy || rollbackBusy}
       />
 
-      {/* Content Grid */}
       <div className="ard-content">
-        {/* Left Column */}
         <div className="ard-content__main">
-          {/* Race Info */}
           <section className="ard-section">
             <h2 className="ard-section__title">Thông tin chặng đua</h2>
             <RaceInfoCard race={race} loading={loading} />
           </section>
 
-          {/* Entries — Flow 2: admin review entries */}
           <section className="ard-section">
             <div className="ard-section__head">
               <h2 className="ard-section__title">
@@ -508,15 +550,16 @@ export default function AdminRaceDetailPage() {
           </section>
         </div>
 
-        {/* Right Column */}
         <div className="ard-content__sidebar">
-          {/* Statistics */}
           <section className="ard-section">
             <h2 className="ard-section__title">Thống kê</h2>
-            <RaceStatisticsCard statistics={statistics} loading={loading} />
+            <RaceStatisticsCard
+              statistics={statistics}
+              settlement={settlement}
+              loading={loading}
+            />
           </section>
 
-          {/* Quick Actions Card */}
           <section className="ard-section">
             <h2 className="ard-section__title">Thao tác nhanh</h2>
             <div className="ard-quick-actions">
@@ -529,7 +572,7 @@ export default function AdminRaceDetailPage() {
                 <Edit size={16} />
                 Chỉnh sửa thông tin
               </button>
-              {race?.status !== "CANCELLED" && (
+              {isRaceCancellable && (
                 <button
                   type="button"
                   className="ard-quick-btn ard-quick-btn--danger"
@@ -545,24 +588,43 @@ export default function AdminRaceDetailPage() {
         </div>
       </div>
 
-      {/* Confirm Modal */}
+      {/* Confirm Modal (registration open/close + publish) */}
       {confirmModal && (
         <ConfirmModal
+          key={confirmModal.title}
           title={confirmModal.title}
           message={confirmModal.message}
           confirmText={confirmModal.confirmText}
           variant={confirmModal.variant}
-          onConfirm={confirmModal.onConfirm}
-          onClose={() => setConfirmModal(null)}
+          onConfirm={
+            confirmModal.flow === "publish"
+              ? handlePublishFromConfirm
+              : handleConfirmModalAction
+          }
+          onClose={closeConfirmModal}
+          busy={busy || publishBusy}
         />
       )}
 
       {/* Cancel Reason Modal */}
       {cancelModal && (
         <CancelReasonModal
+          key={`cancel-${race?.raceId ?? "x"}`}
           raceName={race?.name}
           onConfirm={handleCancelConfirm}
           onClose={() => setCancelModal(false)}
+          busy={busy}
+        />
+      )}
+
+      {/* FLOW 8: Rollback Reason Modal */}
+      {rollbackModal && (
+        <RollbackReasonModal
+          key={`rollback-${race?.raceId ?? "x"}`}
+          raceName={race?.name}
+          onConfirm={handleRollback}
+          onClose={closeRollbackModal}
+          busy={rollbackBusy}
         />
       )}
 
@@ -574,6 +636,20 @@ export default function AdminRaceDetailPage() {
           error={entryError}
           onClose={handleCloseRejectEntryModal}
           onConfirm={handleConfirmRejectEntry}
+        />
+      ) : null}
+
+      {/* Confirm Modal: approve entry */}
+      {approveConfirmModal ? (
+        <ConfirmModal
+          key={`approve-${approveConfirmModal.entryId ?? approveConfirmModal.id}`}
+          title="Xác nhận duyệt entry"
+          message={`Duyệt đơn đăng ký của ngựa "${approveConfirmModal.horseName}"?`}
+          confirmText="Duyệt"
+          variant="primary"
+          onConfirm={handleConfirmApproveEntry}
+          onClose={() => setApproveConfirmModal(null)}
+          busy={!!entryBusyId}
         />
       ) : null}
     </div>

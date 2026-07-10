@@ -51,6 +51,7 @@ import {
 import { getAccessToken } from "../../utils/token";
 import RaceStartConfirmModal from "../../components/common/RaceStartConfirmModal";
 import ReportViolationModal from "../../components/referee/ReportViolationModal";
+import { normalizeRaceStatus } from "../../utils/raceStatus";
 import "./RefereeRaceControlPage.css";
 
 // ============================================================
@@ -1125,7 +1126,9 @@ export default function RefereeRaceControlPage() {
                   onChange={setResults}
                   errors={errors}
                   onReportViolation={
-                    race?.status === "InProgress" ? handleReportViolation : null
+                    normalizeRaceStatus(race?.status) === "InProgress"
+                      ? handleReportViolation
+                      : null
                   }
                   disabled={isSubmitting}
                 />
