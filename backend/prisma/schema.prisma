@@ -209,6 +209,7 @@ model Race {
   invitations JockeyInvitation[]
   predictions Prediction[]
   odds        Odds[]
+  violations Violation[]
 
   // BỔ SUNG: Quan hệ tới luồng nộp điểm Blind Entry
   refereeA           User?               @relation("RaceRefereeA", fields: [refereeAId], references: [userId], onDelete: SetNull)
@@ -269,6 +270,7 @@ model RaceEntry {
   pickedAs1    Prediction[] @relation("Pick1")
   pickedAs2    Prediction[] @relation("Pick2")
   odds         Odds[]
+  violations Violation[]
 
   @@unique([raceId, horseId])
   @@unique([raceId, jockeyId])
@@ -401,4 +403,24 @@ model SystemSetting {
   value       Decimal  @default(0.0)
   description String?
   updatedAt   DateTime @updatedAt
+}
+
+model Violation {
+  violationId     Int       @id @default(autoincrement())
+  raceId          Int
+  entryId         Int?
+  type            String
+  severity        String
+  description     String
+  status          String    @default("OPEN")
+  penalty         String?
+  resolutionNote  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  race            Race      @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  entry           RaceEntry? @relation(fields: [entryId], references: [entryId], onDelete: SetNull)
+
+  @@index([raceId])
+  @@index([entryId])
 }
