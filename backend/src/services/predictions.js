@@ -251,12 +251,12 @@ class PredictionsService {
     
     const total = await prisma.prediction.count();
     const totalPoolRaw = await prisma.prediction.aggregate({
-      _sum: { amount: true }
+      _sum: { betAmount: true }
     });
-    
+
     return {
       totalPredictions: total,
-      totalPool: totalPoolRaw._sum.amount || 0,
+      totalPool: totalPoolRaw._sum.betAmount || 0,
       won: stats.find(s => s.status === 'WON')?._count || 0,
       lost: stats.find(s => s.status === 'LOST')?._count || 0,
       pending: stats.find(s => s.status === 'PENDING')?._count || 0

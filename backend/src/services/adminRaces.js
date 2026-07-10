@@ -342,34 +342,6 @@ class AdminRacesService {
   }
 
   /**
-   * CRITICAL-8: Lấy danh sách Race theo Tournament (Có phân trang)
-   */
-  async listRacesByTournament(tournamentId, { page = 1, pageSize = 10 } = {}) {
-    const skip = (page - 1) * pageSize;
-    const [total, races] = await prisma.$transaction([
-      prisma.race.count({ where: { tournamentId: parseInt(tournamentId) } }),
-      prisma.race.findMany({
-        where: { tournamentId: parseInt(tournamentId) },
-        skip,
-        take: parseInt(pageSize),
-        orderBy: { scheduledAt: 'asc' },
-        include: {
-          refereeA: { select: { fullName: true } },
-          refereeB: { select: { fullName: true } },
-          _count: { select: { entries: { where: { status: 'APPROVED' } } } }
-        }
-      })
-    ]);
-
-    const formattedRaces = races.map(r => ({
-      ...r,
-      approvedEntriesCount: r._count.entries
-    }));
-
-    return { total, page: parseInt(page), pageSize: parseInt(pageSize), races: formattedRaces };
-  }
-
-  /**
    * CRITICAL-6: Đóng/Mở cổng đăng ký ngựa (Registration Gate)
    */
   async updateRegistrationGate(raceId, isOpen) {
@@ -392,9 +364,26 @@ class AdminRacesService {
    * CRITICAL-7: Phân công 2 trọng tài cho trận đấu
    */
   async assignReferees(raceId, refereeAId, refereeBId) {
-    if (refereeAId === refereeBId) {
-      throw Object.assign(new Error('Hai trọng tài phải là hai người khác nhau'), { status: 400 });
-    }
+  if (refereeAId === refereeBId) {
+    throw Object.assign(new Error('Hai trọng tài phải là hai người khác nhau'), { status: 400 });
+  }
+
+  const referees = await prisma.user.findMany({
+    where: { userId: { in: [parseInt(refereeAId), parseInt(refereeBId)] } },
+    include: { role: true }
+  });
+
+  if (referees.length < 2) {
+    throw httpError('Một hoặc cả hai trọng tài được chỉ định không tồn tại trên hệ thống.', 404);
+  }
+
+  const invalidRoleUser = referees.find((u) => u.role.code !== 'RACE_REFEREE');
+  if (invalidRoleUser) {
+    throw httpError(
+      `Người dùng "${invalidRoleUser.fullName}" (id: ${invalidRoleUser.userId}) không có vai trò RACE_REFEREE, không thể phân công làm trọng tài.`,
+      400
+    );
+  }
 
     const race = await prisma.race.update({
       where: { raceId: parseInt(raceId) },
