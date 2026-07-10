@@ -13,7 +13,7 @@ class AdminRefereeController {
 
       return res.status(200).json({ success: true, message: 'Phân công 2 trọng tài thành công.', data: result });
     } catch (error) {
-      return res.status(400).json({ success: false, message: error.message });
+      return res.status(error.status || 400).json({ success: false, message: error.message });
     }
   }
 
@@ -23,7 +23,7 @@ class AdminRefereeController {
       const data = await adminRefereeService.getConflictReviewData(id);
       return res.status(200).json({ success: true, data });
     } catch (error) {
-      return res.status(400).json({ success: false, message: error.message });
+      return res.status(error.status || 400).json({ success: false, message: error.message });
     }
   }
 
@@ -44,7 +44,7 @@ class AdminRefereeController {
         data: result
       });
     } catch (error) {
-      return res.status(400).json({ success: false, message: error.message });
+      return res.status(error.status || 400).json({ success: false, message: error.message });
     }
   }
    
@@ -55,7 +55,7 @@ class AdminRefereeController {
     const deviations = await adminRefereeService.getDeviationsList(statusFilter);
     return res.status(200).json({ deviations });
    } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(error.status || 400).json({ error: error.message });
    }
   }
   

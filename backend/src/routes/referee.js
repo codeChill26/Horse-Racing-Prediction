@@ -4,9 +4,13 @@ const express = require('express');
 const router = express.Router();
 const refereeController = require('../controllers/referee.controller');
 const authenticateToken = require('../middlewares/auth');
+const refereeOnly = require('../middlewares/refereeOnly');
+
 
 // Áp dụng middleware xác thực JWT cho TOÀN BỘ các API phía dưới
 router.use(authenticateToken);
+// Chặn mọi role khác ngoài RACE_REFEREE truy cập các API vận hành trận đấu/nghiệp vụ trọng tài
+router.use(refereeOnly);
 
 // =======================================================================
 // 1. CÁC API VẬN HÀNH TRẬN ĐẤU

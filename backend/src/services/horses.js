@@ -200,7 +200,7 @@ class HorsesService {
       // 1. Đổi trạng thái ngựa thành REVOKED
       const horse = await tx.horse.update({
         where: { horseId: parsedHorseId },
-        data: { status: 'REVOKED' } // Hoặc cột trạng thái tương ứng trong schema của bạn
+        data: { status: 'INACTIVE' } 
       });
 
       // 2. Hủy toàn bộ RaceEntry đang PENDING hoặc APPROVED của ngựa này

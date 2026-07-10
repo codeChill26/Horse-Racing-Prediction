@@ -19,10 +19,9 @@ class SettlementController {
       // 2. Đóng gói dữ liệu qua lớp DTO đầu ra
       const outputData = new SettlementResultDto(report);
 
-      // 3. PHÁT THÔNG BÁO REAL-TIME QUA SOCKET.IO (Đã sửa đổi chống crash)
+      // 3. PHÁT THÔNG BÁO REAL-TIME QUA SOCKET.IO
       try {
-        // Kiểm tra xem module socketEmitter của bạn sử dụng hàm nào để gửi tin riêng biệt
-        // Giải pháp an toàn nhất, tránh crash lỗi hàm là bọc trong khối try-catch độc lập:
+        // Cộng điểm cho từng người thắng cược -> chỉ người đó cần nhận (room riêng theo userId)
         Object.entries(report.walletIncrements).forEach(([spectatorId, amount]) => {
           const messageData = {
             type: 'BET_WON',
@@ -30,26 +29,14 @@ class SettlementController {
             addedAmount: amount
           };
 
-          if (typeof socketEmitter.to === 'function') {
-            // Định dạng chuẩn của Socket.io Server Emitter: io.to(room).emit(event, data)
-            socketEmitter.to(`user_${spectatorId}`).emit('WALLET_UPDATED', messageData);
-          } else if (typeof socketEmitter.sendToUser === 'function') {
-            socketEmitter.sendToUser(parseInt(spectatorId), 'WALLET_UPDATED', messageData);
-          } else {
-            // Giải pháp dự phòng: Phát event tổng lên cho client tự lọc theo spectatorId cá nhân
-            socketEmitter.broadcast('WALLET_UPDATED_GLOBAL', { spectatorId: parseInt(spectatorId), ...messageData });
-          }
+          socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', messageData);
         });
 
         // Phát thông báo đổi trạng thái trận đấu cho toàn sàn UI
-        if (typeof socketEmitter.broadcast === 'function') {
-          socketEmitter.broadcast('RACE_FINISHED', {
-            raceId: raceId,
-            message: `Trận đua ${raceId} đã hoàn tất công bố kết quả.`
-          });
-        } else if (typeof socketEmitter.emit === 'function') {
-          socketEmitter.emit('RACE_FINISHED', { raceId: raceId });
-        }
+        socketEmitter.emitToAll('RACE_FINISHED', {
+          raceId: raceId,
+          message: `Trận đua ${raceId} đã hoàn tất công bố kết quả.`
+        });
       } catch (socketErr) {
         console.warn('[SOCKET WARNING] Không thể phát tín hiệu real-time, nhưng dữ liệu DB đã lưu an toàn:', socketErr.message);
       }
@@ -80,7 +67,7 @@ class SettlementController {
     try {
       const report = await settlementService.unpublishRace(raceId);
 
-      // HOÀN TÁC PHÁT THÔNG BÁO SOCKET (Đã bọc an toàn chống crash)
+      // HOÀN TÁC PHÁT THÔNG BÁO SOCKET
       try {
         Object.entries(report.walletDecrements).forEach(([spectatorId, amount]) => {
           const recallData = {
@@ -89,16 +76,10 @@ class SettlementController {
             recalledAmount: amount
           };
 
-          if (typeof socketEmitter.to === 'function') {
-            socketEmitter.to(`user_${spectatorId}`).emit('WALLET_UPDATED', recallData);
-          } else if (typeof socketEmitter.sendToUser === 'function') {
-            socketEmitter.sendToUser(parseInt(spectatorId), 'WALLET_UPDATED', recallData);
-          }
+          socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', recallData);
         });
 
-        if (typeof socketEmitter.broadcast === 'function') {
-          socketEmitter.broadcast('RACE_UNPUBLISHED', { raceId: raceId });
-        }
+        socketEmitter.emitToAll('RACE_UNPUBLISHED', { raceId: raceId });
       } catch (socketErr) {
         console.warn('[SOCKET WARNING] Không thể phát tín hiệu hủy real-time:', socketErr.message);
       }

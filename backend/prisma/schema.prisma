@@ -20,6 +20,7 @@ enum RaceEntryStatus {
   PENDING
   APPROVED
   REJECTED
+  DQ
 }
 
 enum InvitationStatus {
@@ -140,7 +141,9 @@ model WalletTransaction {
   balanceAfter  Int // Số dư ví điểm ngay sau giao dịch
   referenceType String? // Loại tham chiếu ngoại bang (nvarchar)
   referenceId   BigInt? // ID tham chiếu ngoại bang tương ứng (bigint)
-  type          String // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED', 'BET_REFUND', 'BET_WIN', 'BET_WIN_REVERSAL', 'WEEKLY_BONUS', 'ADMIN_ADJUSTMENT'
+  type          String // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED', 'BET_REFUND', 'BET_WIN', 'BET_WIN_REVERSAL', 'WEEKLY_BONUS', 'ADMIN_ADJUSTMENT', 'HOUSE_MARGIN', 'TREASURE_IN', 'TREASURE_OUT'
+                       // 'HOUSE_MARGIN': giao dịch hệ thống (walletId = null) ghi nhận 10% phí vận hành sàn trích ra từ mỗi trận đấu khi settlement (xem settlement.js).
+                       // 'TREASURE_IN' / 'TREASURE_OUT': giao dịch hệ thống (walletId = null) cân đối Quỹ dự phòng (Treasure Pool) sau settlement — IN khi netPool > tổng tiền thưởng đã chi, OUT khi ngược lại (bù lỗ).
   description   String?
   createdAt     DateTime @default(now())
 

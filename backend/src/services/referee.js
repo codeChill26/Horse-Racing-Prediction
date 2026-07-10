@@ -1,5 +1,11 @@
 const prisma = require('../config/prisma');
 
+function httpError(message, status = 400) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
+
 class RefereeService {
   /**
    * Kích hoạt trận đấu
@@ -20,12 +26,12 @@ class RefereeService {
     console.log('typeof race.refereeAId =', typeof race?.refereeAId);
     console.log('====================');
 
-      if (!race) throw new Error('Trận đấu không tồn tại trong hệ thống.');
-      if (race.status !== 'SCHEDULED') throw new Error('Trận đấu chỉ có thể bắt đầu khi ở trạng thái SCHEDULED.');
-      if (!race.refereeAId || !race.refereeBId) throw new Error('Trận đấu chưa được cấu hình phân công đủ 2 trọng tài.');
+      if (!race) throw httpError('Trận đấu không tồn tại trong hệ thống.', 404);
+      if (race.status !== 'SCHEDULED') throw httpError('Trận đấu chỉ có thể bắt đầu khi ở trạng thái SCHEDULED.', 409);
+      if (!race.refereeAId || !race.refereeBId) throw httpError('Trận đấu chưa được cấu hình phân công đủ 2 trọng tài.', 409);
       
       if (race.refereeAId !== refereeUserId && race.refereeBId !== refereeUserId) {
-        throw new Error('Bạn không có quyền kích hoạt trận đấu này.');
+        throw httpError('Bạn không có quyền kích hoạt trận đấu này.', 403);
       }
 
       // Chuyển trạng thái trận đấu sang IN_PROGRESS
@@ -54,16 +60,16 @@ class RefereeService {
         include: { refereeSubmissions: true }
       });
 
-      if (!race) throw new Error('Trận đấu không tồn tại.');
-      if (race.status !== 'IN_PROGRESS') throw new Error('Cổng nhập kết quả chỉ mở khi trận đấu đang ở trạng thái IN_PROGRESS.');
+      if (!race) throw httpError('Trận đấu không tồn tại.', 404);
+      if (race.status !== 'IN_PROGRESS') throw httpError('Cổng nhập kết quả chỉ mở khi trận đấu đang ở trạng thái IN_PROGRESS.', 409);
       
       if (race.refereeAId !== refereeUserId && race.refereeBId !== refereeUserId) {
-        throw new Error('Bạn không phải trọng tài được phân công gán cho trận đấu này.');
+        throw httpError('Bạn không phải trọng tài được phân công gán cho trận đấu này.', 403);
       }
 
       // Ràng buộc Append-Only: Mỗi trọng tài chỉ submit một lần duy nhất
       const hasSubmitted = race.refereeSubmissions.some(s => s.refereeId === refereeUserId);
-      if (hasSubmitted) throw new Error('Bạn đã nộp kết quả trước đó. Hệ thống cấm chỉnh sửa.');
+      if (hasSubmitted) throw httpError('Bạn đã nộp kết quả trước đó. Hệ thống cấm chỉnh sửa.', 409);
 
       // Lưu kết quả Blind
       const currentSubmission = await tx.refereeSubmission.create({
@@ -241,7 +247,7 @@ class RefereeService {
       include: { role: true }
     });
 
-    if (!user) throw new Error('Không tìm thấy tài khoản.');
+    if (!user) throw httpError('Không tìm thấy tài khoản.', 404);
 
     // Thống kê Metrics
     const totalAssigned = await prisma.race.count({
@@ -285,10 +291,10 @@ class RefereeService {
     // 1. Kiểm tra trạng thái trận đấu hợp lệ
     const race = await prisma.race.findUnique({ where: { raceId: parseInt(data.raceId) } });
     if (!race) {
-      throw Object.assign(new Error('Race not found'), { status: 404 });
+      throw httpError('Race not found', 404);
     }
     if (!['IN_PROGRESS', 'PAUSED', 'PENDING_RESULT'].includes(race.status)) {
-      throw Object.assign(new Error('Race is not in IN_PROGRESS status'), { status: 400 });
+      throw httpError('Race is not in IN_PROGRESS status', 409);
     }
 
     // 2. Lưu Database

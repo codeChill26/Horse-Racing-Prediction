@@ -90,7 +90,7 @@ adminRefereesRouter.get('/', require('./src/middlewares/auth'), require('./src/m
 app.use('/api/admin/referees', adminRefereesRouter);
 
 // Gắn kết luồng quyết toán dòng tiền (Publish & Unpublish) lên TRƯỚC để tránh nuốt tham số
-app.use('/api/admin/settlement', adminSettlementRouter);
+app.use('/api/admin/races', adminSettlementRouter);
 app.use('/api/admin/races', adminRacesRouter);
 app.use('/api/admin/tournaments/:tournamentId/races', adminRacesRouter);
 

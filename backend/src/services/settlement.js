@@ -190,7 +190,7 @@ class SettlementService {
             balanceAfter: newBalance,
             referenceType: 'Race',
             referenceId: BigInt(raceId),
-            type: 'BET_WON',
+            type: 'BET_WIN',
             description: `Nhận điểm thưởng thắng cược trận đấu ${raceId}.`
           }
         });
