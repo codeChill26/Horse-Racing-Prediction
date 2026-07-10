@@ -1,5 +1,4 @@
-import React from 'react';
-import { Calendar, MapPin, Play } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 
 export default function RaceCard({ race, onNavigate }) {
   const getStatusBadgeClass = (status) => {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search,
   RefreshCw,
@@ -160,12 +160,6 @@ export default function AdminWalletPointPage() {
       minusTx,
     };
   }, [wallets, transactions]);
-
-  const replaceWallet = (userId, updated) => {
-    setWallets((prev) =>
-      prev.map((w) => (w.userId === userId ? { ...w, wallet: updated } : w))
-    );
-  };
 
   const handleAdjust = async ({ userId, amount, reason }) => {
     try {

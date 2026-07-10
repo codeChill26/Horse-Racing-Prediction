@@ -43,7 +43,7 @@ export const userRepository = {
     return data?.user ?? data;
   },
 
-  async updateUserStatus(userId, status) {
+  async updateUserStatus(userId) {
     // Assuming status mapping to isActive for now, or actual API call if exists
     // Using the toggle active from admin API for simplicity, as per previous implementation
     const res = await fetch(`/api/admin/users/${userId}/toggle-active`, {

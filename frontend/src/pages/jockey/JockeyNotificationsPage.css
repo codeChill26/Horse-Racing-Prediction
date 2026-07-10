@@ -1,0 +1,174 @@
+/* Jockey Notifications Page Styles */
+
+.jock-notifications-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.jock-notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.jock-notification-group {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.jock-notification-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid #334155;
+}
+
+.jock-notification-group-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.jock-notification-group-count {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.jock-notification-group-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.jock-notification-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.jock-notification-wrapper:hover .jock-notification-delete-btn {
+  opacity: 1;
+}
+
+.jock-notification-delete-btn {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jock-notification-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Enhanced Notification Item */
+.jock-notification-wrapper .jock-notification-item {
+  flex: 1;
+  padding-right: 60px;
+}
+
+/* Notification Type Icons */
+.jock-notification-type-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jock-notification-type-icon--race {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.jock-notification-type-icon--horse {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.jock-notification-type-icon--trainer {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.jock-notification-type-icon--system {
+  background: rgba(100, 116, 139, 0.1);
+  color: #94a3b8;
+}
+
+/* Notification Quick Actions */
+.jock-notification-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.jock-notification-action-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-notification-action-btn:hover {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+/* Notification Badge */
+.jock-notification-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #f59e0b;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .jock-notifications-filters {
+    flex-direction: column;
+  }
+
+  .jock-notification-delete-btn {
+    opacity: 1;
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+    margin-left: auto;
+  }
+
+  .jock-notification-wrapper .jock-notification-item {
+    padding-right: 16px;
+  }
+}

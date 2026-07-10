@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from "react";
-import { Search, Bell, Settings as SettingsIcon, LogOut, Menu } from "lucide-react";
+import { Search, Bell, Settings as SettingsIcon, Menu } from "lucide-react";
 
 export default function Header({ title, onSearch, searchValue }) {
   return (

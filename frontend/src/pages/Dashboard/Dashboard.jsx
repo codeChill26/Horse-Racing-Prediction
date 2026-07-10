@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import { UPCOMING_RACES, TOP_HORSES, TOP_JOCKEYS } from "../../constants";
 import RaceCard from "../../components/RaceCard";
 import Footer from "../../layouts/Footer";
@@ -8,7 +8,6 @@ import {
   Award,
   Trophy,
   ChevronRight,
-  Activity,
   Swords,
   ArrowRight,
   Target,
@@ -16,8 +15,8 @@ import {
 } from "lucide-react";
 
 export default function Dashboard({ onNavigate, currentUser }) {
-  const [activeRankTab, setActiveRankTab] = React.useState("combined");
-  const [searchRank, setSearchRank] = React.useState("");
+  const [activeRankTab, setActiveRankTab] = useState("combined");
+  const [searchRank, setSearchRank] = useState("");
 
   const filteredHorses = TOP_HORSES.filter(
     (h) =>

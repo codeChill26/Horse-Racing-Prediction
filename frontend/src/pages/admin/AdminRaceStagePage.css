@@ -10,6 +10,7 @@
   --ars-danger: #f85149;
   --ars-info: #79c0ff;
   --ars-radius: 14px;
+  --ars-radius-sm: 8px;
 }
 
 .ars-page__header {
@@ -25,10 +26,34 @@
   margin: 0;
   font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
   font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--ars-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.ars-rt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.ars-rt--ok {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+  border: 1px solid rgba(141, 214, 166, 0.3);
+}
+
+.ars-rt--off {
+  background: rgba(168, 184, 200, 0.1);
+  color: #a8b8c8;
+  border: 1px solid rgba(168, 184, 200, 0.2);
 }
 
 .ars-page__desc {
@@ -37,6 +62,7 @@
   color: var(--ars-muted);
 }
 
+/* Stats Grid */
 .ars-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -50,11 +76,22 @@
   }
 }
 
+@media (max-width: 480px) {
+  .ars-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
 .ars-stat {
   background: var(--ars-card);
   border: 1px solid var(--ars-border);
   border-radius: var(--ars-radius);
   padding: 0.9rem 1rem;
+  transition: border-color 0.2s;
+}
+
+.ars-stat:hover {
+  border-color: rgba(121, 192, 255, 0.3);
 }
 
 .ars-stat__label {
@@ -73,10 +110,12 @@
   font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
 }
 
-.ars-stat__value--ok {
-  color: var(--ars-primary);
-}
+.ars-stat__value--ok { color: var(--ars-primary); }
+.ars-stat__value--info { color: var(--ars-info); }
+.ars-stat__value--warn { color: var(--ars-warn); }
+.ars-stat__value--err { color: var(--ars-danger); }
 
+/* Toolbar */
 .ars-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -104,10 +143,11 @@
   width: 100%;
   background: var(--ars-card);
   border: 1px solid var(--ars-border);
-  border-radius: 10px;
+  border-radius: var(--ars-radius-sm);
   padding: 0.55rem 0.75rem 0.55rem 2.15rem;
   color: var(--ars-text);
   font-size: 0.8rem;
+  transition: border-color 0.2s;
 }
 
 .ars-search:focus {
@@ -118,11 +158,12 @@
 .ars-select {
   background: var(--ars-card);
   border: 1px solid var(--ars-border);
-  border-radius: 10px;
+  border-radius: var(--ars-radius-sm);
   padding: 0.55rem 0.75rem;
   color: var(--ars-text);
   font-size: 0.8rem;
   cursor: pointer;
+  transition: border-color 0.2s;
 }
 
 .ars-select:focus {
@@ -135,11 +176,12 @@
   align-items: center;
   gap: 0.4rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--ars-radius-sm);
   padding: 0.55rem 0.9rem;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .ars-btn:disabled {
@@ -158,9 +200,10 @@
   border-color: var(--ars-muted);
 }
 
+/* Alert */
 .ars-alert--error {
   padding: 0.65rem 0.75rem;
-  border-radius: 10px;
+  border-radius: var(--ars-radius-sm);
   font-size: 0.75rem;
   background: rgba(248, 81, 73, 0.1);
   border: 1px solid rgba(248, 81, 73, 0.3);
@@ -168,6 +211,7 @@
   margin-bottom: 1rem;
 }
 
+/* Panel */
 .ars-panel {
   background: var(--ars-card);
   border: 1px solid var(--ars-border);
@@ -195,6 +239,7 @@
   font-size: 0.65rem;
   border-bottom: 1px solid var(--ars-border);
   background: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
 }
 
 .ars-table td {
@@ -212,6 +257,7 @@
   background: rgba(121, 192, 255, 0.04);
 }
 
+/* Name */
 .ars-name {
   display: inline-flex;
   align-items: center;
@@ -230,15 +276,31 @@
   color: var(--ars-muted);
 }
 
+/* Slots */
+.ars-slots {
+  display: flex;
+  align-items: center;
+}
+
+.ars-slots__count {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ars-text);
+}
+
+.ars-slots__count--full {
+  color: var(--ars-danger);
+}
+
+/* Badge */
 .ars-badge {
   display: inline-block;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
   font-size: 0.65rem;
   font-weight: 700;
-  border: 1px solid var(--ars-border);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ars-muted);
+  border: 1px solid;
 }
 
 .ars-badge--scheduled {
@@ -276,6 +338,7 @@
   background: rgba(230, 195, 100, 0.1);
 }
 
+/* Actions */
 .ars-actions {
   display: flex;
   flex-wrap: nowrap;
@@ -289,12 +352,12 @@
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 8px;
+  border-radius: var(--ars-radius-sm);
   border: 1px solid var(--ars-border);
   background: transparent;
   color: var(--ars-muted);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: all 0.15s;
 }
 
 .ars-icon-btn:hover:not(:disabled) {
@@ -319,6 +382,12 @@
   background: rgba(230, 195, 100, 0.1);
 }
 
+.ars-icon-btn--info:hover:not(:disabled) {
+  color: var(--ars-info);
+  border-color: rgba(121, 192, 255, 0.5);
+  background: rgba(121, 192, 255, 0.1);
+}
+
 .ars-empty,
 .ars-loading {
   padding: 2.5rem 1rem;
@@ -338,17 +407,15 @@
 }
 
 @keyframes ars-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
-/* Modal */
+/* Modal Backdrop */
 .ars-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
-  background: rgba(6, 15, 22, 0.82);
+  z-index: 1000;
+  background: rgba(6, 15, 22, 0.85);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -356,6 +423,7 @@
   padding: 1rem;
 }
 
+/* Base Modal */
 .ars-modal {
   width: 100%;
   max-width: 30rem;
@@ -404,6 +472,7 @@
   padding: 0.25rem 0.5rem;
   border-radius: 8px;
   font-size: 0.9rem;
+  transition: all 0.15s;
 }
 
 .ars-modal__close:hover {
@@ -441,4 +510,453 @@
 
 .ars-detail-row__value {
   color: var(--ars-text);
+}
+
+/* ================================================
+   Toast Component
+   ================================================ */
+.ars-toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--ars-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: toast-slide-in 0.3s ease-out;
+  min-width: 280px;
+  max-width: 400px;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.ars-toast--success {
+  background: rgba(141, 214, 166, 0.15);
+  border: 1px solid rgba(141, 214, 166, 0.4);
+  color: var(--ars-primary);
+}
+
+.ars-toast--error {
+  background: rgba(248, 81, 73, 0.15);
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  color: #ff7b72;
+}
+
+.ars-toast--info {
+  background: rgba(121, 192, 255, 0.15);
+  border: 1px solid rgba(121, 192, 255, 0.4);
+  color: var(--ars-info);
+}
+
+.ars-toast__close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-left: auto;
+}
+
+.ars-toast__close:hover {
+  opacity: 1;
+}
+
+/* ================================================
+   Confirm Modal
+   ================================================ */
+.ars-confirm-modal {
+  width: 100%;
+  max-width: 400px;
+  background: var(--ars-card);
+  border: 1px solid var(--ars-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.ars-confirm-modal__bar {
+  height: 4px;
+}
+
+.ars-confirm-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--ars-border);
+}
+
+.ars-confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ars-confirm-icon--open {
+  background: rgba(141, 214, 166, 0.15);
+  color: var(--ars-primary);
+}
+
+.ars-confirm-icon--close {
+  background: rgba(230, 195, 100, 0.15);
+  color: var(--ars-warn);
+}
+
+.ars-confirm-modal__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ars-text);
+}
+
+.ars-confirm-modal__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ars-muted);
+}
+
+.ars-confirm-modal__body {
+  padding: 1.25rem;
+}
+
+.ars-confirm-modal__message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ars-text);
+  line-height: 1.5;
+}
+
+.ars-confirm-modal__warning {
+  margin-top: 0.85rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--ars-radius-sm);
+  font-size: 0.78rem;
+  background: rgba(230, 195, 100, 0.1);
+  border: 1px solid rgba(230, 195, 100, 0.3);
+  color: var(--ars-warn);
+}
+
+.ars-confirm-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--ars-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ars-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: var(--ars-radius-sm);
+  padding: 0.65rem 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ars-confirm-btn--cancel {
+  background: transparent;
+  border: 1px solid var(--ars-border);
+  color: var(--ars-muted);
+}
+
+.ars-confirm-btn--cancel:hover {
+  color: var(--ars-text);
+  border-color: var(--ars-muted);
+}
+
+.ars-confirm-btn--open {
+  background: var(--ars-primary);
+  color: #052e16;
+}
+
+.ars-confirm-btn--open:hover {
+  background: #7bc992;
+}
+
+.ars-confirm-btn--close {
+  background: rgba(230, 195, 100, 0.15);
+  border: 1px solid rgba(230, 195, 100, 0.4);
+  color: var(--ars-warn);
+}
+
+.ars-confirm-btn--close:hover {
+  background: rgba(230, 195, 100, 0.25);
+}
+
+/* ================================================
+   Registration Modal
+   ================================================ */
+.ars-reg-modal {
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  background: var(--ars-card);
+  border: 1px solid var(--ars-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+}
+
+.ars-reg-modal__bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--ars-info), var(--ars-primary), var(--ars-info));
+}
+
+.ars-reg-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--ars-border);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+.ars-reg-modal__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ars-info);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.ars-reg-modal__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ars-muted);
+}
+
+.ars-reg-modal__body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ars-reg-modal__footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--ars-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+/* Registration Status */
+.ars-reg-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--ars-border);
+  border-radius: var(--ars-radius-sm);
+  margin-bottom: 1rem;
+}
+
+.ars-reg-status__gate {
+  display: flex;
+  align-items: center;
+}
+
+.ars-reg-status__slots {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.ars-reg-status__slot {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.ars-reg-status__slot svg {
+  color: var(--ars-muted);
+}
+
+.ars-reg-status__slot-label {
+  color: var(--ars-muted);
+}
+
+.ars-reg-status__slot-value {
+  font-weight: 700;
+  color: var(--ars-text);
+}
+
+.ars-reg-status__slot-value--full {
+  color: var(--ars-danger);
+}
+
+/* Progress Bar */
+.ars-reg-progress {
+  height: 6px;
+  background: var(--ars-border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.ars-reg-progress__bar {
+  height: 100%;
+  background: var(--ars-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.ars-reg-progress__bar--full {
+  background: var(--ars-danger);
+}
+
+.ars-reg-progress__text {
+  font-size: 0.75rem;
+  color: var(--ars-muted);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* Registration List */
+.ars-reg-list {
+  margin-top: 1rem;
+}
+
+.ars-reg-list__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ars-muted);
+}
+
+.ars-reg-list__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--ars-border);
+  border-radius: var(--ars-radius-sm);
+}
+
+.ars-reg-list__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.ars-reg-list__table th {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  color: var(--ars-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.62rem;
+  border-bottom: 1px solid var(--ars-border);
+  background: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
+}
+
+.ars-reg-list__table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  color: var(--ars-text);
+}
+
+.ars-reg-list__table tr:last-child td {
+  border-bottom: none;
+}
+
+.ars-reg-list__horse {
+  font-weight: 600;
+  color: var(--ars-text);
+}
+
+.ars-reg-list__horse-id {
+  font-size: 0.7rem;
+  color: var(--ars-muted);
+  font-family: ui-monospace, monospace;
+}
+
+/* Empty State */
+.ars-reg-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--ars-muted);
+}
+
+.ars-reg-empty svg {
+  margin-bottom: 0.75rem;
+  opacity: 0.5;
+}
+
+.ars-reg-empty p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* ================================================
+   Responsive
+   ================================================ */
+@media (max-width: 768px) {
+  .ars-page {
+    padding: 1rem;
+  }
+
+  .ars-reg-status {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ars-reg-status__slots {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .ars-confirm-modal,
+  .ars-modal,
+  .ars-reg-modal {
+    max-width: calc(100% - 2rem);
+    margin: 1rem;
+  }
+
+  .ars-toast {
+    left: 1rem;
+    right: 1rem;
+    min-width: auto;
+    max-width: none;
+  }
 }

@@ -1,0 +1,128 @@
+/* Jockey My Races Page Styles */
+
+.jock-races-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .jock-races-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Enhanced Race Card for My Races Page */
+.jock-races-grid .jock-race-card {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.jock-races-grid .jock-race-card-header {
+  margin-bottom: 8px;
+}
+
+.jock-races-grid .jock-race-card-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #334155;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Race Quick Stats */
+.jock-race-quick-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.jock-race-quick-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jock-race-quick-stat-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-race-quick-stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+/* Race Status Indicators */
+.jock-race-in-progress-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.jock-race-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.jock-race-live-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* Horse Info in Card */
+.jock-race-card-horse-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-race-card-horse-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.jock-race-card-horse-trainer {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Form and Odds Row */
+.jock-race-card-metrics {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .jock-races-grid {
+    grid-template-columns: 1fr;
+  }
+}

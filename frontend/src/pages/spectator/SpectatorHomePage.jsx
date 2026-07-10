@@ -1,6 +1,15 @@
 /**
  * SpectatorHomePage - Trang chủ Spectator
  * Màu sắc đồng bộ với admin dashboard
+ *
+ * FIX BUG-7.02 / BUG-7.03:
+ *   - Đã loại bỏ local `BettingModal` (duplicate ~180 lines) — dùng shared
+ *     `BettingModal` đã đầy đủ validate (MIN_BET, 50% wallet cap, wallet.isFrozen,
+ *     QUINELLA/EXACTA, refresh balance pre-submit).
+ *   - Đã bỏ silent mock fallback (MOCK_TOURNAMENTS, MOCK_LEADERBOARD, mock races)
+ *     — nếu API trả [] hoặc lỗi → empty state có CTA, không tự fill mock.
+ *   - Đã dùng `selectedHorse.entryId ?? selectedHorse.id` chính xác
+ *     (không fallback về `horse.id` — mock-data leak vào production data shape).
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -8,16 +17,24 @@ import { useNavigate } from 'react-router-dom'
 import { getMyProfile } from '../../api/auth'
 import { getAccessToken } from '../../utils/token'
 import { bettingService } from '../../services/bettingService'
+import { bettingRepository } from '../../repositories/bettingRepository'
+import { showToast } from '../../hooks/showToast'
+import BettingModal from '../../components/spectator/BettingModal'
 import './SpectatorHomePage.css'
 
-// Mock bảng xếp hạng
-const MOCK_LEADERBOARD = [
-  { rank: 1, name: 'Nguyễn Văn A', points: 2450 },
-  { rank: 2, name: 'Trần Thị B', points: 2120 },
-  { rank: 3, name: 'Lê Văn C', points: 1980 },
-  { rank: 4, name: 'Phạm Thị D', points: 1750 },
-  { rank: 5, name: 'Hoàng Văn E', points: 1600 },
-]
+// FIX BUG-7.04: đã loại bỏ MOCK_TOURNAMENTS / MOCK_RACES — silent mock fallback.
+// Theo pattern B-002 (giống BettingHistoryPage/StatisticsPage đã fix): nếu API
+// trả [] hoặc lỗi → hiển thị empty state có CTA, không tự fill mock data
+// (mock chỉ dùng khi env `VITE_FALLBACK_TO_MOCK=true`).
+
+/**
+ * Định dạng status text trên race card (CHỈ cho leaderboard UI).
+ * (Status mapping cho prediction dùng `STATUS_VARIANT` ở shared Badges.jsx.)
+ */
+function canBetOnStatus(status) {
+  const s = String(status || '').toUpperCase()
+  return s === 'SCHEDULED' || s === 'REGISTRATION_OPEN' || s === 'UPCOMING' || s === 'BETTING_OPEN'
+}
 
 function StatCard({ icon, label, value, accentColor }) {
   return (
@@ -33,7 +50,7 @@ function StatCard({ icon, label, value, accentColor }) {
 }
 
 function RaceCard({ race, onBet }) {
-  const canBet = race.status === 'Scheduled' || race.status === 'Registrations Open' || race.status === 'Upcoming'
+  const canBet = canBetOnStatus(race.status)
 
   return (
     <div className="sp-race-card">
@@ -41,13 +58,15 @@ function RaceCard({ race, onBet }) {
       <div className="sp-race-card__thumb">
         <img
           src={race.trackImage || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=400&q=80'}
-          alt={race.title}
+          alt={race.title || race.name}
           className="sp-race-card__img"
           referrerPolicy="no-referrer"
-          onError={e => { e.target.src = 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=400&q=80' }}
+          onError={(e) => {
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=400&q=80'
+          }}
         />
         <div className="sp-race-card__status-badge">
-          {race.status === 'Scheduled' ? 'SCHEDULED' : race.status === 'Registrations Open' ? 'REG OPEN' : race.status?.toUpperCase()}
+          {String(race.status || '').toUpperCase()}
         </div>
         {race.startsIn && (
           <div className="sp-race-card__countdown">
@@ -59,15 +78,15 @@ function RaceCard({ race, onBet }) {
       {/* Body */}
       <div className="sp-race-card__body">
         <div className="sp-race-card__meta">
-          <p className="sp-race-card__title">{race.title}</p>
+          <p className="sp-race-card__title">{race.title || race.name}</p>
           <p className="sp-race-card__info">
-            {race.classLabel} • {race.distance} • {race.surface}
+            {race.classLabel} {race.distance && `• ${race.distance}`} {race.surface && `• ${race.surface}`}
           </p>
         </div>
 
         <div className="sp-race-card__odds">
           <span className="sp-race-card__odds-label">Top Favorite Odds</span>
-          <span className="sp-race-card__odds-value">{race.topFavoriteOdds}</span>
+          <span className="sp-race-card__odds-value">{race.topFavoriteOdds || '—'}</span>
         </div>
 
         <button
@@ -83,172 +102,6 @@ function RaceCard({ race, onBet }) {
   )
 }
 
-function BettingModal({ race, profile, onClose, onSuccess }) {
-  const [selectedHorse, setSelectedHorse] = useState(null)
-  const [amount, setAmount] = useState('')
-  const [placing, setPlacing] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-
-  const horses = race?.horses || race?.entries || []
-  const balance = profile?.pointWallet?.balance ?? 0
-
-  const handlePlaceBet = async () => {
-    if (!selectedHorse) {
-      setError('Vui lòng chọn một con ngựa để đặt cược.')
-      return
-    }
-
-    const pts = parseInt(amount)
-    if (!pts || pts <= 0) {
-      setError('Vui lòng nhập số điểm hợp lệ.')
-      return
-    }
-    if (pts > balance) {
-      setError(`Số dư không đủ. Bạn chỉ có ${balance.toLocaleString('vi-VN')} điểm.`)
-      return
-    }
-    if (pts < 10) {
-      setError('Số điểm đặt cược tối thiểu là 10.')
-      return
-    }
-    if (pts > 10000) {
-      setError('Số điểm đặt cược tối đa là 10.000.')
-      return
-    }
-
-    setPlacing(true)
-    setError('')
-    setSuccess('')
-
-    try {
-      await bettingService.placeBet({
-        raceId: race.id,
-        horseId: selectedHorse.id,
-        amount: pts,
-      })
-      setSuccess(`Đặt cược thành công ${pts.toLocaleString('vi-VN')} điểm cho ${selectedHorse.name}!`)
-      setTimeout(() => {
-        onSuccess()
-        onClose()
-      }, 1500)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Đặt cược thất bại. Vui lòng thử lại.')
-    } finally {
-      setPlacing(false)
-    }
-  }
-
-  const potentialWin = selectedHorse && amount
-    ? (parseInt(amount) * (parseFloat(selectedHorse.odds || 2.0))).toLocaleString('vi-VN')
-    : null
-
-  return (
-    <div className="sp-modal-overlay" onClick={onClose}>
-      <div className="sp-modal" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="sp-modal__header">
-          <div>
-            <p className="sp-modal__eyebrow">Đặt cược</p>
-            <h3 className="sp-modal__title">{race?.title}</h3>
-          </div>
-          <button type="button" className="sp-modal__close" onClick={onClose}>✕</button>
-        </div>
-
-        {/* Body */}
-        <div className="sp-modal__body">
-          {/* Số dư */}
-          <div className="sp-modal__balance">
-            <span className="sp-modal__balance-label">Số dư khả dụng</span>
-            <span className="sp-modal__balance-value">
-              {balance.toLocaleString('vi-VN')} <span>điểm</span>
-            </span>
-          </div>
-
-          {error && <div className="sp-alert sp-alert--error">{error}</div>}
-          {success && <div className="sp-alert sp-alert--success">{success}</div>}
-
-          {/* Chọn ngựa */}
-          <div className="sp-modal__section">
-            <p className="sp-modal__section-label">Chọn ngựa đặt cược</p>
-            <div className="sp-horse-list">
-              {horses.length > 0 ? horses.map(horse => (
-                <button
-                  key={horse.id}
-                  type="button"
-                  className={`sp-horse-card ${selectedHorse?.id === horse.id ? 'is-selected' : ''}`}
-                  onClick={() => setSelectedHorse(horse)}
-                >
-                  <div className="sp-horse-card__info">
-                    <p className="sp-horse-card__name">{horse.name || horse.horseName}</p>
-                    <p className="sp-horse-card__jockey">{horse.jockeyName || horse.jockey || 'Kỵ sĩ'}</p>
-                  </div>
-                  <div className="sp-horse-card__odds">
-                    <span className="sp-horse-card__odds-num">{horse.odds || '2.0'}</span>
-                    <span className="sp-horse-card__odds-label">odds</span>
-                  </div>
-                </button>
-              )) : (
-                <p className="sp-modal__empty">Chưa có thông tin ngựa đua cho race này.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Nhập số điểm */}
-          {selectedHorse && (
-            <div className="sp-modal__section">
-              <p className="sp-modal__section-label">Số điểm đặt cược</p>
-              <div className="sp-amount-input-wrap">
-                <input
-                  type="number"
-                  min="10"
-                  max={balance}
-                  value={amount}
-                  onChange={e => setAmount(e.target.value)}
-                  placeholder="Nhập số điểm (10 - 10.000)"
-                  className="sp-amount-input"
-                />
-                <span className="sp-amount-unit">điểm</span>
-              </div>
-              <div className="sp-bet-summary">
-                <div className="sp-bet-summary__row">
-                  <span>Cược</span>
-                  <span>{amount ? parseInt(amount).toLocaleString('vi-VN') : 0} điểm</span>
-                </div>
-                <div className="sp-bet-summary__row">
-                  <span>Tỷ lệ</span>
-                  <span className="sp-odds-highlight">×{selectedHorse.odds || '2.0'}</span>
-                </div>
-                <div className="sp-bet-summary__row sp-bet-summary__row--win">
-                  <span>Có thể thắng</span>
-                  <span className="sp-win-amount">
-                    {potentialWin ? `${potentialWin} điểm` : '— điểm'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="sp-modal__footer">
-          <button type="button" className="sp-btn sp-btn--ghost" onClick={onClose} disabled={placing}>
-            Hủy
-          </button>
-          <button
-            type="button"
-            className="sp-btn sp-btn--bet"
-            onClick={handlePlaceBet}
-            disabled={placing || !selectedHorse || !amount}
-          >
-            {placing ? 'Đang đặt cược…' : 'Xác nhận đặt cược'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function SpectatorHomePage() {
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
@@ -256,7 +109,9 @@ export default function SpectatorHomePage() {
   const [error, setError] = useState('')
   const [races, setRaces] = useState([])
   const [racesLoading, setRacesLoading] = useState(true)
-  const [selectedRace, setSelectedRace] = useState(null)
+  const [racesError, setRacesError] = useState('')
+  const [bettingModal, setBettingModal] = useState(null) // { race, entries }
+  const [bettingLoading, setBettingLoading] = useState(false)
 
   // Lời chào theo thời gian
   const greeting = useMemo(() => {
@@ -266,7 +121,7 @@ export default function SpectatorHomePage() {
     return 'Chào buổi tối'
   }, [])
 
-  // Tải profile
+  // Tải profile (không mock — silent fallback đã loại bỏ theo pattern B-002)
   const loadProfile = useCallback(async () => {
     const token = getAccessToken()
     if (!token) { navigate('/login', { replace: true }); return }
@@ -277,20 +132,22 @@ export default function SpectatorHomePage() {
       const user = await getMyProfile(token)
       setProfile(user)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(e?.message || String(e))
+      setProfile(null)
     } finally {
       setLoading(false)
     }
   }, [navigate])
 
-  // Tải races
+  // Tải open races (không mock — empty/error state sẽ được render)
   const loadRaces = useCallback(async () => {
     setRacesLoading(true)
+    setRacesError('')
     try {
       const data = await bettingService.getOpenRaces()
-      setRaces(data)
-    } catch {
-      // Dùng mock nếu API chưa có
+      setRaces(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setRacesError(e?.message || 'Không tải được danh sách cuộc đua')
       setRaces([])
     } finally {
       setRacesLoading(false)
@@ -302,7 +159,61 @@ export default function SpectatorHomePage() {
     loadRaces()
   }, [loadProfile, loadRaces])
 
+  // Refresh balance & wallet.isFrozen khi mở modal
+  const refreshBalance = useCallback(async () => {
+    const token = getAccessToken()
+    if (!token) return 0
+    try {
+      const p = await getMyProfile(token)
+      setProfile((prev) => ({
+        ...prev,
+        pointWallet: p?.pointWallet ?? prev?.pointWallet ?? null,
+      }))
+      return p?.pointWallet?.balance ?? 0
+    } catch {
+      return profile?.pointWallet?.balance ?? 0
+    }
+  }, [profile?.pointWallet?.balance])
+
+  // Mở BettingModal: load entries từ API detail (race có thể không kèm entries)
+  const openBetting = useCallback(async (race) => {
+    if (!race) return
+    setBettingLoading(true)
+    try {
+      const detail = await bettingRepository.getRaceDetails(race.raceId ?? race.id)
+      setBettingModal({
+        race: {
+          ...race,
+          raceId: race.raceId ?? race.id,
+          name: race.name || race.title,
+        },
+        entries: Array.isArray(detail?.entries) ? detail.entries : [],
+      })
+    } catch {
+      // Modal vẫn mở với entries=[] → hiển thị "Chưa có ngựa nào được duyệt"
+      setBettingModal({
+        race: {
+          ...race,
+          raceId: race.raceId ?? race.id,
+          name: race.name || race.title,
+        },
+        entries: [],
+      })
+      showToast.error('Không tải được danh sách ngựa. Vui lòng thử lại.', 'Lỗi')
+    } finally {
+      setBettingLoading(false)
+    }
+  }, [])
+
+  const closeBetting = useCallback(() => setBettingModal(null), [])
+
+  const handlePlacedBet = useCallback(async () => {
+    await loadProfile()
+    showToast.success('Đặt cược thành công! Số dư đã được cập nhật.', 'Đặt cược')
+  }, [loadProfile])
+
   const balance = profile?.pointWallet?.balance ?? 0
+  const walletFrozen = Boolean(profile?.pointWallet?.isFrozen)
 
   return (
     <div className="spectator-page">
@@ -310,11 +221,18 @@ export default function SpectatorHomePage() {
 
         {/* Alert lỗi */}
         {error ? (
-          <div className="sp-alert sp-alert--error">
+          <div className="sp-alert sp-alert--error" role="alert">
             <span>{error}</span>
             <button type="button" className="sp-btn sp-btn--ghost-sm" onClick={loadProfile}>Thử lại</button>
           </div>
         ) : null}
+
+        {/* Wallet frozen banner */}
+        {walletFrozen && (
+          <div className="sp-alert sp-alert--error" role="alert">
+            <span>Ví điểm của bạn đang bị đóng băng bởi Admin — không thể đặt cược.</span>
+          </div>
+        )}
 
         {/* Header: Greeting + Wallet */}
         <div className="sp-hero">
@@ -333,7 +251,7 @@ export default function SpectatorHomePage() {
             <div className="sp-wallet-card__icon">💰</div>
             <div className="sp-wallet-card__body">
               <span className="sp-wallet-card__label">Số dư ví điểm</span>
-              <div className="sp-wallet-card__balance">
+              <div className="sp-wallet-card__balance" aria-live="polite">
                 <span>{loading ? '—' : balance.toLocaleString('vi-VN')}</span>
                 <span className="sp-wallet-card__unit">điểm</span>
               </div>
@@ -344,7 +262,7 @@ export default function SpectatorHomePage() {
           </div>
         </div>
 
-        {/* Stats Row */}
+        {/* Stats Row — fallback '—' nếu profile thiếu field */}
         <div className="sp-stats-row">
           <StatCard icon="🎯" label="Dự đoán đang hoạt động" value={profile?.activePredictionsCount ?? '—'} accentColor="#8dd6a6" />
           <StatCard icon="🏆" label="Tổng thắng cược" value={profile?.wonBetsCount ?? '—'} accentColor="#e6c364" />
@@ -352,7 +270,7 @@ export default function SpectatorHomePage() {
           <StatCard icon="⏳" label="Chờ xác nhận" value={profile?.pendingSettlementCount ?? '—'} accentColor="#bfc9bf" />
         </div>
 
-        {/* Main grid: Races + Leaderboard */}
+        {/* Main grid: Races */}
         <div className="sp-main-grid">
 
           {/* Races */}
@@ -376,66 +294,60 @@ export default function SpectatorHomePage() {
                 <div className="sp-spinner" />
                 <p>Đang tải cuộc đua…</p>
               </div>
+            ) : racesError ? (
+              <div className="sp-empty">
+                <span className="sp-empty__icon">⚠️</span>
+                <p className="sp-empty__title">Không tải được danh sách cuộc đua</p>
+                <p className="sp-empty__desc">{racesError}</p>
+                <button type="button" className="sp-btn sp-btn--ghost" onClick={loadRaces}>
+                  Thử lại
+                </button>
+              </div>
             ) : races.length > 0 ? (
               <div className="sp-races-grid">
-                {races.slice(0, 3).map(race => (
-                  <RaceCard key={race.id} race={race} onBet={setSelectedRace} />
+                {races.slice(0, 3).map((race) => (
+                  <RaceCard key={race.raceId ?? race.id} race={race} onBet={openBetting} />
                 ))}
               </div>
             ) : (
-              /* Mock races khi chưa có API */
-              <div className="sp-races-grid">
-                {[
-                  { id: 'm1', title: 'Giải Vô địch Mùa Xuân 2026', classLabel: 'Grade A', distance: '2400m', surface: 'Turf', status: 'Scheduled', startsIn: '2 giờ', topFavoriteOdds: '×2.8', trackImage: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=400&q=80', horses: [{ id: 'h1', name: 'Hồng Xa Vơi', jockey: 'Nguyễn Văn A', odds: '2.8' }, { id: 'h2', name: 'Bạch Kim', jockey: 'Trần Thị B', odds: '3.5' }, { id: 'h3', name: 'Hắc Mã', jockey: 'Lê Văn C', odds: '4.2' }] },
-                  { id: 'm2', title: 'Cúp Tốc độ Quốc gia', classLabel: 'Grade B', distance: '1600m', surface: 'Dirt', status: 'Registrations Open', startsIn: '5 giờ', topFavoriteOdds: '×1.9', trackImage: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&q=80', horses: [{ id: 'h4', name: 'Thiên Mã', jockey: 'Phạm Văn D', odds: '1.9' }, { id: 'h5', name: 'Phong Linh', jockey: 'Võ Thị E', odds: '2.4' }] },
-                  { id: 'm3', title: 'Đua Marathon 2400m', classLabel: 'Grade C', distance: '2400m', surface: 'Turf', status: 'Upcoming', startsIn: '1 ngày', topFavoriteOdds: '×3.2', trackImage: 'https://images.unsplash.com/photo-1591343395082-e120087004b4?w=400&q=80', horses: [{ id: 'h6', name: 'Cửu Long', jockey: 'Đặng Văn F', odds: '3.2' }, { id: 'h7', name: 'Hải Dương', jockey: 'Trương Văn G', odds: '4.0' }] },
-                ].map(race => (
-                  <RaceCard key={race.id} race={race} onBet={setSelectedRace} />
-                ))}
+              <div className="sp-empty">
+                <span className="sp-empty__icon">🐎</span>
+                <p className="sp-empty__title">Chưa có cuộc đua nào đang mở</p>
+                <p className="sp-empty__desc">
+                  Quay lại sau hoặc khám phá các giải đấu đã lên lịch.
+                </p>
+                <button
+                  type="button"
+                  className="sp-btn sp-btn--ghost"
+                  onClick={() => navigate('/spectator/tournaments')}
+                >
+                  Xem giải đấu
+                </button>
               </div>
             )}
           </section>
-
-          {/* Sidebar: Leaderboard */}
-          <aside className="sp-section">
-            <div className="sp-section__header">
-              <div>
-                <h2 className="sp-section__title">Bảng xếp hạng</h2>
-                <p className="sp-section__subtitle">Top khán giả tuần này</p>
-              </div>
-              <button
-                type="button"
-                className="sp-btn-link"
-                onClick={() => navigate('/spectator/statistics')}
-              >
-                Chi tiết →
-              </button>
-            </div>
-
-            <div className="sp-leaderboard">
-              {MOCK_LEADERBOARD.map((entry, idx) => (
-                <div key={entry.rank} className="sp-leaderboard__item">
-                  <span className="sp-leaderboard__rank">
-                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : entry.rank}
-                  </span>
-                  <span className="sp-leaderboard__name">{entry.name}</span>
-                  <span className="sp-leaderboard__pts">{entry.points.toLocaleString('vi-VN')} pts</span>
-                </div>
-              ))}
-            </div>
-          </aside>
         </div>
       </div>
 
-      {/* Modal đặt cược */}
-      {selectedRace && (
+      {/* Modal đặt cược (shared, đầy đủ validate) */}
+      {bettingModal && !bettingLoading && (
         <BettingModal
-          race={selectedRace}
-          profile={profile}
-          onClose={() => setSelectedRace(null)}
-          onSuccess={loadProfile}
+          race={bettingModal.race}
+          entries={bettingModal.entries}
+          userBalance={balance}
+          walletFrozen={walletFrozen}
+          onRefreshBalance={refreshBalance}
+          onClose={closeBetting}
+          onPlaced={handlePlacedBet}
         />
+      )}
+      {bettingLoading && (
+        <div className="sp-modal-overlay" role="presentation">
+          <div className="sp-loading"><div className="sp-spinner" /><p>Đang tải thông tin ngựa…</p></div>
+        </div>
       )}
     </div>
   )
 }
+
+SpectatorHomePage.displayName = 'SpectatorHomePage'

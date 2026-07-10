@@ -52,3 +52,9 @@ lerna-debug.log*
 
 # Loại bỏ các file dữ liệu tạm thời hoặc trạng thái nếu chạy Docker cục bộ
 .docker/
+
+# =========================================================================
+# 6. CURSOR CONTEXT MEMORY — KHÔNG ĐẨY LÊN GIT
+# =========================================================================
+cursor.md
+**/cursor.md

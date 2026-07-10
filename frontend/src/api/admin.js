@@ -85,3 +85,19 @@ export async function changeAdminUserRole(userId, roleCode) {
   const data = await res.json()
   return data?.user ?? data
 }
+
+/**
+ * Admin Referee Management
+ */
+export async function listReferees() {
+  const res = await fetch('/api/admin/users?roleCode=REFEREE', { headers: authHeaders() })
+  if (!res.ok) await readError(res, 'Không tải được danh sách trọng tài')
+  const data = await res.json()
+  return Array.isArray(data?.users) ? data.users : []
+}
+
+export async function getRefereeStats() {
+  const res = await fetch('/api/admin/referees/stats', { headers: authHeaders() })
+  if (!res.ok) await readError(res, 'Không tải được thống kê trọng tài')
+  return res.json()
+}

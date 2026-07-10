@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from "react";
-import AdminLayout from "../../components/admin/AdminLayout";
+import { useEffect, useState } from "react";
 import { horseService } from "../../services/horseService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceService } from "../../services/raceService";
@@ -20,8 +19,6 @@ import "./DashboardAdmin.css";
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -51,7 +48,6 @@ export default function Dashboard() {
         const horses = await horseService.getHorsesList();
         const pendingH = horses.filter((h) => h.status === "Pending").length;
         const tourneys = await tournamentService.getTournamentsList();
-        const racesList = await raceService.getRacesList();
         const userList = await userService.getUsersList();
         const walletDetails = await userService.getSpectatorWalletDetails();
         const discrepancy = await raceService.getDiscrepancyDetails();

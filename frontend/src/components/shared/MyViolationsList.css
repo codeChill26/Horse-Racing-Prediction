@@ -1,0 +1,183 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * MyViolationsList — styles. Tái sử dụng cùng dark theme với admin pages.
+ */
+
+.mvl-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mvl-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mvl-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #e6e6e6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mvl-refresh {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mvl-refresh:hover:not(:disabled) {
+  color: #e6e6e6;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mvl-refresh:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mvl-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.mvl-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: mvl-spin 0.8s linear infinite;
+}
+
+@keyframes mvl-spin {
+  to { transform: rotate(360deg); }
+}
+
+.mvl-empty {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+  background: rgba(141, 214, 166, 0.04);
+  border-radius: 8px;
+  border: 1px dashed rgba(141, 214, 166, 0.2);
+}
+
+.mvl-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.mvl-alert > span {
+  flex: 1;
+}
+
+.mvl-retry {
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mvl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.mvl-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.mvl-item__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.mvl-item__id {
+  font-family: monospace;
+  font-size: 11px;
+  color: #6b7280;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mvl-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mvl-item__type {
+  margin: 0;
+  font-size: 13px;
+  color: #e6e6e6;
+  font-weight: 500;
+}
+
+.mvl-item__meta {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.mvl-item__penalty {
+  margin: 0;
+  font-size: 12px;
+  color: #f87171;
+  font-weight: 600;
+}
+
+.mvl-item__desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
