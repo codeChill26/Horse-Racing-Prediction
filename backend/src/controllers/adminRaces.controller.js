@@ -18,7 +18,7 @@ async function getRaceById(req, res) {
   try {
     const raceId = validator.parseRaceId(req.params);
     const race = await adminRacesService.getRaceById(raceId);
-    return res.status(200).json({ race });
+    return res.status(200).json(race);
   } catch (error) {
     const status = error.status || 400;
     return res.status(status).json({ error: error.message });
@@ -76,6 +76,16 @@ async function bulkReviewEntries(req, res) {
   try {
     const raceId = validator.parseRaceId(req.params);
     const { entries } = req.body;
+    
+    if (!entries && req.body.entryIds && req.body.action) {
+      const targetStatus = req.body.action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+      entries = req.body.entryIds.map((id) => ({
+        entryId: id,
+        status: targetStatus,
+        reason: req.body.reason || null
+      }));
+    }
+
     if (!Array.isArray(entries) || entries.length === 0) {
       return res.status(400).json({ error: 'entries must be a non-empty array.' });
     }
@@ -100,6 +110,25 @@ async function bulkReviewEntries(req, res) {
   }
 }
 
+async function listAllRaces(req, res) {
+  try {
+    const status = req.query?.status || undefined;
+    const races = await adminRacesService.listAllRaces({ status });
+    return res.status(200).json({ races });
+  } catch (error) {
+    const status = error.status || 400;
+    return res.status(status).json({ error: error.message });
+  }
+}
+
+async function handleRaceList(req, res) {
+  if (req.params.tournamentId) {
+    return listRacesByTournament(req, res);
+  } else {
+    return listAllRaces(req, res);
+  }
+}
+
 module.exports = {
   listRacesByTournament,
   getRaceById,
@@ -108,4 +137,6 @@ module.exports = {
   deleteRace,
   listRaceEntries,
   bulkReviewEntries,
+  listAllRaces,
+  handleRaceList,
 };
