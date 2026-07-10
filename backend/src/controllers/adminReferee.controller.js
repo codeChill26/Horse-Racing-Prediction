@@ -47,6 +47,19 @@ class AdminRefereeController {
       return res.status(400).json({ success: false, message: error.message });
     }
   }
+   
+  // Thêm hàm này vào trong file adminReferee.controller.js hiện tại của bạn
+  async  getDeviations(req, res) {
+  try {
+    const statusFilter = req.query.status || 'CONFLICTED';
+    const deviations = await adminRefereeService.getDeviationsList(statusFilter);
+    return res.status(200).json({ deviations });
+   } catch (error) {
+    return res.status(500).json({ error: error.message });
+   }
+  }
+  
 }
+
 
 module.exports = new AdminRefereeController();

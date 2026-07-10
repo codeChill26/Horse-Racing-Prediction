@@ -207,6 +207,38 @@ class PredictionsService {
 
     return prediction;
   }
+
+  async getBettingStats(spectatorId) {
+    const predictions = await prisma.prediction.findMany({
+      where: { spectatorId }
+    }) || [];
+
+    const totalBets = predictions.length;
+    const totalInvested = predictions.reduce((sum, p) => sum + (Number(p.betAmount) || 0), 0);
+    
+    const wonBets = predictions.filter(p => p.status === 'WON' || p.status === 'PARTIAL_WON');
+    const totalPayout = wonBets.reduce((sum, p) => sum + (Number(p.payout) || 0), 0);
+    
+    const winRate = totalBets === 0 ? 0 : Math.round((wonBets.length / totalBets) * 100);
+    const netProfit = totalPayout - totalInvested;
+
+    return {
+      summary: {
+        totalBets,
+        totalInvested,
+        totalPayout,
+        netProfit,
+        winRate
+      },
+      recentActivity: predictions.slice(0, 10).map(p => ({
+        predictionId: p.predictionId,
+        betType: p.betType,
+        betAmount: p.betAmount,
+        status: p.status,
+        createdAt: p.createdAt
+      }))
+    };
+  }
 }
 
 module.exports = new PredictionsService();

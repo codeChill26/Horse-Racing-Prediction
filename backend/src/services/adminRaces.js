@@ -1,6 +1,6 @@
 // backend/src/services/adminRaces.js
-
 const prisma = require('../config/prisma');
+const socketEmitter = require('../socket/emitter');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -38,14 +38,66 @@ class AdminRacesService {
   async getRaceById(raceId) {
     const race = await prisma.race.findUnique({
       where: { raceId },
-      select: {
-        ...adminRaceSelect(),
+      include: {
         tournament: { select: { tournamentId: true, name: true, status: true } },
-      },
+        refereeA: { select: { userId: true, fullName: true, avatarUrl: true } },
+        refereeB: { select: { userId: true, fullName: true, avatarUrl: true } },
+        entries: {
+          include: {
+            horse: {
+              include: {
+                owner: { select: { userId: true, fullName: true, email: true } }
+              }
+            },
+            jockey: { select: { userId: true, fullName: true, email: true } }
+          }
+        },
+        predictions: true
+      }
     });
 
     if (!race) throw httpError('Race not found', 404);
-    return race;
+
+    const approvedEntriesCount = race.entries.filter((e) => e.status === 'APPROVED').length;
+
+    // Định hình cấu trúc mảng Entries chính xác theo đặc tả Frontend mong muốn
+    const mappedEntries = race.entries.map((e) => ({
+      entryId: e.entryId,
+      horseId: e.horseId,
+      horseName: e.horse.name,
+      jockeyId: e.jockeyId,
+      jockeyName: e.jockey?.fullName || 'N/A',
+      ownerName: e.horse.owner?.fullName || 'N/A',
+      gate: e.entryId, // Sử dụng mã định danh làm số cổng xuất phát mặc định
+      status: e.status,
+      submittedAt: e.createdAt
+    }));
+
+    // Tính toán các thông số thống kê dòng tiền
+    const totalPool = race.predictions.reduce((sum, p) => sum + p.betAmount, 0);
+    const totalBets = race.predictions.length;
+    const participantCount = new Set(race.predictions.map((p) => p.spectatorId)).size;
+
+    return {
+      raceId: race.raceId,
+      tournamentId: race.tournamentId,
+      tournamentName: race.tournament?.name || 'N/A',
+      name: race.name,
+      scheduledAt: race.scheduledAt,
+      registrationDeadline: race.registrationDeadline,
+      registrationOpen: race.registrationOpen,
+      status: race.status,
+      maxEntries: race.maxEntries,
+      approvedEntriesCount,
+      refereeA: race.refereeA,
+      refereeB: race.refereeB,
+      entries: mappedEntries,
+      statistics: {
+        totalPool,
+        totalBets,
+        participantCount
+      }
+    };
   }
 
   async createRace(tournamentId, { name, maxEntries, scheduledAt, registrationDeadline }) {
@@ -215,6 +267,17 @@ class AdminRacesService {
 
     await prisma.race.delete({ where: { raceId } });
     return { action: 'DELETED' };
+  }
+
+  async listAllRaces({ status } = {}) {
+    const where = {};
+    if (status) where.status = status;
+
+    return prisma.race.findMany({
+      where,
+      orderBy: { raceId: 'asc' },
+      select: adminRaceSelect(),
+    });
   }
 }
 

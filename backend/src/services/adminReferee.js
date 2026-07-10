@@ -85,6 +85,37 @@ class AdminRefereeService {
       });
     });
   }
+
+  async getDeviationsList(statusFilter) {
+  const deviations = await prisma.officialRaceResult.findMany({
+    where: {
+      matchStatus: statusFilter
+    },
+    include: {
+      race: {
+        select: {
+          name: true,
+          scheduledAt: true,
+          refereeA: { select: { fullName: true } },
+          refereeB: { select: { fullName: true } }
+        }
+      }
+    },
+    orderBy: { updatedAt: 'desc' }
+  });
+
+  return deviations.map(d => ({
+    deviationId: d.officialResultId,
+    raceId: d.raceId,
+    raceName: d.race.name,
+    scheduledAt: d.race.scheduledAt,
+    refereeA: d.race.refereeA?.fullName || 'N/A',
+    refereeB: d.race.refereeB?.fullName || 'N/A',
+    status: d.matchStatus,
+    rawResults: d.finalResults,
+    createdAt: d.createdAt
+  }));
+}
 }
 
 module.exports = new AdminRefereeService();

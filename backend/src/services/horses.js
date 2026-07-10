@@ -189,6 +189,73 @@ class HorsesService {
       select: horseSelect(),
     });
   }
+/**
+   * Nghiệp vụ Thu hồi tư cách hoạt động của Ngựa và tự động hủy chuỗi bản ghi liên đới
+   */
+  async revokeHorse(horseId, reason, adminId) {
+    if (!reason || reason.trim().length < 5) {
+      throw httpError('reason must be at least 5 characters', 400);
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      // A. Truy vấn kiểm tra sự tồn tại vật lý của thực thể Ngựa
+      const horse = await tx.horse.findUnique({
+        where: { horseId: parseInt(horseId) }
+      });
+
+      if (!horse) throw httpError('Horse not found', 404);
+      if (horse.status !== 'APPROVED') {
+        throw httpError('Horse is not in APPROVED status', 400);
+      }
+
+      const now = new Date();
+
+      // B. Đưa trạng thái ngựa về INACTIVE
+      const updatedHorse = await tx.horse.update({
+        where: { horseId: parseInt(horseId) },
+        data: {
+          status: 'INACTIVE',
+          rejectionReason: reason.trim(),
+          updatedAt: now
+        },
+        select: horseSelect()
+      });
+
+      // C. Hủy toàn bộ RaceEntry đang ở trạng thái PENDING liên quan đến ngựa này
+      const cancelledEntries = await tx.raceEntry.updateMany({
+        where: {
+          horseId: parseInt(horseId),
+          status: 'PENDING'
+        },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: `Horse revoked by Admin: ${reason.trim()}`
+        }
+      });
+
+      // D. Hủy toàn bộ Lời mời kị sỹ (JockeyInvitation) đang ở trạng thái PENDING/ACCEPTED
+      const cancelledInvitations = await tx.jockeyInvitation.updateMany({
+        where: {
+          horseId: parseInt(horseId),
+          status: { in: ['PENDING', 'ACCEPTED'] }
+        },
+        data: {
+          status: 'CANCELLED',
+          declineReason: 'Horse has been revoked by Admin'
+        }
+      });
+
+      return {
+        horse: {
+          ...updatedHorse,
+          revokedById: adminId
+        },
+        cancelledEntries: cancelledEntries.count,
+        cancelledInvitations: cancelledInvitations.count
+      };
+    });
+  }
+  
 }
 
 module.exports = new HorsesService();

@@ -108,6 +108,46 @@ async function deactivateUser(req, res) {
   }
 }
 
+async function getMyViolations(req, res) {
+  try {
+    const userId = Number(req.user.sub);
+    const result = await adminUsersService.getMyViolations(userId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 500).json({ error: error.message });
+  }
+}
+
+async function getViolationsList(req, res) {
+  try {
+    const { status, severity } = req.query;
+    const result = await adminUsersService.getViolationsList({ status, severity });
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function reportViolation(req, res) {
+  try {
+    const result = await adminUsersService.reportViolation(req.body);
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+async function resolveViolation(req, res) {
+  try {
+    const { id } = req.params;
+    const { penalty, note } = req.body;
+    const result = await adminUsersService.resolveViolation(id, penalty, note);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   listUsers,
   getUserById,
@@ -116,4 +156,8 @@ module.exports = {
   toggleIsActive,
   changeRole,
   deactivateUser,
+  getMyViolations,
+  getViolationsList,
+  reportViolation,
+  resolveViolation,
 };

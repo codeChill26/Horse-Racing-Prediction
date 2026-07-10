@@ -127,11 +127,14 @@ async function calculateAllOddsForRace(raceId) {
     results.push(odds);
   }
 
-  await prisma.$transaction(async (tx) => {
+  // 3. Cập nhật vào DB sử dụng Transaction để đảm bảo tính nhất quán
+  const updatedOddsData = await prisma.$transaction(async (tx) => {
+    // Xóa dữ liệu cũ của trận đấu
     await tx.odds.deleteMany({ where: { raceId } });
 
+    const created = [];
     for (const odds of results) {
-      await tx.odds.create({
+      const entryOdds = await tx.odds.create({
         data: {
           raceId: odds.raceId,
           entryId: odds.entryId,
@@ -141,11 +144,24 @@ async function calculateAllOddsForRace(raceId) {
           oddsRaw: odds.oddsRaw,
           oddsFinal: odds.oddsFinal,
         },
+        include: {
+          entry: {
+            include: {
+              horse: { select: { name: true } },
+              jockey: { select: { fullName: true } }
+            }
+          }
+        }
       });
+      created.push(entryOdds);
     }
+    return created;
   });
 
-  emitToRace(raceId, 'odds:updated', { raceId });
+  emitToRace(raceId, 'odds:updated', { 
+    raceId, 
+    odds: updatedOddsData 
+  });
 
   return results;
 }

@@ -27,6 +27,8 @@ var predictionsRouter = require('./src/routes/predictions');
 var walletRouter = require('./src/routes/wallet');
 var adminWalletsRouter = require('./src/routes/admin/wallets');
 var refereeRouter = require('./src/routes/referee');
+var adminViolationsRouter = require('./src/routes/admin/violations');
+var adminDeviationsRouter = require('./src/routes/admin/deviations');
 
 var app = express();
 
@@ -49,26 +51,61 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/api/auth', authRouter); 
 
+// Phân hệ Hồ sơ cá nhân người dùng (Mục HIGH-16)
+app.use('/api/me', usersRouter); // Sử dụng usersRouter làm meRouter sạch để bóc tách /violations
+
 // Phân hệ quản trị dành riêng cho ADMIN APIs
 app.use('/api/admin/users', adminUsersRouter);
 app.use('/api/admin/tournaments', adminTournamentsRouter);
 app.use('/api/admin/horses', adminHorsesRouter);
+app.use('/api/admin/wallets', adminWalletsRouter);
+app.use('/api/admin/deviations', adminDeviationsRouter);
+
+// BỔ SUNG: Router độc lập cho /api/admin/referees phục vụ mục MEDIUM-19
+const adminRefereesRouter = express.Router();
+adminRefereesRouter.get('/', require('./src/middlewares/auth'), require('./src/middlewares/adminOnly'), async (req, res) => {
+  try {
+    const prisma = require('./src/config/prisma');
+    const referees = await prisma.user.findMany({
+      where: {
+        role: {
+          code: { in: ['Referee', 'RACE_REFEREE', 'REFEREE'] }
+        },
+        isActive: true
+      },
+      select: {
+        userId: true,
+        fullName: true,
+        email: true,
+        avatarUrl: true,
+        licenseNumber: true
+      },
+      orderBy: { fullName: 'asc' }
+    });
+    return res.status(200).json({ referees });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+app.use('/api/admin/referees', adminRefereesRouter);
+
+// Gắn kết luồng quyết toán dòng tiền (Publish & Unpublish) lên TRƯỚC để tránh nuốt tham số
+app.use('/api/admin/races', adminSettlementRouter); 
 app.use('/api/admin/races', adminRacesRouter);
 app.use('/api/admin/tournaments/:tournamentId/races', adminRacesRouter);
-app.use('/api/admin/wallets', adminWalletsRouter);
-// Gắn kết luồng quyết toán dòng tiền (Publish & Unpublish) kế thừa tiền tố trận đấu
-app.use('/api/admin/races', adminSettlementRouter); 
+
+// Quản lý Vi phạm (Violations Module - Mục CRITICAL-10)
+app.use('/api/violations', adminViolationsRouter);
 
 // Phân hệ điều hành dành riêng cho TRỌNG TÀI (REFEREES MODULE)
 app.use('/api/referee', refereeRouter);
 app.use('/api/referees', refereeRouter);
 
 // Phân hệ dành riêng cho CHỦ NGỰA (HORSE OWNER MODULE)
-// 👉 ĐÃ SỬA: Thay đổi tiền tố từ '/api/entries' sang '/api/owner/entries' để bẻ gãy hoàn toàn xung đột ghi đè
 app.use('/api/owner/entries', ownerEntriesRouter);
 
 // Các hệ thống API công khai (Public APIs)
-  app.use('/api/tournaments', tournamentsRouter);
+app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/horses', horsesRouter);
 app.use('/api/races', publicRacesRouter);
 app.use('/api/invitations', invitationsRouter);

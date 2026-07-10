@@ -1,3 +1,4 @@
+// backend/src/routes/predictions.js
 const express = require('express');
 const router = express.Router();
 
@@ -7,6 +8,9 @@ const predictionsController = require('../controllers/predictions.controller');
 
 // POST /api/predictions - Place a bet (Spectator only)
 router.post('/', authMiddleware, spectatorOnly, predictionsController.placeBet);
+
+// GET /api/predictions/stats - Tổng hợp số liệu thống kê cá cược cá nhân (Mục MEDIUM-20)
+router.get('/stats', authMiddleware, predictionsController.getBettingStats);
 
 // GET /api/predictions - List my predictions
 router.get('/', authMiddleware, predictionsController.listMyPredictions);
