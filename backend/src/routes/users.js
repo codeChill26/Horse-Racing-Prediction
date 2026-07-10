@@ -8,6 +8,6 @@ router.use(authMiddleware);
 
 // Thêm Route: Lấy danh sách vi phạm của chính user (Chủ ngựa/Nài ngựa)
 // MEDIUM-16: GET /api/me/violations
-router.get('/me/violations', adminUsersController.getMyViolations);
+router.get('/violations', adminUsersController.getMyViolations);
 
 module.exports = router;
