@@ -1,13 +1,13 @@
-// backend/src/routes/users.js
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middlewares/auth');
-const usersController = require('../controllers/adminUsers.controller'); 
+const adminUsersController = require('../controllers/adminUsers.controller');
 
-/**
- * API Lấy danh sách vi phạm cá nhân phục vụ trang Profile (Mục HIGH-16)
- * GET /api/me/violations
- */
-router.get('/violations', authMiddleware, usersController.getMyViolations);
+// Bắt buộc đăng nhập
+router.use(authMiddleware);
+
+// Thêm Route: Lấy danh sách vi phạm của chính user (Chủ ngựa/Nài ngựa)
+// MEDIUM-16: GET /api/me/violations
+router.get('/me/violations', adminUsersController.getMyViolations);
 
 module.exports = router;

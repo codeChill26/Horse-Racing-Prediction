@@ -239,6 +239,29 @@ class PredictionsService {
       }))
     };
   }
+
+  /**
+   * Lấy thống kê tổng quan các lượt cược
+   */
+  async getStats() {
+    const stats = await prisma.prediction.groupBy({
+      by: ['status'],
+      _count: true
+    });
+    
+    const total = await prisma.prediction.count();
+    const totalPoolRaw = await prisma.prediction.aggregate({
+      _sum: { amount: true }
+    });
+    
+    return {
+      totalPredictions: total,
+      totalPool: totalPoolRaw._sum.amount || 0,
+      won: stats.find(s => s.status === 'WON')?._count || 0,
+      lost: stats.find(s => s.status === 'LOST')?._count || 0,
+      pending: stats.find(s => s.status === 'PENDING')?._count || 0
+    };
+  }
 }
 
 module.exports = new PredictionsService();
