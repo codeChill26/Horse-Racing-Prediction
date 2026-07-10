@@ -6,11 +6,14 @@ const authMiddleware = require('../middlewares/auth');
 const spectatorOnly = require('../middlewares/spectatorOnly');
 const predictionsController = require('../controllers/predictions.controller');
 
+// 1. Thống kê cá nhân (Spectator xem của chính mình)
+router.get('/my-stats', authMiddleware, predictionsController.getBettingStats);
+
+// 2. Thống kê hệ thống (Nếu cần công khai cho mọi người xem hoặc Admin)
+router.get('/system-stats', predictionsController.getSystemStats);
+
 // POST /api/predictions - Place a bet (Spectator only)
 router.post('/', authMiddleware, spectatorOnly, predictionsController.placeBet);
-
-// GET /api/predictions/stats - Tổng hợp số liệu thống kê cá cược cá nhân (Mục MEDIUM-20)
-router.get('/stats', authMiddleware, predictionsController.getBettingStats);
 
 // GET /api/predictions - List my predictions
 router.get('/', authMiddleware, predictionsController.listMyPredictions);
