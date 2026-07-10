@@ -46,9 +46,25 @@ async function reviewHorse(req, res) {
     return res.status(error.status || 400).json({ error: error.message });
   }
 }
+async function revokeHorse(req, res) {
+  try {
+    const horseId = parseHorseId(req, res);
+    if (!horseId) return null;
+
+    const { reason } = req.body;
+    const adminId = Number(req.user.sub);
+
+    const result = await horsesService.revokeHorse(horseId, reason, adminId);
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
 
 module.exports = {
   listHorses,
   getHorseById,
   reviewHorse,
+  revokeHorse,
 };
