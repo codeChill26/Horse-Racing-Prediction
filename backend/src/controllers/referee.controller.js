@@ -95,6 +95,16 @@ class RefereeController {
       return res.status(400).json({ message: error.message });
     }
   }
+
+  async reportViolation(req, res) {
+    try {
+      const refereeUserId = Number(req.user.sub) || req.user.userId;
+      const result = await refereeService.reportViolation(req.body, refereeUserId);
+      return res.status(201).json(result);
+    } catch (error) {
+      return res.status(error.status || 400).json({ error: error.message });
+    }
+  }
 }
 
 module.exports = new RefereeController();

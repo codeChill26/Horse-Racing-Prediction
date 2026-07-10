@@ -87,35 +87,65 @@ class AdminRefereeService {
   }
 
   async getDeviationsList(statusFilter) {
-  const deviations = await prisma.officialRaceResult.findMany({
-    where: {
-      matchStatus: statusFilter
-    },
-    include: {
-      race: {
-        select: {
-          name: true,
-          scheduledAt: true,
-          refereeA: { select: { fullName: true } },
-          refereeB: { select: { fullName: true } }
+    const deviations = await prisma.officialRaceResult.findMany({
+      where: {
+        matchStatus: statusFilter
+      },
+      include: {
+        race: {
+          select: {
+            name: true,
+            scheduledAt: true,
+            refereeA: { select: { fullName: true } },
+            refereeB: { select: { fullName: true } }
+          }
         }
-      }
-    },
-    orderBy: { updatedAt: 'desc' }
-  });
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
 
-  return deviations.map(d => ({
-    deviationId: d.officialResultId,
-    raceId: d.raceId,
-    raceName: d.race.name,
-    scheduledAt: d.race.scheduledAt,
-    refereeA: d.race.refereeA?.fullName || 'N/A',
-    refereeB: d.race.refereeB?.fullName || 'N/A',
-    status: d.matchStatus,
-    rawResults: d.finalResults,
-    createdAt: d.createdAt
-  }));
-}
+    return deviations.map(d => ({
+      deviationId: d.officialResultId,
+      raceId: d.raceId,
+      raceName: d.race.name,
+      scheduledAt: d.race.scheduledAt,
+      refereeA: d.race.refereeA?.fullName || 'N/A',
+      refereeB: d.race.refereeB?.fullName || 'N/A',
+      status: d.matchStatus,
+      rawResults: d.finalResults,
+      createdAt: d.createdAt
+    }));
+  }
+
+  async listDeviations({ page = 1, pageSize = 10, status } = {}) {
+    const skip = (page - 1) * pageSize;
+    const where = status ? { matchStatus: status } : { matchStatus: 'CONFLICTED' };
+
+    const [total, deviations] = await prisma.$transaction([
+      prisma.officialRaceResult.count({ where }),
+      prisma.officialRaceResult.findMany({
+        where,
+        skip, take: parseInt(pageSize),
+        include: {
+          race: { select: { name: true, refereeAId: true, refereeBId: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+    ]);
+
+    return { total, page: parseInt(page), pageSize: parseInt(pageSize), deviations };
+  }
+
+  async getDeviationDetail(resultId) {
+    const conflict = await prisma.officialRaceResult.findUnique({
+      where: { id: parseInt(resultId) },
+      include: {
+        race: { include: { refereeSubmissions: true, refereeA: true, refereeB: true } }
+      }
+    });
+    if (!conflict) throw Object.assign(new Error('Deviation not found'), { status: 404 });
+    return conflict;
+  }
 }
 
 module.exports = new AdminRefereeService();

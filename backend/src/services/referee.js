@@ -278,6 +278,48 @@ class RefereeService {
       }
     };
   }
+
+  async reportViolation(data, reporterId) {
+    const socketEmitter = require('../socket/emitter');
+
+    // 1. Kiểm tra trạng thái trận đấu hợp lệ
+    const race = await prisma.race.findUnique({ where: { raceId: parseInt(data.raceId) } });
+    if (!race) {
+      throw Object.assign(new Error('Race not found'), { status: 404 });
+    }
+    if (!['IN_PROGRESS', 'PAUSED', 'PENDING_RESULT'].includes(race.status)) {
+      throw Object.assign(new Error('Race is not in IN_PROGRESS status'), { status: 400 });
+    }
+
+    // 2. Lưu Database
+    const newViolation = await prisma.violation.create({
+      data: {
+        raceId: parseInt(data.raceId),
+        entryId: data.entryId ? parseInt(data.entryId) : null,
+        type: data.type,
+        severity: data.severity,
+        description: data.description,
+        status: 'OPEN'
+      }
+    });
+
+    // 3. Format dữ liệu trả về theo đặc tả PROCESS.md
+    const violationPayload = {
+      violationId: `VIO-${String(newViolation.violationId).padStart(3, '0')}`,
+      raceId: newViolation.raceId,
+      entryId: newViolation.entryId,
+      type: newViolation.type,
+      severity: newViolation.severity,
+      description: newViolation.description,
+      status: newViolation.status,
+      createdAt: newViolation.createdAt
+    };
+
+    // 4. Bắn Socket báo cho Admin
+    socketEmitter.emitToAdmin('violation:created', { violation: violationPayload });
+
+    return { violation: violationPayload };
+  }
 }
 
 module.exports = new RefereeService();
