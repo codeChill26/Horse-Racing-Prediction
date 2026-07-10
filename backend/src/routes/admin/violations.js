@@ -5,22 +5,37 @@ const authMiddleware = require('../../middlewares/auth');
 const adminOnly = require('../../middlewares/adminOnly');
 const adminUsersController = require('../../controllers/adminUsers.controller');
 
-/**
- * GET /api/admin/violations
- * Admin lấy toàn bộ danh sách vi phạm của hệ thống (Mục CRITICAL-10)
- */
-router.get('/', authMiddleware, adminOnly, adminUsersController.getViolationsList);
+// Đảm bảo tất cả route dưới đây đều phải có quyền Admin
+router.use(authMiddleware, adminOnly);
 
 /**
- * POST /api/referee/violations/reporter
- * Trọng tài thực hiện nộp báo cáo vi phạm mới (Mục CRITICAL-10)
+ * GET /api/admin/violations (CRITICAL-11)
+ * Admin lấy danh sách vi phạm
  */
-router.post('/reporter', authMiddleware, adminUsersController.reportViolation);
+router.get('/', adminUsersController.getViolationsList);
 
 /**
- * POST /api/admin/violations/:id/resolve
- * Admin đưa ra quyết định xử phạt vi phạm (Mục CRITICAL-10)
+ * GET /api/admin/violations/:id (CRITICAL-12)
+ * Admin lấy chi tiết 1 vi phạm
  */
-router.post('/:id/resolve', authMiddleware, adminOnly, adminUsersController.resolveViolation);
+router.get('/:id', adminUsersController.getViolationById); // Chú ý: Cần định nghĩa hàm này trong controller
+
+/**
+ * POST /api/admin/violations/:id/start-review (CRITICAL-13)
+ * Admin bắt đầu xử lý vi phạm
+ */
+router.post('/:id/start-review', adminUsersController.startReviewViolation); // Chú ý: Cần định nghĩa hàm này
+
+/**
+ * POST /api/admin/violations/:id/resolve (CRITICAL-14)
+ * Admin quyết định xử phạt
+ */
+router.post('/:id/resolve', adminUsersController.resolveViolation);
+
+/**
+ * POST /api/admin/violations/:id/dismiss (CRITICAL-15)
+ * Admin bác bỏ vi phạm
+ */
+router.post('/:id/dismiss', adminUsersController.dismissViolation); // Chú ý: Cần định nghĩa hàm này
 
 module.exports = router;
