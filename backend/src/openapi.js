@@ -19,6 +19,9 @@ module.exports = {
     { name: 'Wallet' },
     { name: 'Admin Wallet' },
     { name: 'Admin Races' },
+    { name: 'Races' },
+    { name: 'Race Entries' },
+    { name: 'Referee Management' },
   ],
   components: {
     securitySchemes: {
@@ -388,7 +391,51 @@ module.exports = {
           declineReason: { type: 'string', nullable: true, example: 'Schedule conflict' },
         },
       },
-RefereeSubmitResultRequest: {
+      CreateRaceEntryRequest: {
+        type: 'object',
+        required: ['horseId'],
+        properties: {
+          raceId: {
+            type: 'integer',
+            nullable: true,
+            example: 1,
+            description: 'Chỉ bắt buộc khi gọi POST /api/entries (không có raceId trên URL).',
+          },
+          horseId: { type: 'integer', example: 3 },
+          jockeyId: {
+            type: 'integer',
+            nullable: true,
+            example: 14,
+            description: 'Tùy chọn — có thể gán jockey sau qua luồng Jockey Invitation.',
+          },
+        },
+      },
+      ReviewRaceEntryRequest: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['APPROVED', 'REJECTED'], example: 'APPROVED' },
+          reason: {
+            type: 'string',
+            nullable: true,
+            example: 'Horse not eligible',
+            description: 'Bắt buộc khi REJECTED.',
+          },
+          weightLb: {
+            type: 'integer',
+            nullable: true,
+            example: 126,
+            description: 'Trọng lượng mang theo (lb) — snapshot khi duyệt entry, dùng cho AI.',
+          },
+          saddleNumber: {
+            type: 'integer',
+            nullable: true,
+            example: 5,
+            description: 'Số yên ngựa trong cuộc đua.',
+          },
+        },
+      },
+      RefereeSubmitResultRequest: {
         type: 'object',
         required: ['rawResults'],
         properties: {
@@ -493,6 +540,40 @@ RefereeSubmitResultRequest: {
         tags: ['Tournaments'],
         summary: 'Get public tournament by id',
         description: 'DRAFT tournaments are returned as 404 for public users.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '404': {
+            description: 'Not Found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/tournaments/{id}/races': {
+      get: {
+        tags: ['Tournaments'],
+        summary: 'List public races of a tournament',
+        description: 'Trả về danh sách races của một tournament công khai (DRAFT tournament trả 404).',
         parameters: [
           {
             name: 'id',
@@ -1537,6 +1618,151 @@ RefereeSubmitResultRequest: {
       }
     },
 
+    // ---- Public Races ----
+
+    '/api/races/open': {
+      get: {
+        tags: ['Races'],
+        summary: 'List races with registration open (public)',
+        description: 'Trả về các races đang mở cổng đăng ký để Horse Owner chọn đăng ký ngựa.',
+        responses: {
+          '200': { description: 'OK' },
+        },
+      },
+    },
+    '/api/races/{id}/entries': {
+      get: {
+        tags: ['Races'],
+        summary: 'List APPROVED entries of a race (public)',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '400': { description: 'Invalid race id' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+    '/api/races/{id}/detail': {
+      get: {
+        tags: ['Races'],
+        summary: 'Full race detail (public)',
+        description: 'Chi tiết cuộc đua kèm entries, odds và career stats của từng ngựa.',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '400': { description: 'Invalid race id' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+
+    // ---- Race Entries (Horse Owner registration + Admin review) ----
+
+    '/api/races/{raceId}/entries': {
+      post: {
+        tags: ['Race Entries'],
+        summary: 'Register a horse into a race (horse owner)',
+        description:
+          'Horse Owner đăng ký ngựa vào race đang mở cổng đăng ký. Entry tạo ra ở trạng thái PENDING chờ admin duyệt. ' +
+          'Cũng có thể gọi POST /api/entries với raceId trong body.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'raceId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateRaceEntryRequest' },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Race entry created successfully' },
+          '400': { description: 'Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — HORSE_OWNER role required' },
+          '404': { description: 'Race or horse not found' },
+          '409': { description: 'Conflict — registration closed or duplicate entry' },
+        },
+      },
+    },
+    '/api/races/{raceId}/entries/odds': {
+      get: {
+        tags: ['Race Entries'],
+        summary: 'Get calculated odds for a race (public)',
+        description: 'Odds tính từ career stats của các entries đã APPROVED (services/odds.js).',
+        parameters: [
+          { name: 'raceId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '400': { description: 'Invalid race id' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+    '/api/entries/mine': {
+      get: {
+        tags: ['Race Entries'],
+        summary: "List my race entries (horse owner)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'raceId',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer' },
+            description: 'Lọc theo race',
+          },
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED'] },
+            description: 'Lọc theo trạng thái entry',
+          },
+        ],
+        responses: {
+          '200': { description: 'OK' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — HORSE_OWNER role required' },
+        },
+      },
+    },
+    '/api/entries/{id}/status': {
+      put: {
+        tags: ['Race Entries'],
+        summary: 'Approve or reject a race entry (admin)',
+        description:
+          'Admin duyệt/từ chối entry. Khi APPROVED có thể kèm weightLb + saddleNumber (snapshot cho AI Prediction Engine). ' +
+          'reason bắt buộc khi REJECTED.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ReviewRaceEntryRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Race entry status updated successfully' },
+          '400': { description: 'Bad Request — reason required when rejecting' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — ADMIN role required' },
+          '404': { description: 'Entry not found' },
+        },
+      },
+    },
+
     // ---- Prediction Endpoints ----
 
     '/api/predictions': {
@@ -1778,6 +2004,68 @@ RefereeSubmitResultRequest: {
           '403': { description: 'Forbidden' },
           '404': { description: 'Race not found' },
           '409': { description: 'Race has no APPROVED entries' },
+          '502': { description: 'AI service không kết nối được' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}/risk-score': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'AI risk assessment for a race (Agent 2 — advisory only)',
+        description:
+          'Gọi AI service (FastAPI /risk-score) để lấy risk score + odds đề xuất dựa trên các ' +
+          'cược PENDING đang mở của cuộc đua, so với treasury (vốn nhà cái) do Admin cung cấp. ' +
+          'Chỉ tham khảo — KHÔNG ghi vào bảng Odds. Trả 502 nếu AI service không chạy.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          {
+            name: 'treasury',
+            in: 'query',
+            required: true,
+            schema: { type: 'number', example: 10000 },
+            description: 'Vốn hiện có của nhà cái. Bắt buộc — không có giá trị mặc định.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'AI risk assessment',
+            content: {
+              'application/json': {
+                example: {
+                  raceId: 1,
+                  raceName: 'Race 1',
+                  source: 'AI_RISK_ENGINE',
+                  note: 'Đây là gợi ý từ AI (chỉ tham khảo), chưa ghi vào bảng Odds chính thức.',
+                  riskScore: 0.34,
+                  riskLevel: 'MEDIUM',
+                  totalPool: 10000,
+                  worstCaseLiability: 3400,
+                  treasury: 10000,
+                  horses: [
+                    {
+                      entryId: 5,
+                      horseId: 12,
+                      horseName: 'Thunderbolt',
+                      currentOdds: 2.5,
+                      totalBet: 8000,
+                      numBettors: 40,
+                      poolShare: 80,
+                      liabilityIfWin: 12000,
+                      suggestedOdds: 2.25,
+                      reason: 'cửa này chiếm 80% pool -> hạ odds 10%',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          '400': { description: 'Bad Request — treasury missing or invalid' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+          '409': { description: 'Race has no computed odds yet' },
           '502': { description: 'AI service không kết nối được' },
         },
       },

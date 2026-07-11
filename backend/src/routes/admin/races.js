@@ -22,6 +22,9 @@ router.get('/:id/entries', authMiddleware, adminOnly, adminRacesController.listR
 // GET /api/admin/races/:id/ai-odds - AI odds suggestion (Agent 1, advisory only)
 router.get('/:id/ai-odds', authMiddleware, adminOnly, adminRacesController.getAiOddsSuggestion);
 
+// GET /api/admin/races/:id/risk-score?treasury= - AI risk assessment (Agent 2, advisory only)
+router.get('/:id/risk-score', authMiddleware, adminOnly, adminRacesController.getRiskAssessment);
+
 // POST /api/admin/races/:id/bulk-review - Bulk approve/reject entries
 router.post('/:id/bulk-review', authMiddleware, adminOnly, adminRacesController.bulkReviewEntries);
 

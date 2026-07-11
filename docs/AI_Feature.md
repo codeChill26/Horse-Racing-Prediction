@@ -110,6 +110,8 @@ OR/RPR là dữ liệu "sống", thay đổi theo thành tích. Ngoài đời do
 ### Tích hợp phía backend Node
 - `backend/src/services/aiPrediction.js` gọi `POST {AI_SERVICE_URL}/predict-odds`, gom entry **APPROVED** của một race, map DB → contract AI, khớp ngược kết quả theo `horseName`.
 - Endpoint admin: `GET /api/admin/races/:id/ai-odds?margin=` (adminOnly). Chỉ đề xuất, **không** ghi bảng `Odds`.
+- `backend/src/services/aiRisk.js` gọi `POST {AI_SERVICE_URL}/risk-score`, lấy odds hiện tại từ bảng `Odds` + tổng hợp exposure (`total_bet`, `num_bettors`) từ các `Prediction` còn `PENDING` của race (vé QUINELLA/EXACTA cộng dồn stake vào cả 2 entry đã chọn), khớp ngược kết quả theo `horseName`.
+- Endpoint admin: `GET /api/admin/races/:id/risk-score?treasury=` (adminOnly). `treasury` là tham số bắt buộc (app chưa có khái niệm "vốn nhà cái" trong DB nên Admin tự cung cấp). Trả 409 nếu race chưa có `Odds` được tính (Odds tự tính khi đóng cổng đăng ký). Chỉ đề xuất, **không** ghi bảng `Odds`.
 - Env: `AI_SERVICE_URL` (default `http://localhost:8000`; trong Docker: `http://ai_service:8000`), `AI_TIMEOUT_MS` (default 20000, để rộng cho cold-start nạp `model.pkl`).
 
 ---
