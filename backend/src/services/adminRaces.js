@@ -1,6 +1,6 @@
 // backend/src/services/adminRaces.js
-
 const prisma = require('../config/prisma');
+const socketEmitter = require('../socket/emitter');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -41,14 +41,66 @@ class AdminRacesService {
   async getRaceById(raceId) {
     const race = await prisma.race.findUnique({
       where: { raceId },
-      select: {
-        ...adminRaceSelect(),
+      include: {
         tournament: { select: { tournamentId: true, name: true, status: true } },
-      },
+        refereeA: { select: { userId: true, fullName: true, avatarUrl: true } },
+        refereeB: { select: { userId: true, fullName: true, avatarUrl: true } },
+        entries: {
+          include: {
+            horse: {
+              include: {
+                owner: { select: { userId: true, fullName: true, email: true } }
+              }
+            },
+            jockey: { select: { userId: true, fullName: true, email: true } }
+          }
+        },
+        predictions: true
+      }
     });
 
     if (!race) throw httpError('Race not found', 404);
-    return race;
+
+    const approvedEntriesCount = race.entries.filter((e) => e.status === 'APPROVED').length;
+
+    // Định hình cấu trúc mảng Entries chính xác theo đặc tả Frontend mong muốn
+    const mappedEntries = race.entries.map((e) => ({
+      entryId: e.entryId,
+      horseId: e.horseId,
+      horseName: e.horse.name,
+      jockeyId: e.jockeyId,
+      jockeyName: e.jockey?.fullName || 'N/A',
+      ownerName: e.horse.owner?.fullName || 'N/A',
+      gate: e.entryId, // Sử dụng mã định danh làm số cổng xuất phát mặc định
+      status: e.status,
+      submittedAt: e.createdAt
+    }));
+
+    // Tính toán các thông số thống kê dòng tiền
+    const totalPool = race.predictions.reduce((sum, p) => sum + p.betAmount, 0);
+    const totalBets = race.predictions.length;
+    const participantCount = new Set(race.predictions.map((p) => p.spectatorId)).size;
+
+    return {
+      raceId: race.raceId,
+      tournamentId: race.tournamentId,
+      tournamentName: race.tournament?.name || 'N/A',
+      name: race.name,
+      scheduledAt: race.scheduledAt,
+      registrationDeadline: race.registrationDeadline,
+      registrationOpen: race.registrationOpen,
+      status: race.status,
+      maxEntries: race.maxEntries,
+      approvedEntriesCount,
+      refereeA: race.refereeA,
+      refereeB: race.refereeB,
+      entries: mappedEntries,
+      statistics: {
+        totalPool,
+        totalBets,
+        participantCount
+      }
+    };
   }
 
   async createRace(tournamentId, { name, maxEntries, scheduledAt, registrationDeadline }) {
@@ -92,7 +144,7 @@ class AdminRacesService {
     });
   }
 
-  async listRaceEntries(raceId, { status } = {}) {
+ async listRaceEntries(raceId, { status } = {}) {
     const race = await prisma.race.findUnique({
       where: { raceId },
       select: { raceId: true, name: true, maxEntries: true },
@@ -102,7 +154,7 @@ class AdminRacesService {
     const where = { raceId };
     if (status) where.status = status;
 
-    const entries = await prisma.raceEntry.findMany({
+    const entriesData = await prisma.raceEntry.findMany({
       where,
       orderBy: { createdAt: 'asc' },
       select: {
@@ -111,25 +163,46 @@ class AdminRacesService {
         rejectionReason: true,
         reviewedAt: true,
         createdAt: true,
+        updatedAt: true,
         horse: {
           select: {
             horseId: true,
             name: true,
+            breed: true,
+            color: true,
+            dateOfBirth: true,
             owner: { select: { userId: true, fullName: true, email: true } },
           },
         },
         jockey: {
-          select: { userId: true, fullName: true, email: true, weight: true },
-        },
-        reviewedBy: {
-          select: { userId: true, fullName: true },
-        },
+          select: { userId: true, fullName: true, email: true },
+        }
       },
     });
 
-    const approvedCount = entries.filter((e) => e.status === 'APPROVED').length;
+    const mappedEntries = entriesData.map((e) => ({
+      entryId: e.entryId,
+      horseId: e.horse.horseId,
+      horseName: e.horse.name,
+      horse: {
+        name: e.horse.name,
+        breed: e.horse.breed || 'Unknown',
+        color: e.horse.color || 'Unknown',
+        dateOfBirth: e.horse.dateOfBirth
+      },
+      jockeyId: e.jockey?.userId,
+      jockeyName: e.jockey?.fullName || 'N/A',
+      ownerId: e.horse.owner?.userId,
+      ownerName: e.horse.owner?.fullName || 'N/A',
+      ownerEmail: e.horse.owner?.email || 'N/A',
+      gate: e.entryId, // Dùng entryId làm gate mặc định
+      status: e.status,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
+      rejectionReason: e.rejectionReason
+    }));
 
-    return { race, entries, approvedCount };
+    return { entries: mappedEntries };
   }
 
   async bulkReviewEntries(raceId, reviews, reviewerId) {
@@ -139,7 +212,9 @@ class AdminRacesService {
     });
     if (!race) throw httpError('Race not found', 404);
 
-    const results = { approved: 0, rejected: 0, errors: [] };
+    const results = [];
+    const errors = [];
+    let updated = 0;
 
     await prisma.$transaction(async (tx) => {
       for (const review of reviews) {
@@ -150,7 +225,7 @@ class AdminRacesService {
             where: { raceId, status: 'APPROVED' },
           });
           if (approvedCount >= race.maxEntries) {
-            results.errors.push({
+            errors.push({
               entryId,
               error: `Race has reached its maximum of ${race.maxEntries} entries.`,
             });
@@ -164,11 +239,11 @@ class AdminRacesService {
         });
 
         if (!existing || existing.raceId !== raceId) {
-          results.errors.push({ entryId, error: 'Entry not found or not in this race.' });
+          errors.push({ entryId, error: 'Entry not found or not in this race.' });
           continue;
         }
         if (existing.status !== 'PENDING') {
-          results.errors.push({ entryId, error: `Entry is already ${existing.status}.` });
+          errors.push({ entryId, error: `Entry is already ${existing.status}.` });
           continue;
         }
 
@@ -189,13 +264,27 @@ class AdminRacesService {
               };
 
         await tx.raceEntry.update({ where: { entryId }, data });
+        
+        results.push({ entryId, status: data.status });
+        updated++;
 
-        if (status === 'APPROVED') results.approved++;
-        else results.rejected++;
+        // Bắn sự kiện socket realtime tới những người đang xem trận đấu
+        socketEmitter.emitToRace(raceId, 'entry:status_changed', {
+          entryId: entryId,
+          raceId: raceId,
+          oldStatus: existing.status,
+          newStatus: data.status,
+          updatedAt: now.toISOString()
+        });
       }
     });
 
-    return results;
+    if (errors.length > 0) {
+      console.warn('Bulk review warnings:', errors);
+    }
+
+    // Định dạng response chuẩn xác theo PROCESS.md
+    return { results, updated };
   }
 
   async deleteRace(raceId) {
@@ -218,6 +307,100 @@ class AdminRacesService {
 
     await prisma.race.delete({ where: { raceId } });
     return { action: 'DELETED' };
+  }
+
+  /**
+   * Lấy danh sách toàn bộ Race (Có phân trang)
+   */
+  async listAllRaces({ page = 1, pageSize = 10, status } = {}) {
+    const skip = (page - 1) * pageSize;
+    const where = status ? { status } : {};
+
+    const [total, races] = await prisma.$transaction([
+      prisma.race.count({ where }),
+      prisma.race.findMany({
+        where,
+        skip,
+        take: parseInt(pageSize),
+        orderBy: { scheduledAt: 'asc' },
+        include: {
+          refereeA: { select: { fullName: true } },
+          refereeB: { select: { fullName: true } },
+          _count: { select: { entries: { where: { status: 'APPROVED' } } } }
+        }
+      })
+    ]);
+
+    const formattedRaces = races.map(r => ({
+      ...r,
+      approvedEntriesCount: r._count.entries
+    }));
+
+    return { 
+      total, 
+      page: parseInt(page), 
+      pageSize: parseInt(pageSize), 
+      races: formattedRaces 
+    };
+  }
+
+  /**
+   * CRITICAL-6: Đóng/Mở cổng đăng ký ngựa (Registration Gate)
+   */
+  async updateRegistrationGate(raceId, isOpen) {
+    const race = await prisma.race.update({
+      where: { raceId: parseInt(raceId) },
+      data: { registrationOpen: isOpen }
+    });
+    
+    // Bắn socket báo cho Frontend biết cổng cược đã thay đổi
+    const socketEmitter = require('../socket/emitter');
+    socketEmitter.emitToRace(raceId, 'race:updated', { 
+      raceId: race.raceId, 
+      registrationOpen: race.registrationOpen 
+    });
+
+    return race;
+  }
+
+  /**
+   * CRITICAL-7: Phân công 2 trọng tài cho trận đấu
+   */
+  async assignReferees(raceId, refereeAId, refereeBId) {
+  if (refereeAId === refereeBId) {
+    throw Object.assign(new Error('Hai trọng tài phải là hai người khác nhau'), { status: 400 });
+  }
+
+  const referees = await prisma.user.findMany({
+    where: { userId: { in: [parseInt(refereeAId), parseInt(refereeBId)] } },
+    include: { role: true }
+  });
+
+  if (referees.length < 2) {
+    throw httpError('Một hoặc cả hai trọng tài được chỉ định không tồn tại trên hệ thống.', 404);
+  }
+
+  const invalidRoleUser = referees.find((u) => u.role.code !== 'RACE_REFEREE');
+  if (invalidRoleUser) {
+    throw httpError(
+      `Người dùng "${invalidRoleUser.fullName}" (id: ${invalidRoleUser.userId}) không có vai trò RACE_REFEREE, không thể phân công làm trọng tài.`,
+      400
+    );
+  }
+
+    const race = await prisma.race.update({
+      where: { raceId: parseInt(raceId) },
+      data: { 
+        refereeAId: parseInt(refereeAId), 
+        refereeBId: parseInt(refereeBId) 
+      },
+      include: {
+        refereeA: { select: { fullName: true, email: true } },
+        refereeB: { select: { fullName: true, email: true } }
+      }
+    });
+
+    return race;
   }
 }
 

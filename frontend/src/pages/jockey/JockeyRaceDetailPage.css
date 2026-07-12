@@ -1,0 +1,591 @@
+/* Jockey Race Detail Page Styles */
+
+.jock-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.jock-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-back-btn:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+/* Race Hero Section */
+.jock-race-detail-hero {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+
+.jock-race-detail-name {
+  font-size: 32px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+}
+
+.jock-race-detail-tournament {
+  font-size: 16px;
+  color: #f59e0b;
+  margin: 0 0 20px 0;
+}
+
+.jock-race-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.jock-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.jock-meta-item svg {
+  color: #64748b;
+}
+
+/* Detail Stats */
+.jock-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .jock-detail-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.jock-detail-stat {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+}
+
+.jock-detail-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jock-detail-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-detail-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-detail-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+/* Detail Sections */
+.jock-detail-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.jock-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* Assignment Card */
+.jock-assignment-card {
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.jock-assignment-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.jock-silk-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.jock-silk-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 8px,
+    rgba(255, 255, 255, 0.2) 8px,
+    rgba(255, 255, 255, 0.2) 16px
+  );
+}
+
+.jock-silk-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.jock-assignment-details {
+  flex: 1;
+}
+
+.jock-assignment-horse {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+}
+
+.jock-assignment-trainer {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0 0 4px 0;
+}
+
+.jock-assignment-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+}
+
+@media (max-width: 640px) {
+  .jock-assignment-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.jock-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jock-metric-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.jock-assignment-notes {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+.jock-notes-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f59e0b;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-notes-content {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.jock-assignment-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #334155;
+}
+
+@media (max-width: 640px) {
+  .jock-assignment-actions {
+    flex-direction: column;
+  }
+}
+
+.jock-scratched-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Legs Timeline */
+.jock-legs-timeline {
+  position: relative;
+}
+
+.jock-leg-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  position: relative;
+}
+
+.jock-leg-marker {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.jock-leg-item--completed .jock-leg-marker {
+  background: #10b981;
+  color: white;
+}
+
+.jock-leg-item--live .jock-leg-marker {
+  background: #f59e0b;
+  color: white;
+  animation: pulse-glow 1.5s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+  }
+}
+
+.jock-leg-live-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.jock-leg-connector {
+  position: absolute;
+  left: 23px;
+  top: 64px;
+  bottom: 0;
+  width: 2px;
+  background: #334155;
+}
+
+.jock-leg-item--completed .jock-leg-connector {
+  background: #10b981;
+}
+
+.jock-leg-item--live .jock-leg-connector {
+  background: linear-gradient(to bottom, #f59e0b 50%, #334155 50%);
+}
+
+.jock-leg-content {
+  flex: 1;
+  padding-top: 8px;
+}
+
+.jock-leg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.jock-leg-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.jock-leg-distance {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.jock-leg-results {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.jock-leg-results span {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+/* Competitors */
+.jock-competitors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jock-competitor-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.jock-competitor-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.jock-competitor-card--me {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.jock-competitor-position {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #334155;
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jock-competitor-silk {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.jock-competitor-info {
+  flex: 1;
+}
+
+.jock-competitor-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 2px 0;
+}
+
+.jock-competitor-horse {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.jock-competitor-metrics {
+  display: flex;
+  gap: 24px;
+}
+
+.jock-competitor-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.jock-competitor-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.jock-competitor-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.jock-competitor-form {
+  min-width: 120px;
+}
+
+.jock-competitor-last {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+}
+
+.jock-competitor-last-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.jock-competitor-last-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+/* Modal Form */
+.jock-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.jock-modal-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+  color: #f59e0b;
+  font-size: 14px;
+  margin: 0;
+}
+
+.jock-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jock-form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.jock-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #f8fafc;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.jock-textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+}
+
+.jock-textarea::placeholder {
+  color: #64748b;
+}
+
+.jock-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .jock-race-detail-name {
+    font-size: 24px;
+  }
+
+  .jock-competitor-card {
+    flex-wrap: wrap;
+  }
+
+  .jock-competitor-metrics {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+}

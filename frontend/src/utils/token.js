@@ -1,5 +1,9 @@
 export function normalizeRole(role) {
-  return role ? String(role).trim().toUpperCase() : null
+  if (!role) return null
+  const s = String(role).trim().toUpperCase().replace(/\s+/g, "_")
+  // Backend schema uses "Referee" not "REFEREE"
+  if (s === "REFEREE" || s === "RACE_REFEREE" || s === "REFREE") return "REFEREE"
+  return s
 }
 
 export function getHomePathForRole(role) {
@@ -12,6 +16,9 @@ export function getHomePathForRole(role) {
       return '/jockey'
     case 'HORSE_OWNER':
       return '/horse-owner'
+    case 'REFEREE':
+    case 'RACE_REFEREE':
+      return '/referee'
     default:
       return null
   }

@@ -1610,37 +1610,146 @@ RefereeSubmitResultRequest: {
 
     // ---- Admin Race Publish/Unpublish ----
 
-    '/api/admin/races/{id}/publish': {
+    '/api/admin/races/{raceId}/publish': {
       post: {
-        tags: ['Admin Races'],
-        summary: 'Publish race results and trigger settlement engine',
-        description: 'Auto-settles all PENDING predictions for this race. Computes payouts based on correct picks.',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        tags: ['Admin - Quản lý trận đua & Quyết toán'],
+        summary: 'Công bố kết quả trận đấu và tự động trả thưởng về ví (Admin Only)',
+        description: 'Mở Database Transaction duy nhất: quét vé cược PENDING, đối chiếu điều kiện xếp hạng Top 3 để phân định Thắng/Thua, tự động trích nộp 10% House Margin phí vận hành sàn, bù trừ thâm hụt vào Quỹ dự phòng (Treasure Pool), thực thi lệnh cộng ví điểm cho Spectator thắng cược và bắn tín hiệu Socket real-time cập nhật số dư ví tức thì.',
+        security: [
+          {
+            bearerAuth: []
+          }
+        ],
+        parameters: [
+          {
+            name: 'raceId',
+            in: 'path',
+            required: true,
+            description: 'Mã ID (số nguyên tăng tự động) của trận đua cần xuất bản kết quả',
+            schema: {
+              type: 'integer',
+              example: 1
+            }
+          }
+        ],
         responses: {
-          '200': { description: 'Published and settled', content: { 'application/json': { schema: { $ref: '#/components/schemas/PublishResponse' } } } },
-          '400': { description: 'Bad Request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Forbidden' },
-          '409': { description: 'Already published or missing results' },
-        },
-      },
+          200: {
+            description: 'Công bố kết quả thành công, dòng tiền tài chính và trạng thái trận đấu đã hoàn tất cập nhật.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Công bố kết quả trận đấu và quyết toán tiền thưởng thành công trọn vẹn.' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        raceId: { type: 'integer', example: 1 },
+                        status: { type: 'string', example: 'FINISHED' },
+                        financialSummary: {
+                          type: 'object',
+                          properties: {
+                            totalPoolBet: { type: 'integer', example: 90000 },
+                            houseMarginCollected: { type: 'integer', example: 9000 },
+                            netPoolForPayout: { type: 'integer', example: 81000 },
+                            actualTotalPayout: { type: 'integer', example: 75000 },
+                            treasureBalanceChange: { type: 'integer', example: 6000 }
+                          }
+                        },
+                        winnersCount: { type: 'integer', example: 5 },
+                        publishedAt: { type: 'string', format: 'date-time', example: '2026-07-07T14:40:00.000Z' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: {
+            description: 'Trận đấu không nằm ở trạng thái PENDING_RESULT hoặc thiếu bảng dữ liệu OfficialRaceResult.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: false },
+                    message: { type: 'string', example: 'Trận đấu phải ở trạng thái PENDING_RESULT để thực hiện quyết toán.' }
+                  }
+                }
+              }
+            }
+          },
+          401: { description: 'Yêu cầu Token xác thực JWT đầu vào bị thiếu hoặc sai cấu trúc.' },
+          403: { description: 'Quyền truy cập bị từ chối do tài khoản của bạn không có Role hành động là Admin.' }
+        }
+      }
     },
-    '/api/admin/races/{id}/unpublish': {
+
+    '/api/admin/races/{raceId}/unpublish': {
       post: {
-        tags: ['Admin Races'],
-        summary: 'Unpublish race results and rollback settlement',
-        description: 'Reverses all payouts, refunds original bet amounts, resets predictions to PENDING.',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        tags: ['Admin - Quản lý trận đua & Quyết toán'],
+        summary: 'Thu hồi kết quả trận đấu và hoàn tác điểm ví (Admin Only)',
+        description: 'Mở Database Transaction nguyên tố nhằm đảo ngược dòng tiền: quét lại các vé cược đã WON để trừ lại số tiền thưởng khỏi PointWallet của Spectator (chấp nhận ví âm điểm), ghi nhận lịch sử BET_WIN_REVERSAL, hoàn tác phân phối dòng tiền tại Quỹ doanh thu nhà cái và Quỹ dự phòng, xóa kết quả phẳng và chuyển trạng thái trận đấu từ FINISHED quay ngược về PENDING_RESULT.',
+        security: [
+          {
+            bearerAuth: []
+          }
+        ],
+        parameters: [
+          {
+            name: 'raceId',
+            in: 'path',
+            required: true,
+            description: 'Mã ID của trận đua cần thu hồi kết quả và dòng tiền',
+            schema: {
+              type: 'integer',
+              example: 1
+            }
+          }
+        ],
         responses: {
-          '200': { description: 'Unpublished and rolled back' },
-          '400': { description: 'Bad Request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Forbidden' },
-          '409': { description: 'Not published yet' },
-        },
-      },
+          200: {
+            description: 'Thu hồi kết quả và hoàn tác dòng tiền thành công. Trận đấu đã quay về trạng thái PENDING_RESULT.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Thu hồi kết quả trận đấu, đóng gói hoàn tác ví và các quỹ hệ thống thành công.' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        raceId: { type: 'integer', example: 1 },
+                        status: { type: 'string', example: 'PENDING_RESULT' },
+                        recalledTotalPayout: { type: 'integer', example: 75000 },
+                        affectedWinnersCount: { type: 'integer', example: 5 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: {
+            description: 'Yêu cầu thất bại (Ví dụ: Trận đấu chưa ở trạng thái FINISHED).',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: false },
+                    message: { type: 'string', example: 'Chỉ có thể thu hồi trận đấu đã kết thúc (FINISHED).' }
+                  }
+                }
+              }
+            }
+          },
+          401: { description: 'Token JWT bị thiếu hoặc sai định dạng.' },
+          403: { description: 'Tài khoản không có vai trò Admin để thực hiện hành động này.' }
+        }
+      }
     },
 
 '/api/admin/tournaments/{tournamentId}/races': {
@@ -1958,39 +2067,6 @@ RefereeSubmitResultRequest: {
       },
     },
 
-    // ---- Referee Endpoints ----
-
-    '/api/referee/races/{id}/start': {
-      post: {
-        tags: ['Referee Management'],
-        summary: 'Referee starts the assigned race (SCHEDULED -> IN_PROGRESS)',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: {
-          '200': { description: 'Race started and bets are locked' },
-          '400': { description: 'Bad Request / Invalid race state' },
-          '401': { description: 'Unauthorized' },
-        },
-      },
-    },
-    '/api/referee/races/{id}/submit': {
-      post: {
-        tags: ['Referee Management'],
-        summary: 'Referee blind submits race ranks and statuses',
-        security: [{ bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: {
-          required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/RefereeSubmitResultRequest' } } },
-        },
-        responses: {
-          '200': { description: 'Result submitted successfully' },
-          '400': { description: 'Bad Request / Already submitted' },
-          '401': { description: 'Unauthorized' },
-        },
-      },
-    },
-
     // ---- Admin Referee Control Endpoints ----
 
     '/api/admin/races/{id}/assign-referees': {
@@ -2042,6 +2118,91 @@ RefereeSubmitResultRequest: {
           '403': { description: 'Forbidden' },
         },
       },
+    },
+  '/api/referee/races/{id}/start': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee starts the assigned race (SCHEDULED -> IN_PROGRESS)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': { description: 'Race started and bets are locked' },
+          '400': { description: 'Bad Request / Invalid race state' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/referee/races/{id}/submit': {
+      post: {
+        tags: ['Referee Management'],
+        summary: 'Referee blind submits race ranks and statuses',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RefereeSubmitResultRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Result submitted successfully' },
+          '400': { description: 'Bad Request / Already submitted' },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    
+    // ---- API GET Bổ sung theo Frontend ----
+    
+    '/api/referees/me/races': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy danh sách các cuộc đua được phân công cho Trọng tài hiện tại',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về danh sách mảng races thành công.' }
+        }
+      }
+    },
+    '/api/referees/me/races/{raceId}': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy chi tiết một trận đấu cụ thể được phân công',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'raceId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Trả về chi tiết trận đấu thành công.' },
+          404: { description: 'Không tìm thấy trận đấu hoặc không có quyền.' }
+        }
+      }
+    },
+    '/api/referees/me/submissions': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy lịch sử nộp kết quả của trọng tài',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về danh sách lịch sử nộp điểm.' }
+        }
+      }
+    },
+    '/api/referees/me/conflicts': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy danh sách các trận đấu đang bị tranh chấp (Conflict)',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về danh sách các trận đấu cần Admin xử lý.' }
+        }
+      }
+    },
+    '/api/referees/me/profile': {
+      get: {
+        tags: ['Referee Management'],
+        summary: 'Lấy thông tin cá nhân và thống kê của trọng tài',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Trả về profile và các chỉ số thống kê.' }
+        }
+      }
     },
   },
 };

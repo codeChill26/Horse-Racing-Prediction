@@ -1,11 +1,13 @@
-// backend/src/routes/users.js
+const express = require('express');
+const router = express.Router();
+const authMiddleware = require('../middlewares/auth');
+const adminUsersController = require('../controllers/adminUsers.controller');
 
-var express = require('express');
-var router = express.Router();
+// Bắt buộc đăng nhập
+router.use(authMiddleware);
 
-/* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
-});
+// Thêm Route: Lấy danh sách vi phạm của chính user (Chủ ngựa/Nài ngựa)
+// MEDIUM-16: GET /api/me/violations
+router.get('/violations', adminUsersController.getMyViolations);
 
 module.exports = router;

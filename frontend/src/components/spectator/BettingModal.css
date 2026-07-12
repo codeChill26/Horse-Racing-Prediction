@@ -107,6 +107,12 @@
   flex-shrink: 0;
 }
 
+.bet-modal__notice--error {
+  background: rgba(255, 180, 171, 0.08);
+  border-bottom-color: rgba(255, 180, 171, 0.25);
+  color: var(--color-error, #ffb4ab);
+}
+
 .bet-modal__notice svg {
   flex-shrink: 0;
   margin-top: 1px;

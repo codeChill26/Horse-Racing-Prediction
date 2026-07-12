@@ -1,0 +1,461 @@
+/* ============================================
+   HORSE OWNER CARDS - Dark Theme (đồng bộ Admin/Spectator)
+   ============================================ */
+
+/* === STAT CARD === */
+.ho-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  background: var(--ho-card);
+  border: 1px solid var(--ho-border);
+  border-radius: var(--ho-radius);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.ho-stat-card:hover {
+  border-color: var(--ho-primary-border);
+  transform: translateY(-1px);
+}
+
+.ho-stat-card__icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ho-primary-dim);
+  color: var(--ho-primary);
+  border: 1px solid var(--ho-primary-border);
+}
+
+.ho-stat-card--gold .ho-stat-card__icon {
+  background: var(--ho-gold-dim);
+  color: var(--ho-gold);
+  border-color: var(--ho-gold-border);
+}
+
+.ho-stat-card--danger .ho-stat-card__icon {
+  background: var(--ho-error-dim);
+  color: var(--ho-error);
+  border-color: rgba(255, 180, 171, 0.35);
+}
+
+.ho-stat-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ho-stat-card__label {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ho-text-muted);
+}
+
+.ho-stat-card__value {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--ho-text-primary);
+  line-height: 1.1;
+}
+
+.ho-stat-card--gold .ho-stat-card__value {
+  color: var(--ho-gold);
+}
+
+.ho-stat-card--danger .ho-stat-card__value {
+  color: var(--ho-error);
+}
+
+.ho-stat-card__hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ho-text-muted);
+}
+
+/* === HORSE CARD === */
+.ho-horse-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.05rem 1.15rem;
+  background: var(--ho-card);
+  border: 1px solid var(--ho-border);
+  border-radius: var(--ho-radius);
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.ho-horse-card:hover {
+  border-color: var(--ho-primary-border);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.ho-horse-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.ho-horse-card__avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(140deg, rgba(141, 214, 166, 0.18), rgba(230, 195, 100, 0.18));
+  color: var(--ho-gold);
+  border: 1px solid var(--ho-gold-border);
+}
+
+.ho-horse-card__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.ho-horse-card__title h3 {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ho-text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ho-horse-card__title p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--ho-text-muted);
+}
+
+.ho-horse-card__meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  border: 1px solid var(--ho-border);
+}
+
+@media (max-width: 600px) {
+  .ho-horse-card__meta {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ho-horse-card__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ho-horse-card__meta-item span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ho-text-muted);
+}
+
+.ho-horse-card__meta-item strong {
+  font-size: 0.95rem;
+  color: var(--ho-text-primary);
+  font-weight: 700;
+}
+
+.ho-horse-card__form {
+  color: var(--ho-gold) !important;
+  letter-spacing: 0.05em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ho-horse-card__sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ho-text-muted);
+}
+
+.ho-horse-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.ho-horse-card__age {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--ho-text-muted);
+}
+
+/* === TOURNAMENT CARD === */
+.ho-tournament-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.05rem 1.15rem;
+  background: var(--ho-card);
+  border: 1px solid var(--ho-border);
+  border-radius: var(--ho-radius);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.ho-tournament-card:hover {
+  border-color: var(--ho-gold-border);
+  transform: translateY(-1px);
+}
+
+.ho-tournament-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.ho-tournament-card__icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ho-gold-dim);
+  color: var(--ho-gold);
+  border: 1px solid var(--ho-gold-border);
+}
+
+.ho-tournament-card__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.ho-tournament-card__title h3 {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ho-text-primary);
+  line-height: 1.2;
+}
+
+.ho-tournament-card__title p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ho-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ho-tournament-card__meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  font-size: 0.78rem;
+  color: var(--ho-text-secondary);
+}
+
+.ho-tournament-card__meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ho-tournament-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.ho-tournament-card__entry {
+  font-size: 0.75rem;
+  color: var(--ho-text-muted);
+}
+
+/* === WARNING CARD === */
+.ho-warning-card {
+  padding: 1rem 1.1rem;
+  background: var(--ho-error-dim);
+  border: 1px solid rgba(255, 180, 171, 0.35);
+  border-radius: 12px;
+}
+
+.ho-warning-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  color: var(--ho-error);
+}
+
+.ho-warning-card__head h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ho-warning-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ho-warning-card li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--ho-text-secondary);
+}
+
+.ho-warning-card li svg {
+  flex-shrink: 0;
+  margin-top: 0.18rem;
+  color: var(--ho-error);
+}
+
+/* === QUICK ACTION === */
+.ho-quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 0.4rem;
+  padding: 1.05rem 1.15rem;
+  background: var(--ho-card);
+  border: 1px solid var(--ho-border);
+  border-radius: var(--ho-radius);
+  color: var(--ho-text-secondary);
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, background 0.15s;
+  width: 100%;
+  font-family: inherit;
+}
+
+.ho-quick-action:hover:not(.ho-quick-action--disabled) {
+  border-color: var(--ho-primary-border);
+  background: var(--ho-primary-dim);
+  transform: translateY(-1px);
+}
+
+.ho-quick-action--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ho-quick-action__icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ho-primary-dim);
+  color: var(--ho-primary);
+  border: 1px solid var(--ho-primary-border);
+  margin-bottom: 0.25rem;
+}
+
+.ho-quick-action h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ho-text-primary);
+}
+
+.ho-quick-action p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ho-text-muted);
+  line-height: 1.4;
+}
+
+.ho-quick-action__tag {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--ho-gold-dim);
+  color: var(--ho-gold);
+  border: 1px solid var(--ho-gold-border);
+}
+
+/* === Generic button === */
+.ho-btn {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--ho-border);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--ho-surface-high);
+  color: var(--ho-text-primary);
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ho-btn:hover {
+  background: var(--ho-surface-highest);
+}
+
+.ho-btn--primary {
+  background: linear-gradient(135deg, #0a5c36 0%, #0a7548 100%);
+  color: #c2f0d2;
+  border-color: var(--ho-primary-border);
+}
+
+.ho-btn--primary:hover {
+  background: linear-gradient(135deg, #0a7548 0%, #0a8a55 100%);
+}
+
+.ho-btn--ghost {
+  background: transparent;
+  color: var(--ho-text-secondary);
+}
+
+.ho-btn--ghost:hover {
+  color: var(--ho-text-primary);
+  background: var(--ho-surface-high);
+}
+
+.ho-btn--sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.ho-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

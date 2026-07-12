@@ -2,6 +2,12 @@
 const prisma = require('../config/prisma');
 const { emitToUser, emitToAdmin } = require('../socket/emitter');
 
+function httpError(message, status = 400) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
+
 function round2(value) {
   return Math.round(value * 100) / 100;
 }
@@ -64,9 +70,9 @@ class JockeyInvitationService {
       where: { raceId: data.raceId },
       select: { raceId: true, registrationOpen: true },
     });
-    if (!race) throw new Error('Race not found');
+    if (!race) throw httpError('Race not found', 404);
     if (!race.registrationOpen) {
-      throw new Error('Cannot send invitation. This race registration gate is closed.');
+      throw httpError('Cannot send invitation. This race registration gate is closed.', 409);
     }
 
     // Kiểm tra xem lời mời trỏ tới cặp này đã tồn tại chưa (Ràng buộc Unique)
@@ -79,7 +85,7 @@ class JockeyInvitationService {
         }
       }
     });
-    if (existing) throw new Error('You have already sent an invitation to this Jockey for this specific Horse and Race.');
+    if (existing) throw httpError('You have already sent an invitation to this Jockey for this specific Horse and Race.', 409);
 
     const invitation = await prisma.jockeyInvitation.create({
       data: {
@@ -117,8 +123,9 @@ class JockeyInvitationService {
   // API Jockey phản hồi (Accepted / Declined)
   async respondInvitation(jockeyId, invitationId, data) {
     const invitation = await prisma.jockeyInvitation.findUnique({ where: { invitationId } });
-    if (!invitation || invitation.jockeyId !== jockeyId) throw new Error('Invitation not found or unauthorized');
-    if (invitation.status !== 'PENDING') throw new Error('This invitation has already been processed');
+    if (!invitation) throw httpError('Invitation not found', 404);
+    if (invitation.jockeyId !== jockeyId) throw httpError('You are not authorized to respond to this invitation', 403);
+    if (invitation.status !== 'PENDING') throw httpError('This invitation has already been processed', 409);
 
     const updated = await prisma.jockeyInvitation.update({
       where: { invitationId },
@@ -141,11 +148,12 @@ class JockeyInvitationService {
       include: { race: true }
     });
 
-    if (!invitation || invitation.ownerId !== ownerId) throw new Error('Invitation not found or unauthorized');
-    if (invitation.status !== 'ACCEPTED') throw new Error('You can only confirm a Jockey who has ACCEPTED your invitation');
+    if (!invitation) throw httpError('Invitation not found', 404);
+    if (invitation.ownerId !== ownerId) throw httpError('You are not authorized to confirm this invitation', 403);
+    if (invitation.status !== 'ACCEPTED') throw httpError('You can only confirm a Jockey who has ACCEPTED your invitation', 409);
 
     if (!invitation.race.registrationOpen) {
-      throw new Error('The registration gate for this race is closed. Action denied.');
+      throw httpError('The registration gate for this race is closed. Action denied.', 409);
     }
 
     // Kiểm tra giới hạn số lượng entries tối đa
@@ -157,7 +165,7 @@ class JockeyInvitationService {
       where: { raceId: invitation.raceId, status: 'APPROVED' },
     });
     if (approvedCount >= race.maxEntries) {
-      throw new Error(`Race has reached its maximum of ${race.maxEntries} entries. Cannot confirm jockey.`);
+      throw httpError(`Race has reached its maximum of ${race.maxEntries} entries. Cannot confirm jockey.`, 409);
     }
 
     // Kích hoạt Database Transaction toàn cục (Atomic operation) để thực thi chuỗi logic phức tạp
@@ -169,7 +177,7 @@ class JockeyInvitationService {
           raceId_jockeyId: { raceId: invitation.raceId, jockeyId: invitation.jockeyId }
         }
       });
-      if (jockeyBooked) throw new Error('This Jockey is already confirmed for another horse in this same Race.');
+      if (jockeyBooked) throw httpError('This Jockey is already confirmed for another horse in this same Race.', 409);
 
       // Hành động 1: Tạo bản ghi Entry thi đấu chính thức (Horse + Jockey đã Confirm)
       const entry = await tx.raceEntry.create({

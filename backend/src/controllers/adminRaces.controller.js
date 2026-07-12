@@ -18,7 +18,7 @@ async function getRaceById(req, res) {
   try {
     const raceId = validator.parseRaceId(req.params);
     const race = await adminRacesService.getRaceById(raceId);
-    return res.status(200).json({ race });
+    return res.status(200).json(race);
   } catch (error) {
     const status = error.status || 400;
     return res.status(status).json({ error: error.message });
@@ -76,6 +76,16 @@ async function bulkReviewEntries(req, res) {
   try {
     const raceId = validator.parseRaceId(req.params);
     const { entries } = req.body;
+    
+    if (!entries && req.body.entryIds && req.body.action) {
+      const targetStatus = req.body.action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+      entries = req.body.entryIds.map((id) => ({
+        entryId: id,
+        status: targetStatus,
+        reason: req.body.reason || null
+      }));
+    }
+
     if (!Array.isArray(entries) || entries.length === 0) {
       return res.status(400).json({ error: 'entries must be a non-empty array.' });
     }
@@ -100,6 +110,46 @@ async function bulkReviewEntries(req, res) {
   }
 }
 
+async function listAllRaces(req, res) {
+  try {
+    const { page, pageSize, status } = req.query;
+    const result = await adminRacesService.listAllRaces({ page, pageSize, status });
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 500).json({ error: error.message });
+  }
+}
+
+async function handleRaceList(req, res) {
+  if (req.params.tournamentId) {
+    return listRacesByTournament(req, res);
+  } else {
+    return listAllRaces(req, res);
+  }
+}
+
+async function updateRegistrationGate(req, res) {
+  try {
+    const { id } = req.params;
+    const { isOpen } = req.body;
+    const race = await adminRacesService.updateRegistrationGate(id, isOpen);
+    return res.status(200).json({ message: 'Cập nhật cổng đăng ký thành công', race });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
+async function assignReferees(req, res) {
+  try {
+    const { id } = req.params;
+    const { refereeAId, refereeBId } = req.body;
+    const race = await adminRacesService.assignReferees(id, refereeAId, refereeBId);
+    return res.status(200).json({ message: 'Phân công trọng tài thành công', race });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   listRacesByTournament,
   getRaceById,
@@ -108,4 +158,8 @@ module.exports = {
   deleteRace,
   listRaceEntries,
   bulkReviewEntries,
+  listAllRaces,
+  handleRaceList,
+  updateRegistrationGate,
+  assignReferees,
 };

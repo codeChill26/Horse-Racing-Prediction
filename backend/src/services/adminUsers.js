@@ -1,34 +1,29 @@
-// backend/src/services/adminUsers.js
-
 const prisma = require('../config/prisma');
 const redisClient = require('../config/redis');
 const bcrypt = require('bcrypt');
 const { Prisma } = require('@prisma/client');
+const socketEmitter = require('../socket/emitter');
 
 async function revokeUserSessions(userId) {
   // 1) Kill all access tokens for this user in Redis (immediate effect)
-  // Keys are shaped: accessToken:<userId>:<jwt>
   const match = `accessToken:${userId}:*`;
 
   try {
     if (typeof redisClient?.scanIterator === 'function') {
-      // node-redis v5 supports scanIterator
       for await (const key of redisClient.scanIterator({ MATCH: match, COUNT: 100 })) {
         await redisClient.del(key);
       }
     } else if (typeof redisClient?.keys === 'function') {
-      // Fallback for older redis clients
       const keys = await redisClient.keys(match);
       if (Array.isArray(keys) && keys.length > 0) {
         await redisClient.del(keys);
       }
     }
   } catch (err) {
-    // In dev, don't fail the whole admin action just because Redis is down.
-    // The user will still be blocked at login due to isActive=false.
+    // Ignore Redis errors for now
   }
 
-  // 2) Revoke refresh tokens in DB so user can't refresh into a new access token
+  // 2) Revoke refresh tokens in DB
   await prisma.refreshToken.updateMany({
     where: { userId },
     data: { isRevoked: true },
@@ -124,7 +119,6 @@ class AdminUsersService {
         select: { roleId: true, code: true },
       });
     } else {
-      // Default role if not specified
       role = await prisma.role.findUnique({
         where: { code: 'SPECTATOR' },
         select: { roleId: true, code: true },
@@ -138,15 +132,10 @@ class AdminUsersService {
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
-
     const isJockey = role.code === 'JOCKEY';
-    const isProfileComplete =
-      isJockey ? !!data.licenseNumber && data.weight !== undefined : true;
+    const isProfileComplete = isJockey ? !!data.licenseNumber && data.weight !== undefined : true;
+    const weightValue = data.weight === undefined ? undefined : new Prisma.Decimal(data.weight);
 
-    const weightValue =
-      data.weight === undefined ? undefined : new Prisma.Decimal(data.weight);
-
-    // mirror register: create wallet + initial transaction for spectators
     const created = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -233,7 +222,6 @@ class AdminUsersService {
 
     if (data.password !== undefined) {
       updateData.passwordHash = await bcrypt.hash(data.password, 10);
-      // Changing password should revoke sessions
       await revokeUserSessions(userId);
     }
 
@@ -373,6 +361,225 @@ class AdminUsersService {
     await revokeUserSessions(userId);
 
     return updated;
+  }
+
+ /**
+   * Truy vấn vi phạm cá nhân
+   */
+  async getMyViolations(userId) {
+    const entries = await prisma.raceEntry.findMany({
+      where: { OR: [{ jockeyId: userId }, { horse: { ownerId: userId } }] },
+      select: { entryId: true }
+    });
+    const entryIds = entries.map(e => e.entryId);
+    const myViolations = await prisma.violation.findMany({
+      where: { entryId: { in: entryIds } }
+    });
+    return { violations: myViolations, total: myViolations.length };
+  }
+
+  /**
+   * Admin lấy danh sách vi phạm
+   */
+  async getViolationsList({ status, severity }) {
+    const where = {};
+    if (status) where.status = status;
+    if (severity) where.severity = severity;
+
+    const rawViolations = await prisma.violation.findMany({
+      where,
+      include: {
+        race: { select: { name: true } },
+        entry: { include: { horse: { select: { name: true } }, jockey: { select: { fullName: true } } } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const violations = rawViolations.map(v => ({
+      violationId: `VIO-${String(v.violationId).padStart(3, '0')}`,
+      raceId: v.raceId,
+      raceName: v.race?.name || 'N/A',
+      entryId: v.entryId,
+      horseName: v.entry?.horse?.name || 'N/A',
+      jockeyName: v.entry?.jockey?.fullName || 'N/A',
+      type: v.type,
+      severity: v.severity,
+      status: v.status,
+      description: v.description,
+      penalty: v.penalty,
+      penaltyType: v.penalty,
+      createdAt: v.createdAt,
+      updatedAt: v.updatedAt
+    }));
+
+    const stats = await prisma.violation.groupBy({ by: ['status'], _count: true });
+    const formattedStats = {
+      open: stats.find(s => s.status === 'OPEN')?._count || 0,
+      reviewing: stats.find(s => s.status === 'REVIEWING')?._count || 0,
+      resolved: stats.find(s => s.status === 'RESOLVED')?._count || 0,
+      dismissed: stats.find(s => s.status === 'DISMISSED')?._count || 0
+    };
+
+    return { violations, total: violations.length, stats: formattedStats };
+  }
+
+  /**
+   * CRITICAL-12: Admin xem chi tiết
+   */
+  async getViolationById(id) {
+    let violationId;
+    if (id.startsWith('VIO-')) {
+      violationId = parseInt(id.replace('VIO-', ''), 10);
+    } else {
+      violationId = parseInt(id, 10);
+    }
+
+    const v = await prisma.violation.findUnique({
+      where: { violationId },
+      include: {
+        race: { select: { name: true } },
+        entry: {
+          include: {
+            horse: { include: { owner: true } },
+            jockey: true
+          }
+        }
+      }
+    });
+
+    if (!v) throw Object.assign(new Error('Violation not found'), { status: 404 });
+
+    return {
+      violation: {
+        violationId: `VIO-${String(v.violationId).padStart(3, '0')}`,
+        raceId: v.raceId,
+        raceName: v.race?.name || 'N/A',
+        entryId: v.entryId,
+        horseName: v.entry?.horse?.name || 'N/A',
+        horse: v.entry?.horse ? {
+          horseId: v.entry.horse.horseId,
+          name: v.entry.horse.name,
+          breed: v.entry.horse.breed,
+          ownerName: v.entry.horse.owner?.fullName || 'N/A',
+          ownerEmail: v.entry.horse.owner?.email || 'N/A'
+        } : null,
+        jockeyId: v.entry?.jockey?.userId || null,
+        jockeyName: v.entry?.jockey?.fullName || 'N/A',
+        jockeyEmail: v.entry?.jockey?.email || 'N/A',
+        type: v.type,
+        severity: v.severity,
+        status: v.status,
+        description: v.description,
+        penalty: v.penalty,
+        penaltyType: v.penalty,
+        resolutionNote: v.resolutionNote,
+        createdAt: v.createdAt,
+        updatedAt: v.updatedAt,
+        history: [] // Database hiện tại chưa có table history, trả mảng rỗng để chống sập FE
+      }
+    };
+  }
+
+  /**
+   * CRITICAL-13: Admin đổi trạng thái sang Đang xử lý
+   */
+  async startReviewViolation(id, adminId) {
+    let violationId = id.startsWith('VIO-') ? parseInt(id.replace('VIO-', ''), 10) : parseInt(id, 10);
+    
+    const existing = await prisma.violation.findUnique({ where: { violationId } });
+    if (!existing) throw Object.assign(new Error('Violation not found'), { status: 404 });
+    if (existing.status !== 'OPEN') throw Object.assign(new Error('Violation is not in OPEN status'), { status: 400 });
+
+    const violation = await prisma.violation.update({
+      where: { violationId },
+      data: { status: 'REVIEWING' }
+    });
+
+    return {
+      violation: {
+        violationId: `VIO-${String(violation.violationId).padStart(3, '0')}`,
+        status: violation.status,
+        updatedAt: violation.updatedAt
+      }
+    };
+  }
+
+  /**
+   * CRITICAL-14: Admin Xử phạt (Kèm Transaction & Socket)
+   */
+  async resolveViolation(id, penalty, note, adminId) {
+    if (!penalty) throw Object.assign(new Error('penalty is required'), { status: 400 });
+    if (!note) throw Object.assign(new Error('note is required'), { status: 400 });
+
+    let violationId = id.startsWith('VIO-') ? parseInt(id.replace('VIO-', ''), 10) : parseInt(id, 10);
+    
+    const result = await prisma.$transaction(async (tx) => {
+      const violation = await tx.violation.update({
+        where: { violationId },
+        data: { status: 'RESOLVED', penalty: penalty, resolutionNote: note }
+      });
+
+      // Nếu phạt Loại (DQ) thì cập nhật RaceEntry thành DQ
+      if (penalty === 'DQ' && violation.entryId) {
+        await tx.raceEntry.update({
+          where: { entryId: violation.entryId },
+          data: { status: 'DQ', rejectionReason: `Truất quyền thi đấu: ${note}` } 
+        });
+      }
+      return violation;
+    });
+
+    const payload = {
+      violation: {
+        violationId: `VIO-${String(result.violationId).padStart(3, '0')}`,
+        status: 'RESOLVED',
+        penalty: penalty,
+        penaltyType: penalty,
+        resolutionNote: note,
+        resolvedAt: result.updatedAt
+      },
+      effects: { entryStatusChanged: penalty === 'DQ' ? 'DQ' : null, pointsDeducted: null }
+    };
+    
+    socketEmitter.emitToAdmin('violation:resolved', payload);
+    if (result.raceId) socketEmitter.emitToRace(result.raceId, 'violation:resolved', payload);
+    
+    // Nếu bị DQ, phải emit thay đổi Entry cho người chơi đang mở BettingModal
+    if (penalty === 'DQ' && result.entryId) {
+      socketEmitter.emitToRace(result.raceId, 'entry:status_changed', {
+        entryId: result.entryId,
+        raceId: result.raceId,
+        newStatus: 'DQ',
+        updatedAt: result.updatedAt
+      });
+    }
+
+    return payload;
+  }
+
+  /**
+   * CRITICAL-15: Admin Bác bỏ vi phạm
+   */
+  async dismissViolation(id, reason, adminId) {
+    if (!reason) throw Object.assign(new Error('reason is required'), { status: 400 });
+    let violationId = id.startsWith('VIO-') ? parseInt(id.replace('VIO-', ''), 10) : parseInt(id, 10);
+
+    const existing = await prisma.violation.findUnique({ where: { violationId } });
+    if (!existing) throw Object.assign(new Error('Violation not found'), { status: 404 });
+
+    const violation = await prisma.violation.update({
+      where: { violationId },
+      data: { status: 'DISMISSED', resolutionNote: reason }
+    });
+
+    return {
+      violation: {
+        violationId: `VIO-${String(violation.violationId).padStart(3, '0')}`,
+        status: violation.status,
+        resolutionNote: violation.resolutionNote,
+        updatedAt: violation.updatedAt
+      }
+    };
   }
 }
 

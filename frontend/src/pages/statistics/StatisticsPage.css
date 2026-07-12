@@ -246,6 +246,13 @@
   border-bottom: 1px solid #21262d;
 }
 
+.st-perf__empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  color: #8b949e;
+  font-size: 0.85rem;
+}
+
 .st-perf__item:last-child {
   border-bottom: none;
 }

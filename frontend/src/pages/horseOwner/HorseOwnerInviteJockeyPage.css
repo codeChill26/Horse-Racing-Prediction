@@ -1,0 +1,260 @@
+/* ============================================
+   HORSE OWNER INVITE JOCKEY - Dark Theme
+   ============================================ */
+
+/* === Realtime badge === */
+.oh-realtime-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.oh-realtime {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.oh-realtime--ok {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+  border: 1px solid rgba(141, 214, 166, 0.3);
+}
+
+.oh-realtime--off {
+  background: rgba(168, 184, 200, 0.1);
+  color: #a8b8c8;
+  border: 1px solid rgba(168, 184, 200, 0.2);
+}
+
+.oh-realtime-hint {
+  font-size: 0.8rem;
+  color: #8da4b8;
+  font-style: italic;
+}
+
+/* === JOCKEY CARD === */
+.oh-jockey-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.05rem 1.15rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: var(--ho-radius, 14px);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.oh-jockey-card:hover {
+  border-color: var(--ho-primary-border, rgba(141, 214, 166, 0.4));
+  transform: translateY(-1px);
+}
+
+.oh-jockey-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.oh-jockey-card__avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(140deg, rgba(141, 214, 166, 0.18), rgba(230, 195, 100, 0.18));
+  color: var(--ho-gold, #e6c364);
+  border: 1px solid var(--ho-gold-border, rgba(230, 195, 100, 0.4));
+  font-weight: 700;
+  font-size: 0.9rem;
+  font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+.oh-jockey-card__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.oh-jockey-card__title h3 {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oh-jockey-card__title p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--ho-text-muted, #8b949e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.oh-jockey-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--ho-primary-dim, rgba(141, 214, 166, 0.12));
+  color: var(--ho-primary, #8dd6a6);
+  border: 1px solid var(--ho-primary-border, rgba(141, 214, 166, 0.4));
+  white-space: nowrap;
+}
+
+.oh-jockey-card__status--muted {
+  background: var(--ho-error-dim, rgba(255, 180, 171, 0.12));
+  color: #ffb4ab;
+  border-color: rgba(255, 180, 171, 0.3);
+}
+
+.oh-jockey-card__phone {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--ho-text-secondary, #bfc9bf);
+}
+
+.oh-jockey-card__bio {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ho-text-muted, #8b949e);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.oh-jockey-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.oh-jockey-card__id {
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+/* === INVITATION LIST === */
+.oh-invitation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.oh-invitation-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--ho-card, #161b22);
+  border: 1px solid var(--ho-border, #30363d);
+  border-radius: 12px;
+  transition: border-color 0.15s;
+}
+
+.oh-invitation-row:hover {
+  border-color: var(--ho-primary-border, rgba(141, 214, 166, 0.4));
+}
+
+.oh-invitation-row__avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ho-gold-dim, rgba(230, 195, 100, 0.12));
+  color: var(--ho-gold, #e6c364);
+  border: 1px solid var(--ho-gold-border, rgba(230, 195, 100, 0.4));
+}
+
+.oh-invitation-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.oh-invitation-row__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+
+.oh-invitation-row__head h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ho-text-primary, #dae3ee);
+}
+
+.oh-invitation-row__body p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--ho-text-muted, #8b949e);
+}
+
+.oh-invitation-row__reason {
+  color: #ffb4ab !important;
+  font-style: italic;
+}
+
+.oh-invitation-row__action {
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .oh-invitation-row {
+    flex-wrap: wrap;
+  }
+  .oh-invitation-row__action {
+    width: 100%;
+  }
+  .oh-invitation-row__action .oh-btn {
+    width: 100%;
+  }
+}
+
+/* === Modal helpers === */
+.oh-field-hint {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--ho-text-muted, #8b949e);
+  font-style: italic;
+}

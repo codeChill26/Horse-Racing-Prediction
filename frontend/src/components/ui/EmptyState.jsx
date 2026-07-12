@@ -2,8 +2,6 @@
  * EmptyState component for no data scenarios
  */
 
-import { Search } from 'lucide-react'
-
 export function EmptyState({ title = 'Không có dữ liệu', description = 'Hiện chưa có thông tin để hiển thị.', icon: Icon }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
