@@ -54,3 +54,39 @@ POST /api/auth/forgot-password
 POST /api/auth/reset-password
 GET /api/auth/profile
 PUT /api/auth/profile
+
+---
+
+## 🔁 CI/CD với GitHub Actions + Vercel + Render
+
+Workflow đã được thêm tại:
+
+`/home/runner/work/Horse-Racing-Prediction/Horse-Racing-Prediction/.github/workflows/ci-cd.yml`
+
+### Luồng chạy
+
+- **Pull Request vào `main`**: chạy check frontend + backend.
+- **Push vào `main`**: chạy check frontend + backend, sau đó deploy.
+
+### Các bước kiểm tra (CI)
+
+- **Frontend**
+  - `npm ci`
+  - `npm run lint`
+  - `npm run build`
+- **Backend**
+  - `npm ci`
+  - `npx prisma generate`
+  - `npm test`
+
+### Các bước deploy (CD)
+
+- Deploy FE qua **Vercel Deploy Hook**
+- Deploy BE qua **Render Deploy Hook**
+
+### Secrets cần thêm trong GitHub repository
+
+Vào **Settings → Secrets and variables → Actions** và tạo:
+
+- `VERCEL_DEPLOY_HOOK_URL`: URL deploy hook của project frontend trên Vercel.
+- `RENDER_DEPLOY_HOOK_URL`: URL deploy hook của service backend trên Render.
