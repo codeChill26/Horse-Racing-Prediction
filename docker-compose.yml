@@ -1,30 +1,23 @@
-# Runtime: DATABASE_URL / DIRECT_URL từ backend/.env (Supabase).
-# Build: dùng placeholder nếu chưa export; hoặc: docker compose --env-file backend/.env up -d --build
-# Postgres local (tùy chọn): docker compose --profile local-db up -d
-
 services:
   backend_app:
     build:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/postgres}
-        DIRECT_URL: ${DIRECT_URL:-postgresql://postgres:postgres@localhost:5432/postgres}
+        DATABASE_URL: ${DATABASE_URL}
     container_name: horse_racing_backend
     restart: always
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     env_file:
       - ./backend/.env
     environment:
-      # Redis vẫn chạy trong Docker; ghi đè URL localhost trong .env nếu có
-      - REDIS_URL=redis://redis_cache:6379
-      - PORT=3000
+      - REDIS_URL=redis://horse_racing_redis:6379
+      - PORT=${PORT:-3000}
     depends_on:
       redis_cache:
         condition: service_healthy
 
-  # Postgres local (tùy chọn). Không dùng khi backend nối Supabase qua backend/.env
   postgres_db:
     profiles:
       - local-db
@@ -32,15 +25,19 @@ services:
     container_name: horse_racing_postgres
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 12345
-      POSTGRES_DB: horse_racing
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d horse_racing"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-horse_racing}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
