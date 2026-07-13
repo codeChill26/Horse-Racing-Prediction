@@ -1,31 +1,40 @@
-# backend/Dockerfile
+# Stage 1
+FROM node:22-bookworm-slim AS builder
 
-# Prisma + bcrypt thường ổn định hơn trên Debian-slim so với Alpine (musl)
-FROM node:22-bookworm-slim
-
-# 2. Tạo và chỉ định thư mục làm việc mặc định bên trong Container
 WORKDIR /app
 
-# 3. Sao chép các tệp định nghĩa thư viện vào trước để tận dụng bộ nhớ đệm Layer Cache của Docker
 COPY package*.json ./
+COPY prisma.config.ts ./
+COPY prisma ./prisma/
 
-# 4. Cài đặt các thư viện phụ thuộc (Dependencies) được khai báo trong package.json
 RUN npm ci
 
-# 5. Sao chép toàn bộ mã nguồn của ứng dụng vào bên trong Container
-COPY . .
-
-# 6. CRITICAL (BẮT BUỘC): Tạo mã nguồn Prisma Client tương thích trực tiếp với môi trường Linux của Container.
-# Điều này khắc phục triệt để lỗi lệch Engine (PrismaClientInitializationError) khi chạy trên máy cá nhân Windows.
-# prisma generate chỉ cần schema — không kết nối DB; placeholder tránh lỗi khi build không có .env
-ARG DIRECT_URL=postgresql://postgres:postgres@localhost:5432/postgres
-ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
-ENV DIRECT_URL=$DIRECT_URL
+ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
+
 RUN npx prisma generate
 
-# 7. Khai báo mở cổng mạng nội bộ 3000 để Express có thể đón nhận các Request gửi tới
+COPY . .
+
+# Stage 2
+FROM node:22-bookworm-slim AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma.config.ts ./
+
+RUN npm ci --omit=dev && npm cache clean --force
+
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/app.js ./
+COPY --from=builder /app/bin ./bin
+
 EXPOSE 3000
 
-# 8. Lệnh mặc định để khởi động máy chủ Express Backend khi Container kích hoạt
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node ./bin/www"]
