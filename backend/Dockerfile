@@ -14,7 +14,9 @@ RUN apt-get update \
 RUN npm ci
 
 ARG DATABASE_URL
+ARG DIRECT_URL
 ENV DATABASE_URL=$DATABASE_URL
+ENV DIRECT_URL=$DIRECT_URL
 
 RUN npx prisma generate
 
