@@ -7,6 +7,10 @@ COPY package*.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
+RUN apt-get update \
+ && apt-get install -y openssl \
+ && rm -rf /var/lib/apt/lists/*
+ 
 RUN npm ci
 
 ARG DATABASE_URL
