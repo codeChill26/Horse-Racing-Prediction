@@ -85,7 +85,7 @@ class JockeyInvitationService {
         }
       }
     });
-    if (existing) throw httpError('You have already sent an invitation to this Jockey for this specific Horse and Race.', 409);
+    if (existing) throw httpError('Bạn đã gửi lời mời cho kỵ sĩ này với cùng ngựa và chặng đua.', 409);
 
     const invitation = await prisma.jockeyInvitation.create({
       data: {

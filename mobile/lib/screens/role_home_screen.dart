@@ -8,6 +8,7 @@ import 'admin/admin_shell.dart';
 import 'horse_owner/horse_owner_shell.dart';
 import 'jockey/jockey_shell.dart';
 import 'login_screen.dart';
+import 'referee/referee_shell.dart';
 import 'spectator/home_spectator.dart';
 
 /// Chỉ dùng cho vai trò chưa có màn hình (vd. RACE_REFEREE).
@@ -51,6 +52,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         return JockeyShell(showWelcome: widget.showWelcome);
       case 'HORSE_OWNER':
         return HorseOwnerShell(showWelcome: widget.showWelcome);
+      case 'RACE_REFEREE':
+        return const RefereeShell();
       default:
         return _UnsupportedRolePlaceholder(
           email: widget.email,
