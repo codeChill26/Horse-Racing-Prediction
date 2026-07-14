@@ -1,9 +1,16 @@
+// backend/src/routes/predictions.js
 const express = require('express');
 const router = express.Router();
 
 const authMiddleware = require('../middlewares/auth');
 const spectatorOnly = require('../middlewares/spectatorOnly');
 const predictionsController = require('../controllers/predictions.controller');
+
+// 1. Thống kê cá nhân (Spectator xem của chính mình)
+router.get('/my-stats', authMiddleware, predictionsController.getBettingStats);
+
+// 2. Thống kê hệ thống (Nếu cần công khai cho mọi người xem hoặc Admin)
+router.get('/system-stats', predictionsController.getSystemStats);
 
 // POST /api/predictions - Place a bet (Spectator only)
 router.post('/', authMiddleware, spectatorOnly, predictionsController.placeBet);

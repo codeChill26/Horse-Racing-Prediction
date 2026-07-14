@@ -1,0 +1,231 @@
+/* Jockey Schedule Page Styles */
+
+.jock-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.jock-schedule-day-group {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.jock-schedule-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(245, 158, 11, 0.05);
+  border-bottom: 1px solid #334155;
+}
+
+.jock-schedule-day-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-schedule-day-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.jock-schedule-day-date {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.jock-schedule-day-count {
+  padding: 6px 12px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.jock-schedule-day-races {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.jock-schedule-race-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.jock-schedule-race-divider {
+  height: 1px;
+  background: #334155;
+  margin: 8px 12px;
+}
+
+/* Enhanced Schedule Item */
+.jock-schedule-item {
+  padding: 16px 20px;
+}
+
+.jock-schedule-item:hover {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Schedule Legend */
+.jock-schedule-legend {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 32px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+}
+
+.jock-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.jock-legend-item svg {
+  color: #f59e0b;
+}
+
+/* Timeline View */
+.jock-schedule-timeline {
+  position: relative;
+  padding-left: 40px;
+}
+
+.jock-schedule-timeline::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    #f59e0b 0%,
+    #f59e0b 50%,
+    #334155 50%,
+    #334155 100%
+  );
+}
+
+.jock-timeline-item {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.jock-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -33px;
+  top: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #0f172a;
+}
+
+.jock-timeline-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.jock-timeline-time {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f59e0b;
+  margin-bottom: 8px;
+}
+
+.jock-timeline-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 4px 0;
+}
+
+.jock-timeline-venue {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Week View */
+.jock-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.jock-week-day {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+}
+
+.jock-week-day--today {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.jock-week-day-name {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.jock-week-day-date {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.jock-week-day--today .jock-week-day-date {
+  color: #f59e0b;
+}
+
+.jock-week-day-events {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-week-event {
+  padding: 4px 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 4px;
+  font-size: 10px;
+  color: #f59e0b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .jock-week-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .jock-schedule-legend {
+    flex-direction: column;
+    align-items: center;
+  }
+}

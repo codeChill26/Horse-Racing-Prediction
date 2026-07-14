@@ -14,7 +14,7 @@ router.post('/', authMiddleware, horseOwnerOnly, raceEntriesController.createEnt
 // body: { status, reason?, weightLb?, saddleNumber? }
 router.put('/:id/status', authMiddleware, adminOnly, raceEntriesController.reviewEntry);
 
-// GET /api/races/:raceId/odds - Get calculated odds for a race
+// GET /api/races/:raceId/entries/odds - Alias của GET /api/races/:raceId/odds (xem src/routes/races.js), giữ lại để tránh breaking change
 router.get('/odds', raceEntriesController.getRaceOdds);
 
 module.exports = router;

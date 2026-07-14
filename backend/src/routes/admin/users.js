@@ -7,6 +7,38 @@ const authMiddleware = require('../../middlewares/auth');
 const adminOnly = require('../../middlewares/adminOnly');
 const adminUsersController = require('../../controllers/adminUsers.controller');
 
+/**
+ * API Lấy danh sách tài khoản Trọng tài chuyên biệt (Mục MEDIUM-19)
+ * GET /api/admin/referees
+ */
+router.get('/referees', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const prisma = require('../../config/prisma');
+    
+    // Tìm kiếm tất cả user có liên kết với Role Trọng tài
+    const referees = await prisma.user.findMany({
+      where: {
+        role: {
+          code: { in: ['Referee', 'RACE_REFEREE', 'REFEREE'] } // Chấp nhận các biến thể định danh hệ thống
+        },
+        isActive: true
+      },
+      select: {
+        userId: true,
+        fullName: true,
+        email: true,
+        avatarUrl: true,
+        licenseNumber: true
+      },
+      orderBy: { fullName: 'asc' }
+    });
+
+    return res.status(200).json({ referees });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/admin/users?roleCode=ADMIN
 router.get('/', authMiddleware, adminOnly, adminUsersController.listUsers);
 

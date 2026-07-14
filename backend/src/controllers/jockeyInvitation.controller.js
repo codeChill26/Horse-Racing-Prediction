@@ -8,7 +8,7 @@ class JockeyInvitationController {
       const result = await service.searchJockeys(req.query);
       return res.status(200).json({ success: true, jockeys: result });
     } catch (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(error.status || 400).json({ error: error.message });
     }
   }
 
@@ -19,7 +19,7 @@ class JockeyInvitationController {
       const result = await service.sendInvitation(ownerId, validatedData);
       return res.status(201).json({ message: 'Invitation sent successfully', invitation: result });
     } catch (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(error.status || 400).json({ error: error.message });
     }
   }
 
@@ -31,7 +31,7 @@ class JockeyInvitationController {
       const result = await service.getInvitations(userId, roleCode, status);
       return res.status(200).json({ invitations: result });
     } catch (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(error.status || 400).json({ error: error.message });
     }
   }
 
@@ -43,7 +43,7 @@ class JockeyInvitationController {
       const result = await service.respondInvitation(jockeyId, invitationId, validatedData);
       return res.status(200).json({ message: 'Responded successfully', invitation: result });
     } catch (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(error.status || 400).json({ error: error.message });
     }
   }
 
@@ -54,7 +54,7 @@ class JockeyInvitationController {
       const result = await service.confirmJockey(ownerId, invitationId);
       return res.status(200).json({ message: 'Jockey confirmed, other competing invitations auto-cancelled.', entry: result });
     } catch (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(error.status || 400).json({ error: error.message });
     }
   }
 }

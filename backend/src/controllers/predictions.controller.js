@@ -46,9 +46,31 @@ async function getPredictionById(req, res) {
   }
 }
 
+async function getBettingStats(req, res) { 
+  try {
+    const spectatorId = Number(req.user.sub);
+    const stats = await predictionsService.getBettingStats(spectatorId);
+    return res.status(200).json(stats);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
+// Hàm getSystemStats nằm ngoài, không bị lồng vào trong hàm khác
+async function getSystemStats(req, res) {
+  try {
+    const result = await predictionsService.getStats();
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
 module.exports = {
   placeBet,
   cancelPrediction,
   listMyPredictions,
   getPredictionById,
+  getBettingStats,
+  getSystemStats
 };

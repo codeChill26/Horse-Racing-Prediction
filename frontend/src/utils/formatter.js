@@ -3,10 +3,12 @@
 // chuyen đổi điểm số thành định dạng dễ đọc hơn, ví dụ 1500000 -> 1.5M
 export function formatPoints(points) {
   if (points === undefined || points === null) return "0";
-  if (Math.abs(points) >= 1000000) {
-    return (points / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  const n = Number(points);
+  if (!Number.isFinite(n)) return "—";
+  if (Math.abs(n) >= 1000000) {
+    return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
   }
-  return new Intl.NumberFormat("vi-VN").format(points);
+  return new Intl.NumberFormat("vi-VN").format(n);
 }
 
 // Map english roles to beautiful Vietnamese titles
@@ -31,7 +33,7 @@ export function formatDate(dateString) {
       month: "short",
       day: "numeric"
     });
-  } catch (e) { 
+  } catch {
     // trả về gốc
     return dateString;
   }

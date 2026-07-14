@@ -18,4 +18,6 @@ COPY . /app/ai/
 EXPOSE 8000
 
 # --host 0.0.0.0: nhận request từ ngoài container (mặc định chỉ nghe trong container).
-CMD ["uvicorn", "ai.service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Dùng shell form (không phải JSON array) để mở rộng được $PORT: PaaS (Render/Railway)
+# tự gán cổng qua biến PORT, khác cổng cố định 8000 dùng khi chạy docker-compose local.
+CMD uvicorn ai.service.main:app --host 0.0.0.0 --port ${PORT:-8000}

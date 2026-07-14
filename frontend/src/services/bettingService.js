@@ -19,6 +19,11 @@ export const bettingService = {
     return bettingRepository.getMyBets()
   },
 
+  /** Lấy thống kê tổng quan (win rate, tổng thắng/thua, ngựa/kỵ sĩ yêu thích, ...) */
+  async getMyStats() {
+    return bettingRepository.getMyStats()
+  },
+
   /** Lấy chi tiết một vé cược */
   async getBetDetails(predictionId) {
     return bettingRepository.getBetDetails(predictionId)

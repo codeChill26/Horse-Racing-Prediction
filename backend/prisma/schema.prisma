@@ -20,6 +20,7 @@ enum RaceEntryStatus {
   PENDING
   APPROVED
   REJECTED
+  DQ
 }
 
 enum InvitationStatus {
@@ -135,16 +136,18 @@ model PointWallet {
 // 4. Lịch sử biến động số dư ví điểm (WalletTransactions)
 model WalletTransaction {
   transactionId Int      @id @default(autoincrement())
-  walletId      Int
+  walletId      Int?
   amount        Int // Số điểm thay đổi (+/-)
   balanceAfter  Int // Số dư ví điểm ngay sau giao dịch
   referenceType String? // Loại tham chiếu ngoại bang (nvarchar)
   referenceId   BigInt? // ID tham chiếu ngoại bang tương ứng (bigint)
-  type          String // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED', 'BET_REFUND', 'BET_WIN', 'BET_WIN_REVERSAL', 'WEEKLY_BONUS', 'ADMIN_ADJUSTMENT'
+  type          String // Loại giao dịch: 'INITIAL_BONUS', 'DEPOSIT', 'BET_PLACED', 'BET_REFUND', 'BET_WIN', 'BET_WIN_REVERSAL', 'WEEKLY_BONUS', 'ADMIN_ADJUSTMENT', 'HOUSE_MARGIN', 'TREASURE_IN', 'TREASURE_OUT'
+                       // 'HOUSE_MARGIN': giao dịch hệ thống (walletId = null) ghi nhận 10% phí vận hành sàn trích ra từ mỗi trận đấu khi settlement (xem settlement.js).
+                       // 'TREASURE_IN' / 'TREASURE_OUT': giao dịch hệ thống (walletId = null) cân đối Quỹ dự phòng (Treasure Pool) sau settlement — IN khi netPool > tổng tiền thưởng đã chi, OUT khi ngược lại (bù lỗ).
   description   String?
   createdAt     DateTime @default(now())
 
-  pointWallet PointWallet @relation(fields: [walletId], references: [walletId])
+  pointWallet PointWallet? @relation(fields: [walletId], references: [walletId])
 }
 
 // 5. Mã OTP phục vụ luồng Quên mật khẩu (PasswordResetOtps)
@@ -209,6 +212,7 @@ model Race {
   invitations JockeyInvitation[]
   predictions Prediction[]
   odds        Odds[]
+  violations Violation[]
 
   // BỔ SUNG: Quan hệ tới luồng nộp điểm Blind Entry
   refereeA           User?               @relation("RaceRefereeA", fields: [refereeAId], references: [userId], onDelete: SetNull)
@@ -285,6 +289,7 @@ model RaceEntry {
   pickedAs1    Prediction[] @relation("Pick1")
   pickedAs2    Prediction[] @relation("Pick2")
   odds         Odds[]
+  violations Violation[]
 
   @@unique([raceId, horseId])
   @@unique([raceId, jockeyId])
@@ -409,4 +414,32 @@ model OfficialRaceResult {
   updatedAt     DateTime @updatedAt
 
   race Race @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+}
+
+// BỔ SUNG: Model quản lý hệ thống quỹ dự phòng và doanh thu tổng nhà cái
+model SystemSetting {
+  key         String   @id // 'TREASURE_POOL', 'HOUSE_REVENUE'
+  value       Decimal  @default(0.0)
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model Violation {
+  violationId     Int       @id @default(autoincrement())
+  raceId          Int
+  entryId         Int?
+  type            String
+  severity        String
+  description     String
+  status          String    @default("OPEN")
+  penalty         String?
+  resolutionNote  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  race            Race      @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  entry           RaceEntry? @relation(fields: [entryId], references: [entryId], onDelete: SetNull)
+
+  @@index([raceId])
+  @@index([entryId])
 }

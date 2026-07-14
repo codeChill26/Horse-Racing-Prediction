@@ -1,14 +1,16 @@
+// backend/src/routes/admin/races.js
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 
 const authMiddleware = require('../../middlewares/auth');
 const adminOnly = require('../../middlewares/adminOnly');
 const raceEntriesController = require('../../controllers/raceEntries.controller');
-const adminRacesController = require('../../controllers/adminRaces.controller');
+const adminRacesController = require('../../controllers/adminRaces.controller'); // Khớp với adminRaces.controller.js có sẵn
 const adminRefereeController = require('../../controllers/adminReferee.controller');
 
-// GET /api/admin/tournaments/:tournamentId/races - List races by tournament
-router.get('/', authMiddleware, adminOnly, adminRacesController.listRacesByTournament);
+// GET /api/admin/races HOẶC /api/admin/tournaments/:tournamentId/races
+// 👉 Đã chuyển toàn bộ quyền xử lý cho hàm handleRaceList của Controller
+router.get('/', authMiddleware, adminOnly, adminRacesController.handleRaceList);
 
 // POST /api/admin/tournaments/:tournamentId/races - Create a race
 router.post('/', authMiddleware, adminOnly, adminRacesController.createRace);
@@ -37,10 +39,8 @@ router.delete('/:id', authMiddleware, adminOnly, adminRacesController.deleteRace
 // PUT /api/admin/races/:id/registration-gate
 router.put('/:id/registration-gate', authMiddleware, adminOnly, raceEntriesController.setRegistrationGate);
 
-
 router.post('/:id/assign-referees', authMiddleware, adminOnly, adminRefereeController.assignReferees);
 router.get('/:id/review-conflict', authMiddleware, adminOnly, adminRefereeController.reviewConflict);
 router.post('/:id/resolve-conflict', authMiddleware, adminOnly, adminRefereeController.resolveConflict);
-
 
 module.exports = router;

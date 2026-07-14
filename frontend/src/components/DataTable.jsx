@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight, Filter, Download } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function DataTable({
     columns,
@@ -16,8 +16,6 @@ export default function DataTable({
     onExternalSearchChange,
     hideSearch = false,
     onRowClick,
-    actionButtonText,
-    onActionButtonClick,
     title
 }) {
     const [localSearchValue, setLocalSearchValue] = useState("");
@@ -177,10 +175,11 @@ export default function DataTable({
                 <span className="text-[11px] font-sans text-on-surface-variant">
                     Hiển thị {filteredData.length > 0 ? rangeStart : 0}-{rangeEnd} trên tổng số {filteredData.length} bản ghi
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5" role="navigation" aria-label="Phân trang">
                     <button
                         onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                         disabled={currentPage === 1}
+                        aria-label="Trang trước"
                         className="w-8 h-8 flex items-center justify-center rounded border border-[#30363D] text-on-surface-variant hover:bg-surface-container-highest disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
                     >
                         <ChevronLeft className="w-4 h-4" />
@@ -190,6 +189,8 @@ export default function DataTable({
                         <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
+                            aria-label={`Trang ${pageNum}`}
+                            aria-current={currentPage === pageNum ? "page" : undefined}
                             className={`w-8 h-8 flex items-center justify-center rounded font-sans text-xs transition-colors cursor-pointer ${currentPage === pageNum
                                     ? "bg-primary/10 text-primary border border-primary/30 font-bold"
                                     : "text-on-surface-variant hover:bg-surface-container-highest"
@@ -202,6 +203,7 @@ export default function DataTable({
                     <button
                         onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                         disabled={currentPage === totalPages}
+                        aria-label="Trang sau"
                         className="w-8 h-8 flex items-center justify-center rounded border border-[#30363D] text-on-surface-variant hover:bg-surface-container-highest disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
                     >
                         <ChevronRight className="w-4 h-4" />

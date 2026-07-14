@@ -206,6 +206,51 @@ class HorsesService {
       select: horseSelect(),
     });
   }
+/**
+   * Thu hồi ngựa (Revoke) & Hủy các entry liên quan
+   */
+  async revokeHorse(horseId, reason) {
+    const socketEmitter = require('../socket/emitter');
+    const parsedHorseId = parseInt(horseId);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Đổi trạng thái ngựa thành REVOKED
+      const horse = await tx.horse.update({
+        where: { horseId: parsedHorseId },
+        data: { status: 'INACTIVE' } 
+      });
+
+      // 2. Hủy toàn bộ RaceEntry đang PENDING hoặc APPROVED của ngựa này
+      const affectedEntries = await tx.raceEntry.findMany({
+        where: { 
+          horseId: parsedHorseId,
+          status: { in: ['PENDING', 'APPROVED'] }
+        }
+      });
+
+      if (affectedEntries.length > 0) {
+        await tx.raceEntry.updateMany({
+          where: { horseId: parsedHorseId, status: { in: ['PENDING', 'APPROVED'] } },
+          data: { status: 'REJECTED', rejectionReason: `Ngựa bị thu hồi bởi Admin: ${reason}` }
+        });
+      }
+
+      return { horse, affectedEntries };
+    });
+
+    // 3. Bắn socket cập nhật cho các trận đấu có ngựa bị loại
+    for (const entry of result.affectedEntries) {
+      socketEmitter.emitToRace(entry.raceId, 'entry:status_changed', {
+        entryId: entry.entryId,
+        raceId: entry.raceId,
+        newStatus: 'REJECTED',
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    return result.horse;
+  }
+  
 }
 
 module.exports = new HorsesService();

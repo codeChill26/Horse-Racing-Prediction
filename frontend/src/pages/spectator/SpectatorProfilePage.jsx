@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom'
 import { getMyProfile, updateMyProfile } from '../../api/auth'
 import { getAccessToken } from '../../utils/token'
 import { RoleBadge, StatusBadge } from '../../components/ui/Badges'
+import { MyViolationsList } from '../../components/shared/MyViolationsList'
 import './SpectatorProfilePage.css'
 
 function getInitials(name) {
@@ -38,7 +39,7 @@ function InfoRow({ label, value, mono }) {
 }
 
 // ====== POINT WALLET MODAL ======
-function PointWalletModal({ wallet, userName, onClose }) {
+function PointWalletModal({ wallet, onClose }) {
   const transactions = wallet?.transactions || []
   const totalIn = transactions
     .filter(t => (t.amount || 0) > 0)
@@ -434,6 +435,11 @@ export default function SpectatorProfilePage() {
                 )}
               </section>
 
+              {/* BUG-V-03: Lịch sử vi phạm của user */}
+              <section className="sp-profile-card sp-profile-card--wide">
+                <MyViolationsList />
+              </section>
+
               {/* Thời gian */}
               <section className="sp-profile-card">
                 <h3>Thời gian</h3>
@@ -458,7 +464,6 @@ export default function SpectatorProfilePage() {
       {showWallet && user?.pointWallet && (
         <PointWalletModal
           wallet={user.pointWallet}
-          userName={user.fullName}
           onClose={() => setShowWallet(false)}
         />
       )}

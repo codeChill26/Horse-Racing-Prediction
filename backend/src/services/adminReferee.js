@@ -1,6 +1,12 @@
 const prisma = require('../config/prisma');
 const { applyPositionRatingUpdates } = require('./ratingUpdate');
 
+function httpError(message, status = 400) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
+
 class AdminRefereeService {
   /**
    * Gán 2 trọng tài cho trận đấu
@@ -10,17 +16,26 @@ class AdminRefereeService {
       where: { raceId: parseInt(raceId) }
     });
 
-    if (!race) throw new Error('Trận đấu không tồn tại.');
+    if (!race) throw httpError('Trận đấu không tồn tại.', 404);
     if (race.status !== 'SCHEDULED') {
-      throw new Error('Chỉ có thể phân công trọng tài khi trận đấu ở trạng thái SCHEDULED.');
+      throw httpError('Chỉ có thể phân công trọng tài khi trận đấu ở trạng thái SCHEDULED.', 409);
     }
 
     const referees = await prisma.user.findMany({
-      where: { userId: { in: [parseInt(refereeAId), parseInt(refereeBId)] } }
+      where: { userId: { in: [parseInt(refereeAId), parseInt(refereeBId)] } },
+      include: { role: true }
     });
 
     if (referees.length < 2) {
-      throw new Error('Một hoặc cả hai trọng tài được chỉ định không tồn tại trên hệ thống.');
+     throw httpError('Một hoặc cả hai trọng tài được chỉ định không tồn tại trên hệ thống.', 404);
+    }
+
+    const invalidRoleUser = referees.find((u) => u.role.code !== 'RACE_REFEREE');
+    if (invalidRoleUser) {
+      throw httpError(
+          `Người dùng "${invalidRoleUser.fullName}" (id: ${invalidRoleUser.userId}) không có vai trò RACE_REFEREE, không thể phân công làm trọng tài.`,
+          400
+      );
     }
 
     return await prisma.race.update({
@@ -48,9 +63,9 @@ class AdminRefereeService {
       }
     });
 
-    if (!race) throw new Error('Trận đấu không tồn tại.');
+    if (!race) throw httpError('Trận đấu không tồn tại.', 404);
     if (race.status !== 'PAUSED') {
-      throw new Error('Trận đấu không ở trạng thái xung đột (PAUSED) để rà soát.');
+      throw httpError('Trận đấu không ở trạng thái xung đột (PAUSED) để rà soát.', 409);
     }
 
     return race;
@@ -66,8 +81,8 @@ class AdminRefereeService {
         include: { officialRaceResult: true }
       });
 
-      if (!race) throw new Error('Trận đấu không tồn tại.');
-      if (race.status !== 'PAUSED') throw new Error('Trận đấu phải ở trạng thái PAUSED mới có thể can thiệp xử lý.');
+      if (!race) throw httpError('Trận đấu không tồn tại.', 404);
+      if (race.status !== 'PAUSED') throw httpError('Trận đấu phải ở trạng thái PAUSED mới có thể can thiệp xử lý.', 409);
 
       await tx.officialRaceResult.update({
         where: { raceId: parseInt(raceId) },
@@ -89,6 +104,81 @@ class AdminRefereeService {
       });
     });
   }
+
+  async getDeviationsList(statusFilter) {
+    const deviations = await prisma.officialRaceResult.findMany({
+      where: {
+        matchStatus: statusFilter
+      },
+      include: {
+        race: {
+          select: {
+            name: true,
+            scheduledAt: true,
+            refereeA: { select: { fullName: true } },
+            refereeB: { select: { fullName: true } }
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    return deviations.map(d => ({
+      deviationId: d.officialResultId,
+      raceId: d.raceId,
+      raceName: d.race.name,
+      scheduledAt: d.race.scheduledAt,
+      refereeA: d.race.refereeA?.fullName || 'N/A',
+      refereeB: d.race.refereeB?.fullName || 'N/A',
+      status: d.matchStatus,
+      rawResults: d.finalResults,
+      createdAt: d.createdAt
+    }));
+  }
+
+  async listDeviations({ page = 1, pageSize = 10, status } = {}) {
+    const skip = (page - 1) * pageSize;
+    const where = status ? { matchStatus: status } : { matchStatus: 'CONFLICTED' };
+
+    const [total, deviations] = await prisma.$transaction([
+      prisma.officialRaceResult.count({ where }),
+      prisma.officialRaceResult.findMany({
+        where,
+        skip, take: parseInt(pageSize),
+        include: {
+          race: { select: { name: true, refereeAId: true, refereeBId: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+    ]);
+
+    return { total, page: parseInt(page), pageSize: parseInt(pageSize), deviations };
+  }
+
+  async getDeviationDetail(resultId) {
+  const conflict = await prisma.officialRaceResult.findUnique({
+    where: { officialResultId: parseInt(resultId) },
+    include: {
+      race: { include: { refereeSubmissions: true, refereeA: true, refereeB: true } }
+    }
+  });
+    if (!conflict) throw httpError('Deviation not found', 404);
+    return conflict;
+  }
+
+  /**
+ * Wrapper cho nhóm route /api/admin/deviations — tại đây `:id` LUÔN LÀ officialResultId
+ * (khớp với GET /api/admin/deviations/:id dùng getDeviationDetail), KHÔNG PHẢI raceId.
+ */
+async resolveDeviationById(officialResultId, adminUserId, finalResults, reason) {
+  const deviation = await prisma.officialRaceResult.findUnique({
+    where: { officialResultId: parseInt(officialResultId) }
+  });
+
+  if (!deviation) throw httpError('Deviation not found', 404);
+
+  return this.resolveResultConflict(deviation.raceId, adminUserId, finalResults, reason);
+}
 }
 
 module.exports = new AdminRefereeService();

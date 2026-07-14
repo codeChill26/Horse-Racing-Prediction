@@ -1,0 +1,969 @@
+/* Jockey Common Components Styles */
+
+/* ============================================
+   Page Header
+   ============================================ */
+
+.jock-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #334155;
+}
+
+.jock-page-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jock-page-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #f59e0b;
+}
+
+.jock-page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.jock-page-subtitle {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.jock-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ============================================
+   Icon Button
+   ============================================ */
+
+.jock-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-icon-btn:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.jock-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   Stat Card
+   ============================================ */
+
+.jock-stat-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+.jock-stat-card--clickable {
+  cursor: pointer;
+}
+
+.jock-stat-card--clickable:hover {
+  border-color: #f59e0b;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.jock-stat-card--accent {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.jock-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jock-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.5px;
+}
+
+.jock-stat-subtitle {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.jock-stat-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.jock-stat-trend.positive {
+  color: #10b981;
+}
+
+.jock-stat-trend.negative {
+  color: #ef4444;
+}
+
+/* ============================================
+   Badges
+   ============================================ */
+
+.jock-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge--blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.badge--green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.badge--red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.badge--amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.badge--gray {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+}
+
+.badge--gold {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(234, 179, 8, 0.3) 100%);
+  color: #fbbf24;
+}
+
+.badge--silver {
+  background: linear-gradient(135deg, rgba(156, 163, 175, 0.3) 0%, rgba(107, 114, 128, 0.3) 100%);
+  color: #9ca3af;
+}
+
+.badge--bronze {
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.3) 0%, rgba(146, 64, 14, 0.3) 100%);
+  color: #d97706;
+}
+
+/* Form Badge */
+.jock-form-badge {
+  display: flex;
+  gap: 4px;
+}
+
+.jock-form-item {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+}
+
+/* ============================================
+   Alerts
+   ============================================ */
+
+.jock-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.jock-alert--error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.jock-alert--success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.jock-alert-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-alert-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.jock-alert-message {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.jock-alert-action {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-alert-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   Toolbar
+   ============================================ */
+
+.jock-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.jock-search-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.jock-input {
+  width: 100%;
+  padding: 10px 16px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #f8fafc;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.jock-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.jock-input::placeholder {
+  color: #64748b;
+}
+
+.jock-filter-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jock-filter-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jock-select {
+  padding: 10px 32px 10px 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #f8fafc;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.jock-select:focus {
+  outline: none;
+  border-color: #f59e0b;
+}
+
+/* ============================================
+   Race Card
+   ============================================ */
+
+.jock-race-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-race-card:hover {
+  border-color: #f59e0b;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.jock-race-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.jock-race-card-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.jock-race-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 4px 0;
+}
+
+.jock-race-card-tournament {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 16px 0;
+}
+
+.jock-race-card-details {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.jock-race-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.jock-race-card-horse {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid #334155;
+}
+
+.jock-horse-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.jock-horse-trainer {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+
+.jock-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+}
+
+.jock-empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.jock-empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+}
+
+.jock-empty-description {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+}
+
+/* ============================================
+   Skeleton
+   ============================================ */
+
+.jock-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.jock-skeleton--card {
+  padding: 20px;
+  min-height: 200px;
+}
+
+.jock-skeleton-header {
+  height: 24px;
+  width: 30%;
+  margin-bottom: 16px;
+}
+
+.jock-skeleton-title {
+  height: 28px;
+  width: 70%;
+  margin-bottom: 12px;
+}
+
+.jock-skeleton-text {
+  height: 16px;
+  width: 50%;
+  margin-bottom: 24px;
+}
+
+.jock-skeleton-footer {
+  height: 40px;
+  width: 100%;
+}
+
+.jock-skeleton--list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+}
+
+.jock-skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.jock-skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jock-skeleton-line {
+  height: 16px;
+  width: 100%;
+}
+
+.jock-skeleton-line--short {
+  width: 60%;
+}
+
+.jock-skeleton--stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.jock-skeleton-stat {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.jock-skeleton-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.jock-skeleton-stat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ============================================
+   Modal
+   ============================================ */
+
+.jock-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.jock-modal {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 20px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.jock-modal--sm {
+  max-width: 400px;
+}
+
+.jock-modal--md {
+  max-width: 560px;
+}
+
+.jock-modal--lg {
+  max-width: 800px;
+}
+
+.jock-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #334155;
+}
+
+.jock-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.jock-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.jock-modal-close:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.jock-modal-content {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* ============================================
+   Tabs
+   ============================================ */
+
+.jock-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #0f172a;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.jock-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-tab:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.jock-tab--active {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.jock-tab--active:hover {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.jock-tab-count {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.jock-tab--active .jock-tab-count {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   Notification Item
+   ============================================ */
+
+.jock-notification-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-notification-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.jock-notification-item--unread {
+  background: rgba(245, 158, 11, 0.05);
+  border-left: 3px solid #f59e0b;
+}
+
+.jock-notification-indicator {
+  width: 8px;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 8px;
+}
+
+.jock-notification-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.jock-notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jock-notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.jock-notification-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.jock-notification-message {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.jock-notification-time {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.jock-notification-action {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-notification-action:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+/* ============================================
+   Schedule Item
+   ============================================ */
+
+.jock-schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jock-schedule-item:hover {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.jock-schedule-time {
+  min-width: 60px;
+}
+
+.jock-schedule-hour {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.jock-schedule-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jock-schedule-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.jock-schedule-venue {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.jock-schedule-horse {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ============================================
+   Avatar
+   ============================================ */
+
+.jock-avatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.jock-avatar--img {
+  object-fit: cover;
+}
+
+.jock-avatar--initials {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.jock-avatar--sm {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.jock-avatar--md {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+.jock-avatar--lg {
+  width: 80px;
+  height: 80px;
+  font-size: 24px;
+}
+
+.jock-avatar--xl {
+  width: 120px;
+  height: 120px;
+  font-size: 36px;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+.jock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.jock-btn--primary {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0f172a;
+}
+
+.jock-btn--primary:hover {
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  transform: translateY(-1px);
+}
+
+.jock-btn--secondary {
+  background: #334155;
+  color: #f8fafc;
+  border: 1px solid #475569;
+}
+
+.jock-btn--secondary:hover {
+  background: #475569;
+}
+
+.jock-btn--danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.jock-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.jock-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

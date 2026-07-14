@@ -19,4 +19,9 @@ router.patch('/:id/status', authMiddleware, adminOnly, adminHorsesController.rev
 // body: { officialRating?: number, racingPostRating?: number }
 router.patch('/:id/rating', authMiddleware, adminOnly, adminHorsesController.updateRating);
 
+// POST /api/admin/horses/:id/revoke
+// body: { reason: string }
+// Nghiệp vụ Thu hồi tư cách hoạt động của Ngựa và tự động hủy chuỗi bản ghi liên đới từ PROCESS.md
+router.post('/:id/revoke', authMiddleware, adminOnly, adminHorsesController.revokeHorse);
+
 module.exports = router;

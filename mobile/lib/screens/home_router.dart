@@ -6,7 +6,7 @@ import 'role_home_screen.dart';
 import 'admin/admin_shell.dart';
 import 'horse_owner/horse_owner_shell.dart';
 import 'jockey/jockey_shell.dart';
-import 'spectator/spectator_shell.dart';
+import 'spectator/home_spectator.dart';
 
 /// Điều hướng sau đăng nhập / khôi phục phiên theo role.
 class HomeRouter {
@@ -17,7 +17,7 @@ class HomeRouter {
   }) {
     final normalized = role?.trim().toUpperCase();
     if (normalized == 'SPECTATOR') {
-      return SpectatorShell(showWelcome: showWelcome);
+      return const HomeSpectator();
     }
     if (normalized == 'JOCKEY') {
       return JockeyShell(showWelcome: showWelcome);

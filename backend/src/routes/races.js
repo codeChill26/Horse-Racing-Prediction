@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const ownerController = require('../controllers/owner.controller');
+const raceEntriesController = require('../controllers/raceEntries.controller');
 
 // GET /api/races/open - List all races with registration open
 router.get('/open', ownerController.listOpenRaces);
@@ -11,6 +12,9 @@ router.get('/:id/entries', ownerController.listRaceEntries);
 
 // GET /api/races/:id/detail - Full race detail with entries, odds, career stats
 router.get('/:id/detail', ownerController.getRaceDetail);
+
+// GET /api/races/:id/odds - Get calculated odds for a race (route chính thức theo tài liệu)
+router.get('/:id/odds', raceEntriesController.getRaceOdds);
 
 
 module.exports = router;
