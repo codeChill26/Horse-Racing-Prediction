@@ -77,6 +77,22 @@ class HorseDtoValidator {
     const horseId = parsePositiveInt(body?.horseId, 'horse id');
     return { raceId, horseId };
   }
+
+  validateUpdateRating(body) {
+    const optionalRating = (value, fieldName) => {
+      if (value === undefined || value === null || value === '') return null;
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 0) {
+        throw new Error(`${fieldName} must be a non-negative integer`);
+      }
+      return parsed;
+    };
+
+    return {
+      officialRating: optionalRating(body?.officialRating, 'officialRating'),
+      racingPostRating: optionalRating(body?.racingPostRating, 'racingPostRating'),
+    };
+  }
 }
 
 module.exports = new HorseDtoValidator();

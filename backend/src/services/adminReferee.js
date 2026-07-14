@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { applyPositionRatingUpdates } = require('./ratingUpdate');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -92,6 +93,9 @@ class AdminRefereeService {
           resolveReason: reason
         }
       });
+
+      // Kết quả đã chốt -> cập nhật OR/RPR theo vị trí về đích (rule-based).
+      await applyPositionRatingUpdates(parseInt(raceId), tx);
 
       // Chuyển sang PENDING_RESULT để chờ bấm nút Publish kết quả ra bảng chung
       return await tx.race.update({

@@ -65,6 +65,18 @@ class RaceDtoValidator {
     return parsePositiveInt(params?.id, 'race id');
   }
 
+  parseTreasury(query) {
+    const raw = query?.treasury;
+    if (raw === undefined || raw === null || raw === '') {
+      throw new Error('treasury query parameter is required');
+    }
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new Error('treasury must be a non-negative number');
+    }
+    return parsed;
+  }
+
   parseTournamentId(params) {
     return parsePositiveInt(params?.tournamentId, 'tournament id');
   }

@@ -13,11 +13,31 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      # AI service chạy trong Docker network; ghi đè localhost trong .env
+      - AI_SERVICE_URL=http://ai_service:8000
       - REDIS_URL=redis://horse_racing_redis:6379
       - PORT=3000
     depends_on:
       redis_cache:
         condition: service_healthy
+      ai_service:
+        condition: service_started
+
+  # AI service (FastAPI): Agent 1 (Prediction, ML) + Agent 2 (Risk, rule-based)
+  ai_service:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: horse_racing_ai
+    restart: always
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   postgres_db:
     profiles:
@@ -44,7 +64,9 @@ services:
     container_name: horse_racing_redis
     restart: always
     ports:
-      - "6379:6379"
+      # Host 6380 -> container 6379 (tránh đụng redis của project khác đang giữ 6379).
+      # Backend trong Docker gọi Redis qua mạng nội bộ redis://redis_cache:6379, không dùng cổng host này.
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

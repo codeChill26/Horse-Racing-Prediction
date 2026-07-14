@@ -1,0 +1,9 @@
+# Không đưa các thứ này vào Docker image AI service:
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+notebooks/
+README.md
+.dockerignore
+Dockerfile
