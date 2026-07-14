@@ -1,7 +1,3 @@
-# Runtime: DATABASE_URL / DIRECT_URL từ backend/.env (Supabase).
-# Build: dùng placeholder nếu chưa export; hoặc: docker compose --env-file backend/.env up -d --build
-# Postgres local (tùy chọn): docker compose --profile local-db up -d
-
 services:
   backend_app:
     build:
@@ -17,10 +13,9 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # Redis vẫn chạy trong Docker; ghi đè URL localhost trong .env nếu có
-      - REDIS_URL=redis://redis_cache:6379
       # AI service chạy trong Docker network; ghi đè localhost trong .env
       - AI_SERVICE_URL=http://ai_service:8000
+      - REDIS_URL=redis://horse_racing_redis:6379
       - PORT=3000
     depends_on:
       redis_cache:
@@ -44,7 +39,6 @@ services:
       retries: 5
       start_period: 20s
 
-  # Postgres local (tùy chọn). Không dùng khi backend nối Supabase qua backend/.env
   postgres_db:
     profiles:
       - local-db

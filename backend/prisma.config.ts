@@ -8,7 +8,6 @@ export default defineConfig({
     seed: "node prisma/seed.js",
   },
   datasource: {
-    // Supabase: dùng DIRECT_URL (port 5432) cho migrate, không dùng pooler
-    url: env("DIRECT_URL"),
+    url: env("DATABASE_URL"),
   },
 });

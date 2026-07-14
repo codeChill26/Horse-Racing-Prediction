@@ -60,6 +60,7 @@ function raceSelect() {
     raceId: true,
     tournamentId: true,
     name: true,
+    status: true,
     scheduledAt: true,
     registrationOpen: true,
     registrationOpenedAt: true,

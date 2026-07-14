@@ -19,9 +19,9 @@ function validateRefereeSubmission(body) {
     if (item.rank === undefined || item.rank === null) {
       return { valid: false, error: 'Mỗi phần tử kết quả bắt buộc phải có rank (Thứ hạng).' };
     }
-    if (typeof item.isDnf !== 'boolean' || typeof item.isDq !== 'boolean') {
-      return { valid: false, error: 'Trường trạng thái isDnf và isDq phải là kiểu Boolean (true/false).' };
-    }
+
+    const isDnf = item.isDnf === true;
+    const isDq = item.isDq === true;
   }
 
   return { valid: true, error: null };

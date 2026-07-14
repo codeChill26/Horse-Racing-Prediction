@@ -163,7 +163,9 @@ class _AdminRacesScreenState extends State<AdminRacesScreen> {
           tournamentId: _selectedTournament!.tournamentId!,
           raceId: r.raceId!,
           initialRace: r,
-          onChanged: () {},
+          onChanged: () {
+            _loadRacesFor(_selectedTournament!);
+          },
         ),
       ),
     );
@@ -480,6 +482,8 @@ class _RaceCard extends StatelessWidget {
     final color = raceStatusColor(status);
     final bg = raceStatusBg(status);
     final fillPct = (race.fillRate * 100).round();
+    final isRegistrationOpen = race.registrationOpen ||
+        status == 'REGISTRATION_OPEN';
 
     return Material(
       color: Colors.white,
@@ -575,17 +579,17 @@ class _RaceCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    race.registrationOpen
+                    isRegistrationOpen
                         ? Icons.lock_open
                         : Icons.lock_outline,
                     size: 14,
-                    color: race.registrationOpen
+                    color: isRegistrationOpen
                         ? AppColors.ownerTeal
                         : AppColors.textMuted,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${race.registrationOpen ? "Đang mở ĐK" : "Đã đóng ĐK"} · $fillPct%',
+                    '${isRegistrationOpen ? "Đang mở ĐK" : "Đã đóng ĐK"} · $fillPct%',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textMuted,

@@ -222,19 +222,20 @@ class AdminRacesService {
   }
 
   /// POST /api/admin/races/{id}/assign-referees
-  /// Body: `{ "refereeUserIds": [1, 2] }` — backend spec.
+  /// Body theo backend hiện tại: `{ "refereeAId": ..., "refereeBId": ... }`.
   Future<List<RefereeAssignment>> assignReferees(
     int raceId,
     List<int> userIds,
   ) async {
+    final sorted = List<int>.from(userIds)..sort();
+    final body = <String, dynamic>{
+      'refereeAId': sorted[0],
+      'refereeBId': sorted[1],
+    };
     final res = await http.post(
       ApiConfig.uri('/api/admin/races/$raceId/assign-referees'),
       headers: await _headers(),
-      body: jsonEncode({
-        'refereeUserIds': userIds,
-        // back-compat alias mà một số backend chấp nhận
-        'refereeIds': userIds,
-      }),
+      body: jsonEncode(body),
     );
     final data = await _decodeBody(res);
     _throwIfFailed(res, data, 'Phân công trọng tài thất bại');

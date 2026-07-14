@@ -446,6 +446,9 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
       if (!mounted) return;
       setState(() {
         _races = races;
+        _selectedRace = races.isEmpty
+            ? null
+            : races.firstWhere((r) => r.registrationOpen, orElse: () => races.first);
         _loadingRaces = false;
       });
     } catch (e) {
@@ -481,10 +484,29 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
     }
   }
 
+  Future<void> _onRaceChanged(RaceSummary? r) async {
+    setState(() {
+      _selectedRace = r;
+      if (r != null && r.tournamentId != _selectedTournament?.tournamentId) {
+        _selectedTournament = null;
+        _races = [];
+        _loadingRaces = false;
+      }
+    });
+  }
+
   Future<void> _send() async {
     if (_selectedRace == null || _selectedHorse == null || _selectedJockey == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng chọn đủ giải, chặng đua, ngựa và kỵ sĩ.')),
+      );
+      return;
+    }
+    final selectedTournamentId = _selectedTournament?.tournamentId;
+    if (selectedTournamentId == null ||
+        _selectedRace!.tournamentId != selectedTournamentId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chặng đua không thuộc giải đấu đã chọn.')),
       );
       return;
     }
@@ -598,7 +620,7 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
                           ),
                         )
                         .toList(),
-                    onChanged: (r) => setState(() => _selectedRace = r),
+                    onChanged: _onRaceChanged,
                   ),
               ],
             ),
