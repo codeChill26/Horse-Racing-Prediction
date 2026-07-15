@@ -3,6 +3,7 @@
 const adminRacesService = require('../services/adminRaces');
 const aiPredictionService = require('../services/aiPrediction');
 const aiRiskService = require('../services/aiRisk');
+const oddsService = require('../services/odds');
 const validator = require('../dto/race.dto');
 
 async function listRacesByTournament(req, res) {
@@ -142,7 +143,18 @@ async function getRiskAssessment(req, res) {
     return res.status(status).json({ error: error.message });
   }
 }
-    async function listAllRaces(req, res) {
+    async function applyOddsSuggestions(req, res) {
+  try {
+    const raceId = validator.parseRaceId(req.params);
+    const entries = validator.validateApplyOddsSuggestions(req.body);
+    const odds = await oddsService.applyOddsSuggestions(raceId, entries);
+    return res.status(200).json({ message: 'Áp dụng odds thành công', odds });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
+async function listAllRaces(req, res) {
   try {
     const { page, pageSize, status } = req.query;
     const result = await adminRacesService.listAllRaces({
@@ -196,6 +208,7 @@ module.exports = {
   bulkReviewEntries,
   getAiOddsSuggestion,
   getRiskAssessment,
+  applyOddsSuggestions,
   listAllRaces,
   handleRaceList,
   updateRegistrationGate,

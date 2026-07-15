@@ -131,8 +131,8 @@ Ví dụ thật (đã test trực tiếp, race có 5 entries APPROVED):
 
 ### Điều kiện tiên quyết (phải đủ **cả hai**)
 
-1. Race đã **đóng cổng đăng ký** qua `PUT /api/admin/races/:id/registration-gate` (`isOpen:false`).
-2. Tại thời điểm đóng cổng, race phải có **ít nhất 1 `RaceEntry` APPROVED** — nếu 0 entry, bảng `Odds` sẽ **không được tạo** (đóng cổng vẫn trả 200 OK bình thường, nhưng risk-score sau đó vẫn 409).
+1. Race đã **được áp odds** trước đó và sau đó **đóng cổng đăng ký** qua `PUT /api/admin/races/:id/registration-gate` (`isOpen:false`).
+2. Tại thời điểm đóng cổng, hệ thống **không tự tính lại odds**; nếu race chưa có `Odds` từ trước thì `risk-score` vẫn trả 409.
 
 > Race đang mở đăng ký, hoặc đã đóng nhưng không có ngựa nào được duyệt → luôn nhận lỗi 409 dưới đây.
 
@@ -206,7 +206,7 @@ Ví dụ minh họa (dựng lại từ demo trong [`ai/risk.py`](../ai/risk.py),
 | 401 | Chưa đăng nhập / token hết hạn | — |
 | 403 | Không phải role `ADMIN` | — |
 | 404 | Race không tồn tại | `Race not found` |
-| 409 | Race chưa có odds (chưa đóng cổng, hoặc đóng cổng lúc 0 entry APPROVED) | `Race has no computed odds yet. Odds are calculated automatically once the registration gate is closed.` |
+| 409 | Race chưa có odds (chưa áp AI/admin odds trước khi đóng cổng) | `Race has no computed odds yet. Apply AI/admin odds before closing the registration gate.` |
 | 502 | AI service không chạy / quá thời gian chờ / trả lỗi | `AI service không kết nối được/quá thời gian chờ tại ...` |
 
 ---

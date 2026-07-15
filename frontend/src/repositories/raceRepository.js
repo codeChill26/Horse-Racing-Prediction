@@ -184,7 +184,7 @@ export const raceRepository = {
    * mainflow.md:
    *  - isOpen=true: registrationOpen=true, registrationOpenedAt=now
    *  - isOpen=false: registrationOpen=false, registrationClosedAt=now,
-   *                  auto-reject tất cả PENDING entries, calculate odds
+   *                  auto-reject tất cả PENDING entries, giữ nguyên odds hiện có
    */
   async setRegistrationGate(raceId, isOpen) {
     const res = await fetch(`/api/admin/races/${raceId}/registration-gate`, {

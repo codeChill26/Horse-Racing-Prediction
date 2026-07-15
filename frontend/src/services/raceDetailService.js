@@ -66,4 +66,38 @@ export const raceDetailService = {
     }
     return raceDetailRepository.closeRegistration(raceId);
   },
+
+  async getAiOdds(raceId, margin) {
+    if (!raceId) {
+      throw new Error("ID chặng đua là bắt buộc");
+    }
+    return raceDetailRepository.getAiOdds(raceId, margin);
+  },
+
+  async getRiskScore(raceId, treasury) {
+    if (!raceId) {
+      throw new Error("ID chặng đua là bắt buộc");
+    }
+    if (treasury === undefined || treasury === null || treasury === "") {
+      throw new Error("Vốn nhà cái (treasury) là bắt buộc");
+    }
+    return raceDetailRepository.getRiskScore(raceId, treasury);
+  },
+
+  async applyOddsSuggestions(raceId, entries) {
+    if (!raceId) {
+      throw new Error("ID chặng đua là bắt buộc");
+    }
+    if (!Array.isArray(entries) || entries.length === 0) {
+      throw new Error("Danh sách odds là bắt buộc");
+    }
+    const parsed = entries.map(({ entryId, oddsFinal }) => {
+      const parsedOdds = Number(oddsFinal);
+      if (!entryId || !Number.isFinite(parsedOdds) || parsedOdds <= 0) {
+        throw new Error("Mỗi entry phải có entryId và odds hợp lệ");
+      }
+      return { entryId, oddsFinal: parsedOdds };
+    });
+    return raceDetailRepository.applyOddsSuggestions(raceId, parsed);
+  },
 };

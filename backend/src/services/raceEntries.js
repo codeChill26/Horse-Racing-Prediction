@@ -1,5 +1,4 @@
 const prisma = require('../config/prisma');
-const oddsService = require('./odds');
 const { emitToAdmin, emitToUser, emitToAll } = require('../socket/emitter');
 
 function httpError(message, status = 400) {
@@ -257,15 +256,6 @@ class RaceEntriesService {
     });
 
     emitToAll('race:gate_closed', { raceId, autoRejectedCount: result.autoRejectedCount });
-
-    try {
-      const oddsCalculated = await oddsService.calculateAllOddsForRace(raceId);
-      result.oddsCalculatedCount = oddsCalculated.length;
-    } catch (oddsError) {
-      console.error(`[ODDS ERROR] Failed to calculate odds for race #${raceId}:`, oddsError.message);
-      result.oddsCalculatedCount = 0;
-      result.oddsError = oddsError.message;
-    }
 
     return result;
   }
