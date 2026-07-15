@@ -1,5 +1,3 @@
-import { disconnectSocket } from "../utils/socket";
-
 export async function loginUser({ email, password }) {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
@@ -58,13 +56,6 @@ export async function logoutUser({ accessToken, refreshToken }) {
     if (!res.ok) await readJsonError(res, 'Đăng xuất thất bại')
   } catch (_err) {
     // server logout có thể fail (token expired) — vẫn tiếp tục cleanup local
-  } finally {
-    // Luôn ngắt socket singleton khi logout (kể cả khi request fail)
-    try {
-      disconnectSocket();
-    } catch (_err2) {
-      /* socket helper có thể chưa sẵn sàng */
-    }
   }
   return true
 }

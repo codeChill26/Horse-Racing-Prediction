@@ -40,3 +40,30 @@ export const TOURNAMENT_TRANSITIONS = {
   FINISHED: [],
   CANCELLED: [],
 };
+
+/**
+ * Kiểm tra điều kiện chuyển OPEN → ONGOING
+ * @param {object} tournament
+ * @param {number} entryCount - Số entry đã APPROVED trong tournament
+ * @param {object} referees - { refereeA, refereeB } - referee acceptance status
+ * @returns {{ ready: boolean, reasons: string[] }}
+ */
+export function checkTournamentReadyToStart(tournament, entryCount = 0, referees = {}) {
+  const reasons = [];
+  if (tournament.status !== "OPEN") {
+    reasons.push("Giải đấu không ở trạng thái Đang mở");
+  }
+  if (entryCount < 1) {
+    reasons.push("Cần ít nhất 1 ngựa đăng ký được duyệt");
+  }
+  if (!referees.refereeAId) {
+    reasons.push("Chưa phân công trọng tài A");
+  }
+  if (!referees.refereeBId) {
+    reasons.push("Chưa phân công trọng tài B");
+  }
+  return {
+    ready: reasons.length === 0,
+    reasons,
+  };
+}

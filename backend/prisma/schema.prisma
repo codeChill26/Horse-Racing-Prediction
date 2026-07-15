@@ -29,6 +29,7 @@ enum InvitationStatus {
   DECLINED
   CANCELLED
   EXPIRED
+  CONFIRMED // Đã xác nhận và tạo entries cho tất cả race trong tournament
 }
 
 enum HorseStatus {
@@ -109,6 +110,7 @@ model User {
   racesAsRefereeA    Race[]              @relation("RaceRefereeA")
   racesAsRefereeB    Race[]              @relation("RaceRefereeB")
   refereeSubmissions RefereeSubmission[]
+  notifications      Notification[]
 }
 
 // 2. Thực thể Vai trò hệ thống (Roles)
@@ -184,7 +186,8 @@ model Tournament {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  races Race[]
+  races             Race[]
+  jockeyInvitations JockeyInvitation[]
 }
 
 model Race {
@@ -303,19 +306,20 @@ model JockeyInvitation {
   ownerId       Int
   jockeyId      Int
   horseId       Int
-  raceId        Int
+  tournamentId  Int
+  raceId        Int?
   status        InvitationStatus @default(PENDING)
   declineReason String?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  // Đã đồng bộ tên quan hệ trùng khớp hoàn toàn với model User
-  owner  User  @relation("InvitationOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
-  jockey User  @relation("InvitationJockey", fields: [jockeyId], references: [userId], onDelete: Restrict)
-  horse  Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
-  race   Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  owner       User       @relation("InvitationOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
+  jockey      User       @relation("InvitationJockey", fields: [jockeyId], references: [userId], onDelete: Restrict)
+  horse      Horse      @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
+  race       Race?      @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
+  tournament Tournament @relation(fields: [tournamentId], references: [tournamentId], onDelete: Restrict)
 
-  @@unique([jockeyId, horseId, raceId])
+  @@unique([jockeyId, horseId, tournamentId])
   @@index([ownerId])
   @@index([jockeyId])
 }
@@ -442,4 +446,21 @@ model Violation {
 
   @@index([raceId])
   @@index([entryId])
+}
+
+model Notification {
+  notificationId Int       @id @default(autoincrement())
+  userId         Int
+  type           String    // 'RACE_ASSIGNED', 'RACE_REASSIGNED', 'INVITATION_RECEIVED', ...
+  title          String
+  message        String
+  payload        Json?
+  read           Boolean   @default(false)
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  user           User      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }

@@ -118,6 +118,17 @@ async function getMyViolations(req, res) {
   }
 }
 
+async function getMyViolationById(req, res) {
+  try {
+    const userId = Number(req.user.sub);
+    const { id } = req.params;
+    const result = await adminUsersService.getMyViolationById(userId, id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 async function getViolationsList(req, res) {
   try {
     const { status, severity } = req.query;
@@ -182,6 +193,7 @@ module.exports = {
   changeRole,
   deactivateUser,
   getMyViolations,
+  getMyViolationById,
   getViolationsList,
   getViolationById,
   startReviewViolation,

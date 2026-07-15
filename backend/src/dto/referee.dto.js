@@ -16,12 +16,13 @@ function validateRefereeSubmission(body) {
     if (item.entryId === undefined || item.entryId === null) {
       return { valid: false, error: 'Mỗi phần tử kết quả bắt buộc phải có entryId.' };
     }
+    // rank có thể null nếu ngựa không hoàn thành (DNF/DQ)
+    // isDnf hoặc isDq phải là true nếu rank không có giá trị
     if (item.rank === undefined || item.rank === null) {
-      return { valid: false, error: 'Mỗi phần tử kết quả bắt buộc phải có rank (Thứ hạng).' };
+      if (item.isDnf !== true && item.isDq !== true) {
+        return { valid: false, error: 'Mỗi phần tử kết quả phải có rank hoặc đánh dấu DNF/DQ.' };
+      }
     }
-
-    const isDnf = item.isDnf === true;
-    const isDq = item.isDq === true;
   }
 
   return { valid: true, error: null };

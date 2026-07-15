@@ -24,6 +24,13 @@ export const raceEntryService = {
     return raceEntryRepository.createEntry({ raceId, horseId, jockeyId });
   },
 
+  /**
+   * GET /api/entries/mine — lấy entries của owner hiện tại
+   */
+  async getMyEntries() {
+    return raceEntryRepository.getMyEntries();
+  },
+
   /** GET /api/races/:raceId/entries — owner xem entries của race mình */
   async getMyEntriesByRace(raceId) {
     if (!raceId) throw new Error("Thiếu mã chặng đua");

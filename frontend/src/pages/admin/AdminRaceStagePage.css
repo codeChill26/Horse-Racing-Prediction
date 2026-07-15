@@ -293,6 +293,12 @@
   color: var(--ars-danger);
 }
 
+.ars-slots__count--loading {
+  color: var(--ars-muted);
+  font-style: italic;
+  letter-spacing: 0.05em;
+}
+
 /* Badge */
 .ars-badge {
   display: inline-block;

@@ -4,13 +4,13 @@
  *
  * Horse Owner - Mời kỵ sĩ
  * - Tìm kỵ sĩ (GET /api/invitations/jockeys?name=...)
- * - Gửi lời mời (POST /api/invitations) — cần raceId, horseId, jockeyId
+ * - Gửi lời mời (POST /api/invitations) — cần tournamentId, horseId, jockeyId
  * - Xem lịch sử lời mời đã gửi (GET /api/invitations?status=...)
- * - Xác nhận jockey đã accept (POST /api/invitations/:id/confirm)
+ * - Xác nhận jockey đã accept (POST /api/invitations/:id/confirm) — tạo entries cho TẤT CẢ race trong tournament
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Send, X, Mail, Phone, User, Trophy, SendHorizonal, BadgeCheck, BadgeAlert, Clock4, Wifi, WifiOff } from "lucide-react"
+import { Send, X, Mail, Phone, User, Trophy, SendHorizonal, BadgeCheck, BadgeAlert, Clock4 } from "lucide-react"
 import {
   AdminModal,
   AdminModalSection,
@@ -21,12 +21,7 @@ import { StatusBadge } from "../../components/ui/Badges"
 import { Skeleton } from "../../components/ui/Skeleton"
 import { horseService } from "../../services/horseService"
 import { tournamentService } from "../../services/tournamentService"
-import { raceService } from "../../services/raceService"
 import { invitationService } from "../../services/invitationService"
-import { getAccessToken } from "../../utils/token"
-import { useSocket } from "../../hooks/useSocket"
-import { onSocketEvent } from "../../utils/socket"
-import { useToast } from "../../hooks/useToast"
 import {
   OwnerPageHeader,
   OwnerToolbar,
@@ -40,25 +35,22 @@ const STATUS_OPTIONS = [
   { value: "ALL", label: "Tất cả lời mời" },
   { value: "PENDING", label: "Đang chờ" },
   { value: "ACCEPTED", label: "Đã chấp nhận" },
+  { value: "CONFIRMED", label: "Đã xác nhận" },
   { value: "DECLINED", label: "Đã từ chối" },
   { value: "CANCELLED", label: "Đã hủy" },
 ]
 
 const emptyInviteForm = () => ({
-  raceId: "",
+  tournamentId: "",
   horseId: "",
   jockeyId: "",
   message: "",
 })
 
 export default function HorseOwnerInviteJockeyPage() {
-  const token = getAccessToken();
-  const { connected } = useSocket(token);
-  const toastify = useToast();
-
   const [jockeys, setJockeys] = useState([])
   const [horses, setHorses] = useState([])
-  const [races, setRaces] = useState([])
+  const [tournaments, setTournaments] = useState([])
   const [invitations, setInvitations] = useState([])
 
   const [search, setSearch] = useState("")
@@ -66,7 +58,7 @@ export default function HorseOwnerInviteJockeyPage() {
 
   const [loadingJockeys, setLoadingJockeys] = useState(true)
   const [loadingHorses, setLoadingHorses] = useState(true)
-  const [loadingRaces, setLoadingRaces] = useState(true)
+  const [loadingTournaments, setLoadingTournaments] = useState(true)
   const [loadingInvitations, setLoadingInvitations] = useState(true)
   const [error, setError] = useState("")
 
@@ -100,40 +92,19 @@ export default function HorseOwnerInviteJockeyPage() {
     }
   }, [])
 
-  const loadRaces = useCallback(async () => {
-    setLoadingRaces(true);
+  const loadTournaments = useCallback(async () => {
+    setLoadingTournaments(true)
     try {
-      const tournaments = await tournamentService.getPublicTournaments();
-      const ts = Array.isArray(tournaments) ? tournaments : [];
-      const eligible = ts.filter(
+      const list = await tournamentService.getPublicTournaments()
+      // Chỉ lấy tournament đang mở hoặc đang diễn ra
+      const eligible = (Array.isArray(list) ? list : []).filter(
         (t) => t.status === "OPEN" || t.status === "ONGOING"
-      );
-      // Parallel — tránh N+1 sequential request
-      const raceLists = await Promise.all(
-        eligible.map((t) =>
-          raceService
-            .getRacesByTournament(t.tournamentId || t.id)
-            .catch(() => []),
-        ),
-      );
-      const all = [];
-      eligible.forEach((t, idx) => {
-        for (const r of raceLists[idx] || []) {
-          all.push({
-            ...r,
-            tournament: {
-              tournamentId: t.tournamentId || t.id,
-              name: t.name,
-              status: t.status,
-            },
-          });
-        }
-      });
-      setRaces(all);
+      )
+      setTournaments(eligible)
     } catch {
-      setRaces([]);
+      setTournaments([])
     } finally {
-      setLoadingRaces(false);
+      setLoadingTournaments(false)
     }
   }, [])
 
@@ -143,7 +114,6 @@ export default function HorseOwnerInviteJockeyPage() {
       const list = await invitationService.listInvitations(status)
       setInvitations(Array.isArray(list) ? list : [])
     } catch (e) {
-      // Nếu backend không trả được (admin-only chẳng hạn) thì vẫn tiếp tục
       console.warn("Không tải được danh sách lời mời:", e)
       setInvitations([])
     } finally {
@@ -154,40 +124,12 @@ export default function HorseOwnerInviteJockeyPage() {
   // Initial load
   useEffect(() => {
     loadHorses()
-    loadRaces()
-  }, [loadHorses, loadRaces])
+    loadTournaments()
+  }, [loadHorses, loadTournaments])
 
   useEffect(() => {
     loadInvitations(statusFilter === "ALL" ? undefined : statusFilter)
   }, [loadInvitations, statusFilter])
-
-  // === Socket real-time: tự refresh + toast khi jockey accept/decline invitation ===
-  useEffect(() => {
-    if (!token) return undefined;
-    const refresh = () => {
-      loadInvitations(statusFilter === "ALL" ? undefined : statusFilter);
-    };
-    const offAccepted = onSocketEvent("invitation:accepted", (payload) => {
-      refresh();
-      const inv = payload?.invitation;
-      const who = inv?.jockey?.fullName || inv?.jockeyName || "Kỵ sĩ";
-      toastify?.success?.(
-        `${who} đã chấp nhận lời mời.`,
-        "Lời mời được chấp nhận"
-      );
-    });
-    const offDeclined = onSocketEvent("invitation:declined", (payload) => {
-      refresh();
-      const inv = payload?.invitation;
-      const who = inv?.jockey?.fullName || inv?.jockeyName || "Kỵ sĩ";
-      const reason = inv?.declineReason ? ` Lý do: ${inv.declineReason}` : "";
-      toastify?.warn?.(`${who} đã từ chối lời mời.${reason}`, "Lời mời bị từ chối");
-    });
-    return () => {
-      offAccepted();
-      offDeclined();
-    };
-  }, [token, statusFilter, loadInvitations, toastify])
 
   // Debounce search
   useEffect(() => {
@@ -207,11 +149,13 @@ export default function HorseOwnerInviteJockeyPage() {
   const stats = useMemo(() => {
     const pending = invitations.filter((i) => i.status === "PENDING").length
     const accepted = invitations.filter((i) => i.status === "ACCEPTED").length
+    const confirmed = invitations.filter((i) => i.status === "CONFIRMED").length
     const declined = invitations.filter((i) => i.status === "DECLINED").length
     return {
       total: invitations.length,
       pending,
       accepted,
+      confirmed,
       declined,
     }
   }, [invitations])
@@ -230,8 +174,12 @@ export default function HorseOwnerInviteJockeyPage() {
 
   const handleConfirmInvitation = async (inv) => {
     try {
-      await invitationService.confirmInvitation(inv.invitationId || inv.id)
-      setToast({ type: "success", text: "Đã xác nhận — entry sẽ được tạo tự động" })
+      const result = await invitationService.confirmInvitation(inv.invitationId || inv.id)
+      const entriesCount = result?.entries?.length || 0
+      setToast({ 
+        type: "success", 
+        text: `Đã xác nhận — tạo ${entriesCount} entries cho các chặng đua trong giải` 
+      })
       await loadInvitations(statusFilter === "ALL" ? undefined : statusFilter)
     } catch (e) {
       setToast({ type: "error", text: e instanceof Error ? e.message : String(e) })
@@ -263,32 +211,19 @@ export default function HorseOwnerInviteJockeyPage() {
         <OwnerPageHeader
           eyebrow="Mời kỵ sĩ"
           title="Tìm và mời kỵ sĩ"
-          subtitle="Mời kỵ sĩ phù hợp để cùng ngựa của bạn tham gia các giải đấu sắp tới."
+          subtitle="Mời kỵ sĩ phù hợp để cùng ngựa của bạn tham gia các giải đấu."
           onRefresh={() => {
             loadJockeys()
             loadHorses()
-            loadRaces()
+            loadTournaments()
             loadInvitations(statusFilter === "ALL" ? undefined : statusFilter)
           }}
-          refreshing={loadingJockeys || loadingHorses || loadingRaces}
+          refreshing={loadingJockeys || loadingHorses || loadingTournaments}
         />
 
-        <div className="oh-realtime-row">
-          <span
-            className={`oh-realtime ${connected ? "oh-realtime--ok" : "oh-realtime--off"}`}
-            title={
-              connected
-                ? "Đang nhận cập nhật realtime từ server"
-                : "Mất kết nối realtime"
-            }
-          >
-            {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
-            <span>{connected ? "Realtime" : "Offline"}</span>
-          </span>
-          <span className="oh-realtime-hint">
-            Danh sách lời mời tự động làm mới khi kỵ sĩ phản hồi.
-          </span>
-        </div>
+        <span className="oh-realtime-hint">
+          Ngựa và kỵ sĩ đã xác nhận sẽ tham gia TẤT CẢ các chặng đua trong giải đấu.
+        </span>
 
         {error ? <OwnerErrorAlert message={error} onRetry={loadJockeys} /> : null}
 
@@ -306,8 +241,8 @@ export default function HorseOwnerInviteJockeyPage() {
             <p className="oh-stat__value oh-stat__value--primary">{stats.accepted}</p>
           </div>
           <div className="oh-stat">
-            <p className="oh-stat__label">Đã từ chối</p>
-            <p className="oh-stat__value oh-stat__value--danger">{stats.declined}</p>
+            <p className="oh-stat__label">Đã xác nhận</p>
+            <p className="oh-stat__value oh-stat__value--success">{stats.confirmed}</p>
           </div>
         </div>
 
@@ -414,7 +349,7 @@ export default function HorseOwnerInviteJockeyPage() {
         <InviteJockeyModal
           jockey={selectedJockey}
           horses={horses}
-          races={races}
+          tournaments={tournaments}
           invitations={invitations}
           onClose={() => {
             setShowInviteModal(false)
@@ -494,8 +429,8 @@ function JockeyCard({ jockey, onInvite }) {
 function InvitationRow({ invitation, onConfirm }) {
   const jockeyName = invitation.jockey?.fullName || invitation.jockeyName || "Kỵ sĩ"
   const horseName = invitation.horse?.name || invitation.horseName || "Ngựa"
-  const raceName = invitation.race?.name || invitation.raceName || "Chặng đua"
-  const tournamentName = invitation.race?.tournament?.name || invitation.tournamentName
+  const tournamentName = invitation.tournament?.name || invitation.tournamentName || "Giải đấu"
+  const raceName = invitation.race?.name || invitation.raceName
   const created = invitation.createdAt ? new Date(invitation.createdAt) : null
 
   return (
@@ -511,8 +446,8 @@ function InvitationRow({ invitation, onConfirm }) {
           <StatusBadge status={invitation.status} />
         </div>
         <p>
-          <Clock4 size={11} /> {raceName}
-          {tournamentName ? ` · ${tournamentName}` : ""}
+          <Clock4 size={11} /> {tournamentName}
+          {raceName ? ` · ${raceName}` : " · Tất cả chặng đua"}
           {created ? ` · ${created.toLocaleDateString("vi-VN")}` : ""}
         </p>
         {invitation.declineReason ? (
@@ -522,7 +457,7 @@ function InvitationRow({ invitation, onConfirm }) {
         ) : null}
       </div>
       <div className="oh-invitation-row__action">
-        {invitation.status === "ACCEPTED" ? (
+        {invitation.status === "ACCEPTED" && Number(invitation.entriesCount || 0) === 0 ? (
           <button
             type="button"
             className="oh-btn oh-btn--primary oh-btn--sm"
@@ -531,13 +466,18 @@ function InvitationRow({ invitation, onConfirm }) {
             <BadgeCheck size={12} /> Xác nhận
           </button>
         ) : null}
+        {invitation.status === "CONFIRMED" || (invitation.status === "ACCEPTED" && Number(invitation.entriesCount || 0) > 0) ? (
+          <span className="oh-invitation-row__confirmed" title={`Đã tạo ${invitation.entriesCount || 0} entries`}>
+            <BadgeCheck size={12} /> Đã xác nhận
+          </span>
+        ) : null}
       </div>
     </li>
   )
 }
 
 /* ============== INVITE MODAL ============== */
-function InviteJockeyModal({ jockey, horses, races, invitations, onClose, onSuccess }) {
+function InviteJockeyModal({ jockey, horses, tournaments, invitations, onClose, onSuccess }) {
   const [form, setForm] = useState({
     ...emptyInviteForm(),
     jockeyId: jockey?.userId || jockey?.jockeyId || jockey?.id || "",
@@ -549,26 +489,24 @@ function InviteJockeyModal({ jockey, horses, races, invitations, onClose, onSucc
     setForm((s) => ({ ...s, [field]: e.target.value }))
   }
 
-  // Pending invitations cho cùng bộ ba (raceId, horseId, jockeyId) — không cho phép gửi trùng.
-  // Trước đây chỉ check (horseId, jockeyId) nên 1 owner gửi trùng jockey+horse ở race khác
-  // bị chặn nhầm. Theo mainflow.md: 1 race chỉ có 1 invitation ACTIVE cho 1 (horse, jockey).
+  // Pending invitations cho cùng bộ (tournamentId, horseId, jockeyId) — không cho phép gửi trùng
   const existingPending = useMemo(() => {
-    if (!form.raceId || !form.horseId || !form.jockeyId) return [];
+    if (!form.tournamentId || !form.horseId || !form.jockeyId) return [];
     return invitations.filter(
       (i) =>
         i.status === "PENDING" &&
         String(i.jockeyId) === String(form.jockeyId) &&
         String(i.horseId) === String(form.horseId) &&
-        String(i.raceId) === String(form.raceId),
+        String(i.tournamentId) === String(form.tournamentId),
     );
-  }, [form.raceId, form.horseId, form.jockeyId, invitations])
+  }, [form.tournamentId, form.horseId, form.jockeyId, invitations])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
 
-    if (!form.raceId) {
-      setError("Vui lòng chọn chặng đua")
+    if (!form.tournamentId) {
+      setError("Vui lòng chọn giải đấu")
       return
     }
     if (!form.horseId) {
@@ -576,14 +514,14 @@ function InviteJockeyModal({ jockey, horses, races, invitations, onClose, onSucc
       return
     }
     if (existingPending.length > 0) {
-      setError("Bạn đã có lời mời đang chờ kỵ sĩ này cho ngựa này.")
+      setError("Bạn đã có lời mời đang chờ kỵ sĩ này cho ngựa này trong giải đấu này.")
       return
     }
 
     setSaving(true)
     try {
       await invitationService.createInvitation({
-        raceId: Number(form.raceId),
+        tournamentId: Number(form.tournamentId),
         horseId: Number(form.horseId),
         jockeyId: Number(form.jockeyId),
       })
@@ -598,7 +536,7 @@ function InviteJockeyModal({ jockey, horses, races, invitations, onClose, onSucc
   return (
     <AdminModal
       title={`Mời kỵ sĩ ${jockey?.fullName || ""}`}
-      subtitle="Chọn chặng đua và ngựa muốn mời kỵ sĩ tham gia."
+      subtitle="Chọn giải đấu và ngựa để mời kỵ sĩ tham gia. Kỵ sĩ sẽ tham gia TẤT CẢ các chặng đua trong giải."
       accent="primary"
       size="lg"
       onClose={onClose}
@@ -628,28 +566,28 @@ function InviteJockeyModal({ jockey, horses, races, invitations, onClose, onSucc
 
         {existingPending.length > 0 ? (
           <AdminModalAlert type="info">
-            Đã có lời mời đang chờ kỵ sĩ này cho ngựa đã chọn tại chặng đua này. Vui lòng đợi phản hồi hoặc chọn ngựa/chặng khác.
+            Bạn đã có lời mời đang chờ kỵ sĩ này cho ngựa đã chọn trong giải đấu này. Vui lòng đợi phản hồi hoặc chọn ngựa/giải khác.
           </AdminModalAlert>
         ) : null}
 
         <AdminModalSection
           title="Thông tin lời mời"
-          description="Chọn chặng đua và ngựa muốn mời. Tất cả các trường có dấu * là bắt buộc."
+          description="Chọn giải đấu và ngựa. Kỵ sĩ sẽ tham gia TẤT CẢ các chặng đua trong giải."
         >
           <div className="oh-form-grid">
-            <AdminModalField label="Chặng đua" required>
+            <AdminModalField label="Giải đấu" required>
               <select
                 className="oh-input"
-                value={form.raceId}
-                onChange={handleChange("raceId")}
+                value={form.tournamentId}
+                onChange={handleChange("tournamentId")}
               >
-                <option value="">Chọn chặng đua…</option>
-                {races.map((r) => (
-                  <option key={r.raceId || r.id} value={r.raceId || r.id}>
-                    {r.name}
-                    {r.tournament?.name ? ` — ${r.tournament.name}` : ""}
-                    {r.scheduledAt
-                      ? ` (${new Date(r.scheduledAt).toLocaleDateString("vi-VN")})`
+                <option value="">Chọn giải đấu…</option>
+                {tournaments.map((t) => (
+                  <option key={t.tournamentId || t.id} value={t.tournamentId || t.id}>
+                    {t.name}
+                    {t.status ? ` (${t.status})` : ""}
+                    {t.startAt
+                      ? ` - Bắt đầu: ${new Date(t.startAt).toLocaleDateString("vi-VN")}`
                       : ""}
                   </option>
                 ))}
@@ -697,9 +635,9 @@ function InviteJockeyModal({ jockey, horses, races, invitations, onClose, onSucc
             Bạn chưa có ngựa nào được duyệt. Hãy đăng ký ngựa trước khi mời kỵ sĩ.
           </AdminModalAlert>
         ) : null}
-        {races.length === 0 ? (
+        {tournaments.length === 0 ? (
           <AdminModalAlert type="info">
-            Hiện chưa có chặng đua nào đang mở đăng ký.
+            Hiện chưa có giải đấu nào đang mở đăng ký.
           </AdminModalAlert>
         ) : null}
       </form>

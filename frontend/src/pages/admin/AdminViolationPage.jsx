@@ -16,12 +16,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCcw } from "lucide-react";
 import { violationService } from "../../services/violationService";
 import { showToast } from "../../hooks/showToast";
-import {
-  getSocket,
-  onSocketEvent,
-  onSocketStatus,
-} from "../../utils/socket";
-import { getAccessToken } from "../../utils/token";
 import { ViolationFilter } from "../../components/admin/violation/ViolationFilter";
 import { ViolationTable } from "../../components/admin/violation/ViolationTable";
 import { ViolationDetailModal } from "../../components/admin/violation/ViolationDetailModal";
@@ -65,54 +59,6 @@ export default function AdminViolationPage() {
 
   useEffect(() => {
     loadViolations();
-  }, [loadViolations]);
-
-  // FLOW 6 — Realtime: ref tới socket events để admin thấy ngay khi referee
-  // tạo violation mới hoặc khi violation thay đổi trạng thái.
-  // - violation:created  → prepend + toast
-  // - violation:resolved → patch in-place + toast (status thành RESOLVED/DISMISSED)
-  useEffect(() => {
-    const token = getAccessToken();
-    if (!token) return undefined;
-
-    const offCreated = onSocketEvent("violation:created", (payload) => {
-      const incoming = payload?.violation ?? payload;
-      if (!incoming || incoming.id == null) return;
-      setViolations((prev) => {
-        const exists = prev.some((v) => v.id === incoming.id);
-        if (exists) return prev;
-        return [incoming, ...prev];
-      });
-      showToast.info(
-        `Trọng tài vừa ghi nhận vi phạm #${incoming.id}.`,
-        "Vi phạm mới"
-      );
-    });
-
-    const offResolved = onSocketEvent("violation:resolved", (payload) => {
-      const incoming = payload?.violation ?? payload;
-      if (!incoming || incoming.id == null) return;
-      setViolations((prev) =>
-        prev.map((v) => (v.id === incoming.id ? { ...v, ...incoming } : v))
-      );
-      showToast.success(
-        `Vi phạm #${incoming.id} đã xử lý.`,
-        "Cập nhật"
-      );
-    });
-
-    // Đảm bảo socket kết nối (idempotent)
-    const sock = getSocket(token);
-    void sock;
-    const offStatus = onSocketStatus(() => {
-      /* no-op: admin không cần re-subscribe room, /notifications đã route tới admin */
-    });
-
-    return () => {
-      offCreated();
-      offResolved();
-      offStatus();
-    };
   }, [loadViolations]);
 
   // === FALLBACK NOTE ===

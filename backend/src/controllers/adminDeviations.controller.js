@@ -1,4 +1,5 @@
 const adminRefereeService = require('../services/adminReferee');
+const socketEmitter = require('../socket/emitter');
 
 class AdminDeviationsController {
   // GET /api/admin/deviations
@@ -16,29 +17,44 @@ class AdminDeviationsController {
   async getDeviationDetail(req, res) {
     try {
       const { id } = req.params;
+      console.log('[Controller] getDeviationDetail called with id:', id);
       const result = await adminRefereeService.getDeviationDetail(id);
+      console.log('[Controller] Result has entries:', result?.race?.entries?.length);
+      console.log('[Controller] Result has submissions:', result?.race?.refereeSubmissions?.length);
       return res.status(200).json(result);
     } catch (error) {
+      console.error('[Controller] getDeviationDetail error:', error.message);
       return res.status(error.status || 400).json({ error: error.message });
     }
   }
 
   // POST /api/admin/deviations/:id/resolve
   async resolveDeviation(req, res) {
-  try {
-    const { id } = req.params; // id = officialResultId (nhất quán với GET /api/admin/deviations/:id ở trên)
-    const { finalResults, reason } = req.body;
-    const adminUserId = Number(req.user.sub) || req.user.userId;
+    try {
+      const { id } = req.params; // id = officialResultId
+      const { finalResults, reason } = req.body;
+      const adminUserId = Number(req.user.sub) || req.user.userId;
 
-    const result = await adminRefereeService.resolveDeviationById(id, adminUserId, finalResults, reason);
-    return res.status(200).json({ 
-      message: 'Đã phân xử thành công kết quả xung đột', 
-      race: result 
-    });
-  } catch (error) {
-    return res.status(error.status || 400).json({ error: error.message });
+      const result = await adminRefereeService.resolveDeviationById(id, adminUserId, finalResults, reason);
+
+      // Emit socket event for race finished
+      const raceResultPayload = {
+        raceId: result.race.raceId,
+        raceName: result.race.name,
+        status: 'FINISHED',
+        results: result.results
+      };
+      socketEmitter.emitToRace(result.race.raceId, 'race:finished', raceResultPayload);
+      socketEmitter.emitToAdmin('race:finished', raceResultPayload);
+
+      return res.status(200).json({
+        message: 'Đã phân xử thành công kết quả xung đột',
+        race: result.race
+      });
+    } catch (error) {
+      return res.status(error.status || 400).json({ error: error.message });
+    }
   }
-}
 }
 
 module.exports = new AdminDeviationsController();

@@ -16,8 +16,6 @@ import { Link } from 'react-router-dom'
 import { TrendingUp, Award, Target, BarChart3, AlertTriangle, RefreshCw, Coins } from 'lucide-react'
 import { bettingService } from '../../services/bettingService'
 import { formatPoints } from '../../utils/formatter'
-import { onSocketEvent } from '../../utils/socket'
-import { getAccessToken } from '../../utils/token'
 import './StatisticsPage.css'
 
 function StatCard({ icon: Icon, label, value, color, valueColor, ariaLabel }) {
@@ -103,25 +101,6 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     loadStats()
-  }, [loadStats])
-
-  // FIX BUG-7.16: subscribe `race:published` để refresh thống kê realtime
-  // khi admin settle race. Tránh user phải reload page mới thấy số liệu mới.
-  useEffect(() => {
-    const token = getAccessToken()
-    if (!token) return undefined
-
-    let pending = false
-    const offPublished = onSocketEvent('race:published', (payload) => {
-      const incomingRaceId = String(payload?.raceId ?? '')
-      if (!incomingRaceId) return
-      // Tránh gọi API liên tục khi nhiều event liên tiếp trong 500ms.
-      if (pending) return
-      pending = true
-      setTimeout(() => { pending = false; loadStats() }, 500)
-    })
-
-    return () => offPublished?.()
   }, [loadStats])
 
   if (loading) {

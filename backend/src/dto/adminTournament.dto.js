@@ -111,6 +111,19 @@ class AdminTournamentDtoValidator {
 
     return { reason };
   }
+
+  validateNotifyOwners(body) {
+    const messageRaw = body?.message;
+    const message =
+      messageRaw === undefined || messageRaw === null
+        ? undefined
+        : String(messageRaw).trim();
+
+    if (!message) throw new Error('message is required');
+    if (message.length > 500) throw new Error('message must be <= 500 characters');
+
+    return { message };
+  }
 }
 
 module.exports = new AdminTournamentDtoValidator();

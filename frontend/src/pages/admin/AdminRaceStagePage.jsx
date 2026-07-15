@@ -4,34 +4,15 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff, CheckCircle2, Undo2 } from "lucide-react";
+import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, CheckCircle2, Undo2 } from "lucide-react";
 import { raceService } from "../../services/raceService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceDetailService } from "../../services/raceDetailService";
 import { formatDate, mapStatusToVietnamese } from "../../utils/formatter";
 import { useToast } from "../../hooks/useToast";
-import { useSocket } from "../../hooks/useSocket";
-import { onSocketEvent } from "../../utils/socket";
-import { getAccessToken } from "../../utils/token";
 import RaceCreateFormModal from "./RaceCreateFormModal";
 import AssignRefereesModal from "./AssignRefereesModal";
 import "./AdminRaceStagePage.css";
-
-// TODO: Replace bằng API khi backend mount ổn định: GET /api/admin/races/:id/entries
-// Note: MOCK_RACE_REGISTRATIONS chỉ còn dùng ở modal Registration detail preview
-// nếu API list chưa sẵn sàng (chỉ khi VITE_FALLBACK_TO_MOCK=true).
-const MOCK_RACE_REGISTRATIONS = {
-  1: [
-    { horseId: 101, horseName: "Thunder Bolt", jockeyName: "John Smith", owner: "Stable A", registeredAt: "2026-06-20T10:00:00Z" },
-    { horseId: 102, horseName: "Silver Arrow", jockeyName: "Jane Doe", owner: "Stable B", registeredAt: "2026-06-20T11:30:00Z" },
-    { horseId: 103, horseName: "Golden Star", jockeyName: "Mike Johnson", owner: "Stable C", registeredAt: "2026-06-21T09:15:00Z" },
-  ],
-  2: [
-    { horseId: 201, horseName: "Lightning", jockeyName: "Sarah Wilson", owner: "Stable D", registeredAt: "2026-06-19T14:00:00Z" },
-    { horseId: 202, horseName: "Storm Chaser", jockeyName: "Tom Brown", owner: "Stable E", registeredAt: "2026-06-19T15:45:00Z" },
-  ],
-  3: [],
-};
 
 // Các status hợp lệ theo mainflow.md + openapi.js cho race:
 // SCHEDULED | IN_PROGRESS | PENDING_RESULT | PAUSED | FINISHED | CANCELLED
@@ -131,7 +112,7 @@ function ConfirmModal({ race, action, onConfirm, onClose }) {
             type="button"
             className={btnClass}
             onClick={() => {
-              onConfirm(race);
+              onConfirm(race, action);
               onClose();
             }}
           >
@@ -258,8 +239,6 @@ function RegistrationModal({ race, registrations, onClose }) {
 }
 
 export default function AdminRaceStagePage() {
-  const token = getAccessToken();
-  const { connected } = useSocket(token);
   const toastify = useToast();
   const [races, setRaces] = useState([]);
   const [tournaments, setTournaments] = useState([]);
@@ -302,84 +281,37 @@ export default function AdminRaceStagePage() {
     loadData();
   }, [loadData]);
 
-  // === SOCKET / REALTIME: gate + auto-reject events ===
+  // === Polling fallback: refresh race list every 30s ===
   useEffect(() => {
-    if (!token) return undefined;
-
     const refresh = () => {
       raceService.getAdminRacesList().then((list) => {
         if (Array.isArray(list)) setRaces(list);
       }).catch(() => {});
     };
-
-    const offGateOpen = onSocketEvent("race:gate_opened", (payload) => {
-      refresh();
-      toastify?.info?.(
-        payload?.raceId
-          ? `Cổng đăng ký race #${payload.raceId} vừa được mở.`
-          : "Cổng đăng ký vừa được mở."
-      );
-    });
-    const offGateClose = onSocketEvent("race:gate_closed", (payload) => {
-      refresh();
-      const auto = payload?.autoRejectedCount;
-      const msg = auto
-        ? `Cổng vừa đóng — ${auto} entry PENDING bị auto-reject.`
-        : "Cổng đăng ký vừa được đóng.";
-      toastify?.warn?.(msg);
-    });
-
-    // FLOW 8: race:published → tab khác vừa publish, refresh list
-    const offPublished = onSocketEvent("race:published", (payload) => {
-      refresh();
-      const raceId = String(payload?.race?.raceId ?? payload?.raceId ?? "");
-      if (raceId) {
-        toastify?.success?.(
-          `Race #${raceId} đã được publish — danh sách sẽ cập nhật.`,
-          "Publish"
-        );
-      }
-    });
-
-    // FLOW 8: race:unpublished → rollback settlement
-    const offUnpublished = onSocketEvent("race:unpublished", (payload) => {
-      refresh();
-      const raceId = String(payload?.race?.raceId ?? payload?.raceId ?? "");
-      if (raceId) {
-        toastify?.info?.(
-          `Race #${raceId} đã được rollback về PENDING_RESULT.`,
-          "Rollback"
-        );
-      }
-    });
-
-    // Fallback poll mỗi 30s (lỡ event không đến)
     const interval = setInterval(refresh, 30000);
-
-    return () => {
-      offGateOpen();
-      offGateClose();
-      offPublished();
-      offUnpublished();
-      clearInterval(interval);
-    };
-  }, [token, toastify]);
+    return () => clearInterval(interval);
+  }, []);
 
   const [entriesByRace, setEntriesByRace] = useState({});
+  const [loadingEntries, setLoadingEntries] = useState(false);
 
   const loadEntriesCounts = useCallback(async () => {
+    if (races.length === 0) return;
+    setLoadingEntries(true);
     try {
       const results = await Promise.all(
         races.map((r) =>
           raceDetailService
             .getEntries(r.raceId)
             .then((list) => [r.raceId, Array.isArray(list) ? list.length : 0])
-            .catch(() => [r.raceId, 0]),
+            .catch(() => [r.raceId, 0])
         ),
       );
       setEntriesByRace(Object.fromEntries(results));
     } catch {
       /* ignore */
+    } finally {
+      setLoadingEntries(false);
     }
   }, [races]);
 
@@ -413,6 +345,7 @@ export default function AdminRaceStagePage() {
       ongoing: races.filter(
         (r) => r.status === "IN_PROGRESS" || r.status === "ONGOING"
       ).length,
+      paused: races.filter((r) => r.status === "PAUSED").length,
       finished: races.filter((r) => r.status === "FINISHED").length,
       registrationOpen: races.filter(
         (r) => r.registrationOpen || r.isRegistrationOpen
@@ -434,7 +367,13 @@ export default function AdminRaceStagePage() {
     setConfirmAction({ race, action: "CLOSE" });
   };
 
-  const executeToggleRegistration = async (race, action) => {
+  /**
+   * Toggle registration gate theo action ("OPEN" | "CLOSE") được truyền từ ConfirmModal.
+   * Fallback về confirmAction hiện tại nếu ConfirmModal không pass action (defensive).
+   */
+  const executeToggleRegistration = async (race, actionArg) => {
+    // Ưu tiên actionArg (do ConfirmModal pass lên) — fallback về state confirmAction.
+    const action = actionArg ?? confirmAction?.action ?? "CLOSE";
     setBusyId(race.raceId);
     try {
       const isOpening = action === "OPEN";
@@ -500,16 +439,9 @@ export default function AdminRaceStagePage() {
         <div>
           <h1 className="ars-page__title">
             Quản lý chặng đua
-            <span
-              className={`ars-rt ${connected ? "ars-rt--ok" : "ars-rt--off"}`}
-              title={connected ? "Đang nhận cập nhật realtime" : "Mất kết nối realtime"}
-            >
-              {connected ? <Wifi size={11} /> : <WifiOff size={11} />}
-              <span>{connected ? "Realtime" : "Offline"}</span>
-            </span>
           </h1>
           <p className="ars-page__desc">
-            Theo dõi các chặng đua, trạng thái cổng đăng ký và kết quả.
+            Theo dõi các chặng đua, mở/đóng cổng đăng ký, phân công trọng tài và publish kết quả.
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -542,6 +474,10 @@ export default function AdminRaceStagePage() {
         <div className="ars-stat">
           <div className="ars-stat__label">Đang diễn ra</div>
           <div className="ars-stat__value ars-stat__value--ok">{stats.ongoing}</div>
+        </div>
+        <div className="ars-stat">
+          <div className="ars-stat__label">Tạm dừng</div>
+          <div className="ars-stat__value ars-stat__value--warn">{stats.paused}</div>
         </div>
         <div className="ars-stat">
           <div className="ars-stat__label">Cổng mở</div>
@@ -611,6 +547,7 @@ export default function AdminRaceStagePage() {
                   <th>ID</th>
                   <th>Chặng đua</th>
                   <th>Giải đấu</th>
+                  <th>Trọng tài</th>
                   <th>Thời gian</th>
                   <th>Cổng ĐK</th>
                   <th>Slots</th>
@@ -626,7 +563,6 @@ export default function AdminRaceStagePage() {
                   );
                   const isRegOpen = r.registrationOpen || r.isRegistrationOpen;
                   const maxSlots = r.maxHorses || r.maxEntries || 20;
-                  const registeredCount = entriesByRace[r.raceId] ?? MOCK_RACE_REGISTRATIONS[r.raceId]?.length ?? 0;
 
                   return (
                     <tr key={r.raceId}>
@@ -638,6 +574,17 @@ export default function AdminRaceStagePage() {
                         </div>
                       </td>
                       <td>{tournament?.name || `#${r.tournamentId}`}</td>
+                      <td>
+                        {r.refereeAId && r.refereeBId ? (
+                          <span className="ars-meta" title={`#${r.refereeAId}, #${r.refereeBId}`}>
+                            #{r.refereeAId} · #{r.refereeBId}
+                          </span>
+                        ) : (
+                          <span className="ars-meta" style={{ color: "#e6c364" }}>
+                            Chưa phân công
+                          </span>
+                        )}
+                      </td>
                       <td>
                         <div>{formatDate(r.scheduledAt)}</div>
                         {r.registrationDeadline && (
@@ -655,9 +602,13 @@ export default function AdminRaceStagePage() {
                       </td>
                       <td>
                         <div className="ars-slots">
-                          <span className={`ars-slots__count ${registeredCount >= maxSlots ? "ars-slots__count--full" : ""}`}>
-                            {registeredCount}/{maxSlots}
-                          </span>
+                          {loadingEntries && entriesByRace[r.raceId] === undefined ? (
+                            <span className="ars-slots__count ars-slots__count--loading" aria-label="Đang tải">…</span>
+                          ) : (
+                            <span className={`ars-slots__count ${(entriesByRace[r.raceId] ?? 0) >= maxSlots ? "ars-slots__count--full" : ""}`}>
+                              {entriesByRace[r.raceId] ?? 0}/{maxSlots}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -771,6 +722,14 @@ export default function AdminRaceStagePage() {
               <DetailRow label="Thời gian dự kiến" value={formatDate(detail.scheduledAt)} />
               <DetailRow label="Hạn đăng ký" value={formatDate(detail.registrationDeadline)} />
               <DetailRow
+                label="Trọng tài"
+                value={
+                  detail.refereeAId && detail.refereeBId
+                    ? `#${detail.refereeAId} & #${detail.refereeBId}`
+                    : <span style={{ color: "#e6c364" }}>Chưa phân công đủ</span>
+                }
+              />
+              <DetailRow
                 label="Cổng đăng ký"
                 value={
                   detail.registrationOpen || detail.isRegistrationOpen ? (
@@ -782,7 +741,7 @@ export default function AdminRaceStagePage() {
               />
               <DetailRow
                 label="Slots"
-                value={`${entriesByRace[detail.raceId] ?? MOCK_RACE_REGISTRATIONS[detail.raceId]?.length ?? 0}/${detail.maxHorses || detail.maxEntries || 20}`}
+                value={`${entriesByRace[detail.raceId] ?? 0}/${detail.maxHorses || detail.maxEntries || 20}`}
               />
               <DetailRow
                 label="Trạng thái"
@@ -795,6 +754,44 @@ export default function AdminRaceStagePage() {
               <DetailRow label="Ngày công bố" value={formatDate(detail.publishedAt)} />
               <DetailRow label="Ngày tạo" value={formatDate(detail.createdAt)} />
             </div>
+            {detail.status !== "FINISHED" && detail.status !== "CANCELLED" && (
+              <div className="ars-modal__footer">
+                {detail.registrationOpen || detail.isRegistrationOpen ? (
+                  <button
+                    type="button"
+                    className="ars-btn ars-btn--warn"
+                    onClick={() => {
+                      handleCloseRegistration(detail);
+                      setDetail(null);
+                    }}
+                    disabled={busyId === detail.raceId}
+                  >
+                    <Lock size={14} />
+                    Đóng cổng đăng ký
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ars-btn ars-btn--ok"
+                    onClick={() => {
+                      handleOpenRegistration(detail);
+                      setDetail(null);
+                    }}
+                    disabled={busyId === detail.raceId}
+                  >
+                    <Unlock size={14} />
+                    Mở cổng đăng ký
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="ars-btn ars-btn--ghost"
+                  onClick={() => setDetail(null)}
+                >
+                  Đóng
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -824,10 +821,14 @@ export default function AdminRaceStagePage() {
           tournaments={tournaments}
           defaultTournamentId={tournamentFilter !== "ALL" ? tournamentFilter : undefined}
           onClose={() => setCreateModal(null)}
-          onCreated={(created) => {
+          onCreated={async (created) => {
             setCreateModal(null);
-            if (created) setRaces((prev) => [created, ...prev]);
-            toastify?.success?.("Đã tạo chặng đua mới");
+            if (created) {
+              setRaces((prev) => [created, ...prev]);
+              // Refresh entry count cho race mới (entry count = 0 nhưng loadEntriesCounts sẽ tự xử lý)
+              await loadEntriesCounts();
+            }
+            toastify?.success?.(`Đã tạo chặng đua "${created?.name ?? ""}"`);
           }}
         />
       ) : null}

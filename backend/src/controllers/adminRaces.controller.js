@@ -145,7 +145,11 @@ async function getRiskAssessment(req, res) {
     async function listAllRaces(req, res) {
   try {
     const { page, pageSize, status } = req.query;
-    const result = await adminRacesService.listAllRaces({ page, pageSize, status });
+    const result = await adminRacesService.listAllRaces({
+      page: page ? parseInt(page) : 1,
+      pageSize: pageSize ? parseInt(pageSize) : 50,
+      status
+    });
     return res.status(200).json(result);
   } catch (error) {
     return res.status(error.status || 500).json({ error: error.message });

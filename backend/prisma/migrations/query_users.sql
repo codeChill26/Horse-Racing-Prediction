@@ -1,0 +1,1 @@
+SELECT u."userId", u.email, u."fullName", r.code FROM "User" u JOIN "Role" r ON u."roleId" = r."roleId" ORDER BY r.code, u."userId" LIMIT 20;

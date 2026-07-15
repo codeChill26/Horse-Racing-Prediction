@@ -1,42 +1,51 @@
 # =========================================================================
-# 1. THƯ VIỆN VÀ BỘ NHỚ ĐỆM (DEPENDENCIES / CACHE)
+# BACKEND .gitignore — Node.js + Express + Prisma
 # =========================================================================
-node_modules/
-/jspm_packages/
-.npm/
-.eslintcache/
-.parcel-cache/
-.turbo/
-.nuxt/
-.next/
 
-# =========================================================================
-# 2. BIẾN MÔI TRƯỜNG VÀ BẢO MẬT (ENV / SECRETS)
-# =========================================================================
-# Tuyệt đối không đẩy file chứa mật khẩu DB và mật khẩu ứng dụng Gmail lên Git
+# -------------------------------------------------------------------------
+# 1. Dependencies
+# -------------------------------------------------------------------------
+node_modules/
+.jspm_packages/
+.npm/
+.pnp
+.pnp.js
+
+# -------------------------------------------------------------------------
+# 2. Environment & Secrets
+# -------------------------------------------------------------------------
+# CẢNH BÁO: Tuyệt đối không đẩy .env lên Git
+# Nội dung .env có thể bao gồm:
+#   - Database password / connection string
+#   - JWT_SECRET
+#   - Gmail API credentials
+#   - Admin passwords
 .env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
+*.pem
+*.key
+credentials.json
+secrets.json
 
-# =========================================================================
-# 3. HỆ THỐNG VÀ TRÌNH SOẠN THẢO (SYSTEM / IDE RÁC)
-# =========================================================================
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.DS_Store
-Thumbs.db
+# -------------------------------------------------------------------------
+# 3. Build & Generated
+# -------------------------------------------------------------------------
+# Prisma generated client (nếu cấu hình custom output)
+# /src/generated/prisma/
 
-# =========================================================================
-# 4. TỆP VẾT LỖI VÀ NHẬT KÝ (LOGS)
-# =========================================================================
-logs
+# Docker
+.docker/
+
+# -------------------------------------------------------------------------
+# 4. Logs & Debug
+# -------------------------------------------------------------------------
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -44,17 +53,71 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# =========================================================================
-# 5. CẤU HÌNH ĐẶC THÙ PRISMA & DOCKER (PRISMA / DOCKER GENERATED)
-# =========================================================================
-# Nếu trong tương lai bạn cấu hình custom đầu ra của Prisma Client thì dòng này sẽ bảo vệ Git
-/src/generated/prisma
+# Custom backend log files
+be.log
+be.err.log
+*.log
 
-# Loại bỏ các file dữ liệu tạm thời hoặc trạng thái nếu chạy Docker cục bộ
-.docker/
+# -------------------------------------------------------------------------
+# 5. Editor & IDE
+# -------------------------------------------------------------------------
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
 
-# =========================================================================
-# 6. CURSOR CONTEXT MEMORY — KHÔNG ĐẨY LÊN GIT
-# =========================================================================
-cursor.md
-**/cursor.md
+# JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Cursor workspace
+.cursor/
+.cursorrc
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temp
+*.swp
+*.swo
+*.swn
+*.tmp
+*.bak
+*.orig
+*.old
+
+# -------------------------------------------------------------------------
+# 6. Test
+# -------------------------------------------------------------------------
+coverage/
+.nyc_output/
+
+# -------------------------------------------------------------------------
+# 7. Python (nếu dùng)
+# -------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# -------------------------------------------------------------------------
+# 8. Cache
+# -------------------------------------------------------------------------
+.eslintcache
+.parcel-cache/
+.turbo/
+.nuxt/
+.next/
+
+# -------------------------------------------------------------------------
+# 9. Mock Data (JSON fixtures — chỉ dùng local dev)
+# -------------------------------------------------------------------------
+# Các file JSON mock data bên dưới nên được quản lý qua seed script
+# thay vì commit lên git. Comment lại nếu cần giữ lại mẫu.
+# *.json

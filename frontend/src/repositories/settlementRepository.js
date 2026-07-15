@@ -1,25 +1,16 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- *
  * Settlement Repository — FLOW 8 (Result Publication & Settlement).
  *
  * Endpoint (theo D:\PRM\project\.cursor\prompts\mainflow.md):
- *   - POST /api/admin/settlement/publish/:raceId
+ *   - POST /api/admin/races/:raceId/publish
  *       body: { confirm?: boolean }  (default true)
  *       → settle bets, award points, set race.status = FINISHED, emit 'race:published'
- *   - POST /api/admin/settlement/unpublish/:raceId
+ *   - POST /api/admin/races/:raceId/unpublish
  *       body: { reason: string }
  *       → rollback settlement, refund spectators, set race.status = PENDING_RESULT,
  *         emit 'race:unpublished'
- *   - GET  /api/admin/settlement/:raceId
+ *   - GET  /api/admin/races/:raceId/settlement
  *       → settlement summary (totalPool, houseMargin, payout, ...) sau publish
- *
- * ⚠️ Mount conflict lưu ý (PROCESS.md 4.1): BE hiện mount `/api/admin/races` 2 lần
- * (line 56 + 60). Nên dùng namespace `/api/admin/settlement/*` để tránh nuốt route.
- *
- * Mock fallback CHỈ chạy khi env `VITE_FALLBACK_TO_MOCK=true`. Mặc định throw lỗi
- * để UI xử lý — không im lặng trả về dữ liệu giả (pattern B-002).
  */
 
 import { getAccessToken } from "../utils/token";
@@ -90,7 +81,7 @@ async function withFallback(apiCall, mockCall, errorContext) {
 
 export const settlementRepository = {
   /**
-   * POST /api/admin/settlement/publish/:raceId
+   * POST /api/admin/races/:raceId/publish
    * @param {string|number} raceId
    * @param {object} [opts]
    * @param {boolean} [opts.confirm=true] — xác nhận đã kiểm tra Top 3
@@ -99,7 +90,7 @@ export const settlementRepository = {
   async publishRace(raceId, opts = {}) {
     if (!raceId) throw new Error("ID chặng đua là bắt buộc");
     const res = await fetch(
-      `/api/admin/settlement/publish/${raceId}`,
+      `/api/admin/races/${raceId}/publish`,
       {
         method: "POST",
         headers: authHeaders(),
@@ -116,7 +107,7 @@ export const settlementRepository = {
   },
 
   /**
-   * POST /api/admin/settlement/unpublish/:raceId
+   * POST /api/admin/races/:raceId/unpublish
    * @param {string|number} raceId
    * @param {object} [opts]
    * @param {string} [opts.reason] — bắt buộc
@@ -128,7 +119,7 @@ export const settlementRepository = {
       throw new Error("Lý do rollback là bắt buộc");
     }
     const res = await fetch(
-      `/api/admin/settlement/unpublish/${raceId}`,
+      `/api/admin/races/${raceId}/unpublish`,
       {
         method: "POST",
         headers: authHeaders(),
@@ -145,7 +136,7 @@ export const settlementRepository = {
   },
 
   /**
-   * GET /api/admin/settlement/:raceId
+   * GET /api/admin/races/:raceId/settlement
    * Trả về settlement summary; null nếu race chưa được publish.
    */
   async getSettlement(raceId) {
@@ -153,7 +144,7 @@ export const settlementRepository = {
     return withFallback(
       async () => {
         const res = await fetch(
-          `/api/admin/settlement/${raceId}`,
+          `/api/admin/races/${raceId}/settlement`,
           { headers: authHeaders() }
         );
         if (res.status === 404) return null;
