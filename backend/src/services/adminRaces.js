@@ -336,7 +336,7 @@ class AdminRacesService {
    * HOẶC lấy tất cả không phân trang nếu pageSize = -1
    */
   async listAllRaces({ page = 1, pageSize = 50, status } = {}) {
-    const skip = (page ) * pageSize;
+    const skip = (page - 1) * pageSize;
     const where = {};
     if (status && status !== 'ALL') {
       where.status = status;

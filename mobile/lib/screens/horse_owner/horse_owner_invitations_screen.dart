@@ -520,6 +520,7 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
     setState(() => _sending = true);
     try {
       await _invitationsService.sendInvitation(
+        tournamentId: _selectedTournament!.tournamentId!,
         raceId: _selectedRace!.raceId,
         horseId: _selectedHorse!.horseId,
         jockeyId: _selectedJockey!.userId,
@@ -599,8 +600,9 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
                   DropdownButtonFormField<RaceSummary>(
                     initialValue: _selectedRace,
                     decoration: const InputDecoration(
-                      labelText: 'Chặng đua',
+                      labelText: 'Chặng đua tham chiếu',
                       border: OutlineInputBorder(),
+                      helperText: 'Chặng được dùng để kiểm tra ngựa + kỵ sĩ có phù hợp không',
                     ),
                     hint: const Text('Chọn chặng đua'),
                     items: _races
@@ -622,6 +624,15 @@ class _NewInvitationTabState extends State<_NewInvitationTab> {
                         .toList(),
                     onChanged: _onRaceChanged,
                   ),
+                if (_selectedTournament != null && _selectedRace != null) ...[
+                  const SizedBox(height: 12),
+                  _TournamentScopeNotice(
+                    tournamentName:
+                        _selectedTournament?.name ?? 'Giải #${_selectedTournament?.tournamentId}',
+                    raceName: _selectedRace!.name,
+                    raceCount: _races.length,
+                  ),
+                ],
               ],
             ),
           ),
@@ -881,6 +892,61 @@ class _ErrorPane extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TournamentScopeNotice extends StatelessWidget {
+  const _TournamentScopeNotice({
+    required this.tournamentName,
+    required this.raceName,
+    required this.raceCount,
+  });
+
+  final String tournamentName;
+  final String raceName;
+  final int raceCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.ownerTeal.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.ownerTeal.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, size: 18, color: AppColors.ownerTeal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Phạm vi lời mời = toàn bộ giải',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ownerPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Khi ${_jName(tournamentName)} được chọn, lời mời gửi tới kỵ sĩ sẽ áp dụng cho tất cả $raceCount chặng đang mở đăng ký trong giải (không chỉ riêng "${_jName(raceName)}"). '
+                  'Chặng bạn chọn chỉ dùng để xác nhận ngựa + kỵ sĩ có phù hợp với nhau. '
+                  'Khi kỵ sĩ đồng ý, hệ thống tự tạo RaceEntry cho các chặng đang mở.',
+                  style: const TextStyle(fontSize: 12, color: AppColors.heading, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _jName(String? s) => (s == null || s.isEmpty) ? 'giải đấu' : s;
 }
 
 class _EmptyPane extends StatelessWidget {

@@ -99,6 +99,16 @@ class AdminRace {
 
   bool get isDeletedSafe => entriesCount == 0 && predictionsCount == 0;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdminRace &&
+          runtimeType == other.runtimeType &&
+          raceId == other.raceId;
+
+  @override
+  int get hashCode => raceId?.hashCode ?? 0;
+
   double get fillRate =>
       maxEntries == 0 ? 0 : (entriesCount / maxEntries).clamp(0, 1).toDouble();
 }

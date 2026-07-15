@@ -42,10 +42,11 @@ class _RefereeSubmitResultSheetState extends State<_RefereeSubmitResultSheet> {
   void initState() {
     super.initState();
     for (final h in widget.horses) {
-      if (h.horseId != null) {
-        _rankCtrls[h.horseId!] = TextEditingController();
-        _dnf[h.horseId!] = false;
-        _dq[h.horseId!] = false;
+      final key = h.resultKey;
+      if (key != null) {
+        _rankCtrls[key] = TextEditingController();
+        _dnf[key] = false;
+        _dq[key] = false;
       }
     }
   }
@@ -58,33 +59,75 @@ class _RefereeSubmitResultSheetState extends State<_RefereeSubmitResultSheet> {
     super.dispose();
   }
 
+  /// Xây payload gửi lên backend. Mỗi entry phải có hoặc `rank`,
+  /// hoặc một trong hai flag `isDnf`/`isDq` đúng `true`.
+  /// Validation backend (`dto/referee.dto.js`) sẽ reject nếu `rank`
+  /// trống mà cả DNF/DQ đều `false`.
   List<Map<String, dynamic>> _buildRawResults() {
     final results = <Map<String, dynamic>>[];
     for (final h in widget.horses) {
-      if (h.horseId == null) continue;
-      final rank = int.tryParse((_rankCtrls[h.horseId!]?.text.trim() ?? ''));
+      final key = h.resultKey;
+      if (key == null) continue;
+      final text = _rankCtrls[key]?.text.trim() ?? '';
+      final rank = int.tryParse(text);
+      final isDnf = _dnf[key] == true;
+      final isDq = _dq[key] == true;
       results.add({
-        'entryId': h.horseId,
+        'entryId': key,
         'rank': rank,
-        'isDnf': _dnf[h.horseId!] == true,
-        'isDq': _dq[h.horseId!] == true,
+        'isDnf': isDnf,
+        'isDq': isDq,
       });
     }
     return results;
   }
 
-  bool get _isValid {
+  /// Tìm các entry vi phạm rule backend để hiển thị trước khi gửi.
+  /// Trả về danh sách tên ngựa bị thiếu dữ liệu.
+  List<String> _missingEntries() {
+    final missing = <String>[];
+    for (final h in widget.horses) {
+      final key = h.resultKey;
+      if (key == null) continue;
+      final rank = int.tryParse((_rankCtrls[key]?.text.trim() ?? ''));
+      final isDnf = _dnf[key] == true;
+      final isDq = _dq[key] == true;
+      if (rank == null && !isDnf && !isDq) {
+        missing.add(h.horseName ?? 'Ngựa #${h.horseId ?? "?"}');
+      }
+    }
+    return missing;
+  }
+
+  bool get _hasDuplicatedRanks {
     final results = _buildRawResults();
-    final ranks = results.where((e) => e['rank'] != null).map((e) => e['rank'] as int).toList();
-    if (ranks.isEmpty) return false;
-    final unique = ranks.toSet();
-    return unique.length == ranks.length;
+    final ranks = results
+        .where((e) => e['rank'] != null)
+        .map((e) => e['rank'] as int)
+        .toList();
+    return ranks.toSet().length != ranks.length;
   }
 
   Future<void> _submit() async {
-    if (!_isValid) {
-      setState(() => _error = 'Vui lòng nhập đủ rank và không trùng.');
+    final missing = _missingEntries();
+    final results = _buildRawResults();
+    if (results.isEmpty) {
+      setState(() => _error = 'Không có ngựa hợp lệ để nộp.');
       return;
+    }
+    final ranks = results.where((e) => e['rank'] != null).map((e) => e['rank'] as int).toList();
+    if (ranks.isEmpty) {
+      setState(() => _error =
+          'Phải nhập ít nhất 1 thứ hạng. Ngựa không hoàn thành phải tick DNF hoặc DQ.');
+      return;
+    }
+    if (_hasDuplicatedRanks) {
+      setState(() => _error = 'Có thứ hạng bị trùng. Mỗi ngựa phải có rank khác nhau.');
+      return;
+    }
+    if (missing.isNotEmpty) {
+      final confirmed = await _confirmMissing(missing);
+      if (!confirmed) return;
     }
     setState(() {
       _submitting = true;
@@ -105,6 +148,33 @@ class _RefereeSubmitResultSheetState extends State<_RefereeSubmitResultSheet> {
     }
   }
 
+  Future<bool> _confirmMissing(List<String> names) async {
+    final preview = names.length <= 3
+        ? names.join(', ')
+        : '${names.take(3).join(', ')} và ${names.length - 3} ngựa khác';
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ngựa chưa có thứ hạng'),
+        content: Text(
+          '$preview chưa có rank và chưa tick DNF/DQ. Backend sẽ từ chối. '
+          'Bạn muốn tiếp tục hay quay lại nhập?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Quay lại nhập'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Vẫn nộp (sẽ lỗi)'),
+          ),
+        ],
+      ),
+    );
+    return res == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -118,16 +188,40 @@ class _RefereeSubmitResultSheetState extends State<_RefereeSubmitResultSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(
-            child: Text(
-              'Nộp kết quả',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
+          Row(
+            children: [
+              const Spacer(),
+              const Text(
+                'Nộp kết quả',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Đóng',
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  if (_submitting) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Đang gửi kết quả. Vui lòng đợi hoặc dùng nút "Huỷ" bên dưới.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  if (Navigator.canPop(context)) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           ...widget.horses.map((h) {
-            final ctrl = h.horseId != null ? _rankCtrls[h.horseId!] : null;
-            final hid = h.horseId;
+            final key = h.resultKey;
+            final ctrl = key != null ? _rankCtrls[key] : null;
+            final showSwitches = key != null;
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Column(
@@ -153,20 +247,20 @@ class _RefereeSubmitResultSheetState extends State<_RefereeSubmitResultSheet> {
                       ),
                     ],
                   ),
-                  if (hid != null) ...[
+                  if (showSwitches) ...[
                     Row(
                       children: [
                         const SizedBox(width: 12),
                         Switch(
-                          value: _dnf[hid] ?? false,
-                          onChanged: (v) => setState(() => _dnf[hid] = v),
+                          value: _dnf[key] ?? false,
+                          onChanged: (v) => setState(() => _dnf[key] = v),
                         ),
                         const SizedBox(width: 4),
                         const Text('DNF'),
                         const SizedBox(width: 16),
                         Switch(
-                          value: _dq[hid] ?? false,
-                          onChanged: (v) => setState(() => _dq[hid] = v),
+                          value: _dq[key] ?? false,
+                          onChanged: (v) => setState(() => _dq[key] = v),
                         ),
                         const SizedBox(width: 4),
                         const Text('DQ'),
@@ -176,20 +270,43 @@ class _RefereeSubmitResultSheetState extends State<_RefereeSubmitResultSheet> {
                 ],
               ),
             );
-          }).toList(),
+          }),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(_error!, style: const TextStyle(color: Colors.red)),
             ),
-          FilledButton.icon(
-            onPressed: _submitting ? null : _submit,
-            icon: Icon(_submitting ? Icons.hourglass_empty : Icons.upload_file),
-            label: Text(_submitting ? 'Đang nộp…' : 'Xác nhận nộp'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.adminAccent,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  icon: const Icon(Icons.close),
+                  label: const Text('Huỷ'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.adminDeep,
+                    side: const BorderSide(color: AppColors.adminDeep),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _submitting ? null : _submit,
+                  icon: Icon(_submitting ? Icons.hourglass_empty : Icons.upload_file),
+                  label: Text(_submitting ? 'Đang nộp…' : 'Xác nhận nộp'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.adminAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

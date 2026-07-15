@@ -1,7 +1,7 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
 export "FLUTTER_ROOT=C:\Flutter\flutter"
-export "FLUTTER_APPLICATION_PATH=E:\Horse-Racing-Prediction\Horse-Racing-Prediction\mobile"
+export "FLUTTER_APPLICATION_PATH=E:\Semester8\PRM393\Horse-Racing-Prediction\mobile"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_BUILD_DIR=build"
 export "FLUTTER_BUILD_NAME=1.0.0"

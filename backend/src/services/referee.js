@@ -293,6 +293,7 @@ class RefereeService {
           mySubmissionStatus: mySub ? 'Submitted' : 'NotSubmitted',
           otherRefereeStatus: 'Hidden', // Bảo mật kết quả đối phương
           horses: race.entries.map((e, idx) => ({
+            entryId: e.entryId,
             horseId: e.horseId,
             gateNumber: e.saddleNo || idx + 1,
             horseName: e.horse.name,

@@ -248,6 +248,35 @@ class OwnerService {
     );
   }
 
+  /**
+   * Danh sách race KHÁN GIẢ có thể đặt cược (cho dropdown chọn race khi mở
+   * màn đặt cược mà chưa biết race cụ thể). Điều kiện:
+   *   - race.status = 'SCHEDULED' và registrationOpen = false (chưa/không mở
+   *     đăng ký cho chủ ngựa — tức là đã chốt entry và sẵn sàng cho betting).
+   *   - tournament thuộc trạng thái công khai (OPEN/ONGOING).
+   */
+  async listBettableRaces() {
+    return prisma.race.findMany({
+      where: {
+        status: 'SCHEDULED',
+        registrationOpen: false,
+        tournament: { status: { in: ['OPEN', 'ONGOING'] } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+      select: {
+        raceId: true,
+        tournamentId: true,
+        name: true,
+        status: true,
+        scheduledAt: true,
+        registrationOpen: true,
+        tournament: {
+          select: { tournamentId: true, name: true, status: true },
+        },
+      },
+    });
+  }
+
   async listMyEntries(ownerId, { raceId, status } = {}) {
     const where = { horse: { ownerId } };
     if (raceId) where.raceId = raceId;

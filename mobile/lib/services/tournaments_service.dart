@@ -59,4 +59,31 @@ class TournamentsService {
         .map(RaceSummary.fromJson)
         .toList();
   }
+
+  /// GET /api/races/:id/detail — trả về race + entries (kèm tên ngựa, jockey, odds).
+  Future<RaceDetail> getRaceDetail(int raceId) async {
+    final res = await http.get(ApiConfig.uri('/api/races/$raceId/detail'));
+    final data = await _decodeBody(res);
+    _throwIfFailed(res, data, 'Không tải được chi tiết chặng đua');
+    if (data == null) {
+      throw Exception('Phản hồi rỗng cho chi tiết chặng đua');
+    }
+    return RaceDetail.fromJson(data);
+  }
+
+  /// GET /api/races/bettable — danh sách race khán giả có thể đặt cược.
+  /// Dùng để đổ vào dropdown ở màn `PlaceBetScreen` khi vào từ nơi không
+  /// có race cụ thể (FAB, nút nhanh ở Trang chủ / tab Ví).
+  Future<List<RaceSummary>> listBettableRaces() async {
+    final res = await http.get(ApiConfig.uri('/api/races/bettable'));
+    final data = await _decodeBody(res);
+    _throwIfFailed(res, data, 'Không tải được danh sách chặng có thể cược');
+
+    final races = data?['races'];
+    if (races is! List) return [];
+    return races
+        .whereType<Map<String, dynamic>>()
+        .map(RaceSummary.fromJson)
+        .toList();
+  }
 }

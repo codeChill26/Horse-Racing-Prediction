@@ -216,6 +216,7 @@ class RefereeLeg {
 
 class RefereeHorse {
   RefereeHorse({
+    this.entryId,
     this.horseId,
     this.gateNumber,
     this.horseName,
@@ -223,6 +224,9 @@ class RefereeHorse {
   });
 
   factory RefereeHorse.fromJson(Map<String, dynamic> json) => RefereeHorse(
+        entryId: json['entryId'] is int
+            ? json['entryId'] as int
+            : int.tryParse('${json['entryId']}'),
         horseId: json['horseId'] is int
             ? json['horseId'] as int
             : int.tryParse('${json['horseId']}'),
@@ -233,6 +237,12 @@ class RefereeHorse {
         jockeyName: json['jockeyName']?.toString(),
       );
 
+  /// Khóa chính dùng để build payload nộp kết quả — chính là `RaceEntry.entryId`
+  /// mà backend yêu cầu trong `rawResults[].entryId`. Backend có thể cũ không
+  /// trả `entryId` thì fallback về `horseId` (chỉ đúng khi 1 race, cùng schema).
+  int? get resultKey => entryId ?? horseId;
+
+  final int? entryId;
   final int? horseId;
   final int? gateNumber;
   final String? horseName;

@@ -1733,6 +1733,16 @@ module.exports = {
         },
       },
     },
+    '/api/races/bettable': {
+      get: {
+        tags: ['Races'],
+        summary: 'List races available for spectator betting (public)',
+        description: 'Trả về các race SCHEDULED (đã chốt entry, chưa mở đăng ký) thuộc tournament OPEN/ONGOING. Dùng cho dropdown chọn race ở màn đặt cược khi khán giả chưa chọn race cụ thể.',
+        responses: {
+          '200': { description: 'OK' },
+        },
+      },
+    },
     '/api/races/{id}/entries': {
       get: {
         tags: ['Races'],
