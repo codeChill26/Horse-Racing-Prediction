@@ -76,6 +76,16 @@ export const horseRepository = {
   // Admin side
   // ============================================================
 
+  /** GET /api/admin/horses?status=PENDING — đếm số ngựa chờ duyệt (badge sidebar) */
+  async getPendingCount() {
+    const res = await fetch(`/api/admin/horses?status=PENDING`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return Array.isArray(data?.horses) ? data.horses.length : 0;
+  },
+
   /** GET /api/admin/horses?status=ALL|PENDING|APPROVED|REJECTED|INACTIVE */
   async getAll(status = "ALL") {
     const res = await fetch(`/api/admin/horses?status=${status}`, {

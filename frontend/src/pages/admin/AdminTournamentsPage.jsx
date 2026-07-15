@@ -179,8 +179,7 @@ export default function AdminTournamentsPage() {
         <div>
           <h1 className="adm-t-page__title">Quản lý giải đua ngựa</h1>
           <p className="adm-t-page__desc">
-           
-      
+            Tạo giải đấu, theo dõi trạng thái và quản lý các chặng đua trong từng giải.
           </p>
         </div>
         <button type="button" className="adm-t-btn adm-t-btn--primary" onClick={() => setModal({ mode: "create" })}>
@@ -248,7 +247,11 @@ export default function AdminTournamentsPage() {
             </div>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="adm-t-empty">Chưa có giải đấu nào phù hợp bộ lọc.</div>
+          <div className="adm-t-empty">
+            {tournaments.length === 0
+              ? "Chưa có giải đấu nào. Nhấn \"Tạo giải đấu\" để bắt đầu."
+              : "Không có giải đấu nào phù hợp bộ lọc hiện tại."}
+          </div>
         ) : (
           <div className="adm-t-table-wrap">
             <table className="adm-t-table">
@@ -360,13 +363,34 @@ export default function AdminTournamentsPage() {
       </div>
 
       {modal?.mode === "create" && (
-        <AdminTournamentFormModal onClose={() => setModal(null)} onSaved={loadTournaments} />
+        <AdminTournamentFormModal
+          onClose={() => setModal(null)}
+          onSaved={async (feedback) => {
+            if (feedback?.hints?.length > 0) {
+              toastify?.info?.(feedback.hints.join("\n"));
+            }
+            if (feedback?.warnings?.length > 0) {
+              toastify?.error?.(feedback.warnings.join("\n"));
+            }
+            await loadTournaments();
+          }}
+          onCreatedToast={() => toastify?.success?.("Đã tạo giải đấu mới")}
+        />
       )}
       {modal?.mode === "edit" && (
         <AdminTournamentFormModal
           tournamentId={modal.id}
           onClose={() => setModal(null)}
-          onSaved={loadTournaments}
+          onSaved={async (feedback) => {
+            if (feedback?.hints?.length > 0) {
+              toastify?.info?.(feedback.hints.join("\n"));
+            }
+            if (feedback?.warnings?.length > 0) {
+              toastify?.error?.(feedback.warnings.join("\n"));
+            }
+            await loadTournaments();
+          }}
+          onCreatedToast={() => toastify?.success?.("Đã cập nhật giải đấu")}
         />
       )}
 

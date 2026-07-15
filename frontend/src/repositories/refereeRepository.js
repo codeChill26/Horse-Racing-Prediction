@@ -195,3 +195,37 @@ export const refereeProfileRepository = {
     }
   },
 };
+
+/**
+ * Notification Repository
+ * - GET    /api/referee/me/notifications
+ * - POST   /api/referee/me/notifications/:id/read
+ * - POST   /api/referee/me/notifications/read-all
+ * - POST   /api/referee/me/notifications/:id/respond { response: 'ACCEPTED'|'REFUSED', reason? }
+ */
+export const refereeNotificationRepository = {
+  async getMyNotifications(params = {}) {
+    const data = await getJson("/api/referee/me/notifications", params);
+    return Array.isArray(data?.notifications) ? data.notifications : [];
+  },
+
+  async markAsRead(notificationId) {
+    if (!notificationId) throw new Error("Thiếu mã thông báo");
+    return postJson(`/api/referee/me/notifications/${notificationId}/read`);
+  },
+
+  async markAllAsRead() {
+    return postJson(`/api/referee/me/notifications/read-all`);
+  },
+
+  async respondAssignment({ notificationId, response, reason }) {
+    if (!notificationId) throw new Error("Thiếu mã thông báo");
+    if (!["ACCEPTED", "REFUSED"].includes(response)) {
+      throw new Error("response phải là ACCEPTED hoặc REFUSED");
+    }
+    return postJson(`/api/referee/me/notifications/${notificationId}/respond`, {
+      response,
+      reason: reason || undefined,
+    });
+  },
+};

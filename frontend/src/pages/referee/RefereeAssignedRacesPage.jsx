@@ -27,6 +27,7 @@ import {
   PlayCircle,
   Filter,
   X,
+  CheckCircle2,
 } from "lucide-react";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { refereeRaceService } from "../../services/refereeService";
@@ -51,6 +52,50 @@ function RaceStatusBadge({ status }) {
   const normalized = normalizeRaceStatus(status);
   const config = STATUS_CONFIG[normalized] || { variant: "muted", label: status || "—" };
   return <span className={`race-status-badge race-status-badge--${config.variant}`}>{config.label}</span>;
+}
+
+/**
+ * Lấy submissionStatus của leg đầu tiên (đơn giản hóa cho UI).
+ */
+function getMySubmissionStatus(race) {
+  const leg = race.legs?.[0];
+  const raw = (leg?.mySubmissionStatus || "").toString();
+  const normalized = raw.toLowerCase();
+  if (!normalized) return "unknown";
+  if (
+    normalized === "submitted" ||
+    normalized === "submittedbyme" ||
+    normalized === "waitingotherreferee"
+  ) {
+    return "submitted";
+  }
+  if (normalized === "notsubmitted") return "notSubmitted";
+  return normalized;
+}
+
+/**
+ * Badge trạng thái đã submit kết quả cho referee hay chưa.
+ */
+function SubmissionBadge({ status }) {
+  if (status === "submitted") {
+    return (
+      <span className="race-submission-badge race-submission-badge--ok" title="Bạn đã gửi kết quả cho leg này">
+        Đã submit
+      </span>
+    );
+  }
+  if (status === "notSubmitted" || status === "notsubmitted") {
+    return (
+      <span className="race-submission-badge race-submission-badge--warn" title="Bạn chưa gửi kết quả">
+        Chưa submit
+      </span>
+    );
+  }
+  return (
+    <span className="race-submission-badge race-submission-badge--muted" title="Chưa rõ trạng thái">
+      —
+    </span>
+  );
 }
 
 // ============================================================
@@ -116,7 +161,7 @@ function SearchInput({ value, onChange, onClear }) {
 // ============================================================
 // TABLE ROW
 // ============================================================
-function TableRow({ race, onViewControl }) {
+function TableRow({ race, onViewControl, onSubmitResult }) {
   const formatDateTime = (iso) => {
     if (!iso) return "—";
     const d = new Date(iso);
@@ -136,6 +181,13 @@ function TableRow({ race, onViewControl }) {
       onViewControl(race);
     }
   };
+
+  const mySubmission = getMySubmissionStatus(race);
+  // Inline submit chỉ hiện khi race IN_PROGRESS và chưa submit
+  const canSubmitInline =
+    mySubmission !== "submitted" &&
+    (normalizeRaceStatus(race.status) === "InProgress" ||
+      normalizeRaceStatus(race.status) === "Scheduled");
 
   return (
     <tr
@@ -176,19 +228,39 @@ function TableRow({ race, onViewControl }) {
       <td className="race-table__cell" role="cell">
         <span className="race-table__legs">{race.totalLegs || 0} leg</span>
       </td>
+      <td className="race-table__cell" role="cell">
+        <SubmissionBadge status={mySubmission} />
+      </td>
       <td className="race-table__cell race-table__cell--action" role="cell">
-        <button
-          type="button"
-          className="race-table__btn race-table__btn--primary"
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewControl(race);
-          }}
-          aria-label={`Điều khiển race ${race.name}`}
-        >
-          <PlayCircle size={14} aria-hidden="true" />
-          Điều khiển
-        </button>
+        <div className="race-table__action-group">
+          <button
+            type="button"
+            className="race-table__btn race-table__btn--ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewControl(race);
+            }}
+            aria-label={`Điều khiển race ${race.name}`}
+          >
+            <PlayCircle size={14} aria-hidden="true" />
+            Điều khiển
+          </button>
+          {canSubmitInline && onSubmitResult && (
+            <button
+              type="button"
+              className="race-table__btn race-table__btn--primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSubmitResult(race);
+              }}
+              aria-label={`Nhập kết quả race ${race.name}`}
+              title="Mở form nhập kết quả"
+            >
+              <CheckCircle2 size={14} aria-hidden="true" />
+              Nhập kết quả
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -197,7 +269,7 @@ function TableRow({ race, onViewControl }) {
 // ============================================================
 // ASSIGNED RACE TABLE
 // ============================================================
-function AssignedRaceTable({ races, onViewControl, isLoading }) {
+function AssignedRaceTable({ races, onViewControl, onSubmitResult, isLoading }) {
   if (isLoading) {
     return (
       <div className="race-table" role="table" aria-label="Bảng race được phân công" aria-busy="true">
@@ -208,6 +280,7 @@ function AssignedRaceTable({ races, onViewControl, isLoading }) {
           <span role="columnheader">Thời gian</span>
           <span role="columnheader">Trạng thái</span>
           <span role="columnheader">Leg</span>
+          <span role="columnheader">Đã submit?</span>
           <span role="columnheader">Thao tác</span>
         </div>
         {[1, 2, 3].map((i) => (
@@ -218,7 +291,8 @@ function AssignedRaceTable({ races, onViewControl, isLoading }) {
             <Skeleton width="30%" height="16px" />
             <Skeleton width="80px" height="24px" borderRadius="6px" />
             <Skeleton width="40px" height="16px" />
-            <Skeleton width="100px" height="32px" borderRadius="8px" />
+            <Skeleton width="80px" height="20px" borderRadius="6px" />
+            <Skeleton width="160px" height="32px" borderRadius="8px" />
           </div>
         ))}
       </div>
@@ -238,6 +312,7 @@ function AssignedRaceTable({ races, onViewControl, isLoading }) {
         <span role="columnheader">Thời gian</span>
         <span role="columnheader">Trạng thái</span>
         <span role="columnheader">Leg</span>
+        <span role="columnheader">Đã submit?</span>
         <span role="columnheader">Thao tác</span>
       </div>
       <tbody>
@@ -246,6 +321,7 @@ function AssignedRaceTable({ races, onViewControl, isLoading }) {
             key={race.id || race.raceId}
             race={race}
             onViewControl={onViewControl}
+            onSubmitResult={onSubmitResult}
           />
         ))}
       </tbody>
@@ -372,6 +448,12 @@ export default function RefereeAssignedRacesPage() {
     navigate(`/referee/races/${raceId}/control`);
   };
 
+  // Inline submit — chuyển tới race control với query để mở thẳng form nhập kết quả
+  const handleSubmitResult = (race) => {
+    const raceId = race.id || race.raceId;
+    navigate(`/referee/races/${raceId}/control?focus=submit`);
+  };
+
   // Clear search
   const handleClearSearch = () => {
     setSearch("");
@@ -397,7 +479,7 @@ export default function RefereeAssignedRacesPage() {
             <RaceFilter value="ALL" onChange={() => {}} />
           </div>
 
-          <AssignedRaceTable races={[]} onViewControl={() => {}} isLoading={true} />
+          <AssignedRaceTable races={[]} onViewControl={() => {}} onSubmitResult={() => {}} isLoading={true} />
         </div>
       </div>
     );
@@ -483,6 +565,7 @@ export default function RefereeAssignedRacesPage() {
           <AssignedRaceTable
             races={filteredRaces}
             onViewControl={handleViewControl}
+            onSubmitResult={handleSubmitResult}
             isLoading={false}
           />
         )}

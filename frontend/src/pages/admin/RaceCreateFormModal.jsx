@@ -141,9 +141,14 @@ export default function RaceCreateFormModal({
     if (
       form.scheduledAt &&
       form.registrationDeadline &&
-      new Date(form.scheduledAt) < new Date(form.registrationDeadline)
+      new Date(form.scheduledAt) <= new Date(form.registrationDeadline)
     ) {
-      setError("Thời điểm đăng ký phải trước thời điểm thi đấu");
+      setError("Hạn chót đăng ký phải trước thời điểm thi đấu (tối thiểu 1 phút)");
+      return;
+    }
+
+    if (form.scheduledAt && new Date(form.scheduledAt) <= new Date()) {
+      setError("Thời điểm thi đấu phải ở tương lai");
       return;
     }
 
@@ -312,16 +317,20 @@ export default function RaceCreateFormModal({
               <span className="rcfm-hint">Mặc định 8 (theo mainflow.md)</span>
             </div>
 
-            <div className="rcfm-field">
-              <label className="rcfm-label">Hạn chót đăng ký</label>
-              <input
-                className="rcfm-input"
-                type="datetime-local"
-                value={form.registrationDeadline}
-                onChange={handleChange("registrationDeadline")}
-                disabled={saving}
-              />
-            </div>
+<div className="rcfm-field">
+            <label className="rcfm-label">Hạn chót đăng ký</label>
+            <input
+              className="rcfm-input"
+              type="datetime-local"
+              value={form.registrationDeadline}
+              onChange={handleChange("registrationDeadline")}
+              disabled={saving}
+              aria-describedby="rcfm-reg-deadline-hint"
+            />
+            <span className="rcfm-hint" id="rcfm-reg-deadline-hint">
+              Phải trước thời điểm thi đấu.
+            </span>
+          </div>
           </div>
 
           <div className="rcfm-field">

@@ -126,6 +126,11 @@ export const tournamentRepository = {
    * POST /api/admin/tournaments/:id/assign-referees
    * Assign referees cho tournament
    * body: { refereeAId, refereeBId }
+   *
+   * Response mới (2026-07-14):
+   *  - { totalRaces, succeeded, failed, results, errors, preAssignment?: { sent } }
+   *  - Khi tournament chưa có race, `preAssignment.sent` cho biết đã gửi
+   *    notification pre-assignment cho cả 2 referee.
    */
   async assignReferees(tournamentId, { refereeAId, refereeBId }) {
     const res = await fetch(`/api/admin/tournaments/${tournamentId}/assign-referees`, {

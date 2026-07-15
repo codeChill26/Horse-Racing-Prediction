@@ -61,7 +61,9 @@ const FILTER_OPTIONS = [
  * Nếu sau này BE trả về thêm `matchStatus` thì dùng trực tiếp.
  */
 function deriveComparisonStatus(submission) {
-  const m = submission?.matchStatus || submission?.officialRaceResult?.matchStatus;
+  const m = submission?.matchStatus ||
+    submission?.officialRaceResult?.matchStatus ||
+    submission?.race?.officialRaceResult?.matchStatus;
   if (m === "AUTO_MATCHED" || m === "RESOLVED") return "AutoMatched";
   if (m === "CONFLICTED") return "Conflicted";
   return "WaitingOtherReferee";
@@ -184,7 +186,7 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
         <span role="columnheader">Trạng thái</span>
         <span role="columnheader">Thao tác</span>
       </div>
-      <tbody>
+      <div className="submission-table__body">
         {submissions.map((submission) => {
           const statusConfig = STATUS_CONFIG[deriveComparisonStatus(submission)] || {
             variant: "muted",
@@ -192,7 +194,7 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
           };
 
           return (
-            <tr
+            <div
               key={submission.id || submission.submissionId}
               className="submission-table__row"
               onClick={() => onViewDetail(submission)}
@@ -206,7 +208,7 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
               role="row"
               aria-label={`${submission.raceName} - ${submission.legName || `Leg ${submission.legNumber}`} - ${statusConfig.label}`}
             >
-              <td className="submission-table__cell" role="cell">
+              <div className="submission-table__cell" role="cell">
                 <div className="submission-table__race">
                   <span className="submission-table__race-id">
                     <Hash size={12} aria-hidden="true" />
@@ -216,13 +218,13 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
                     {submission.raceName}
                   </span>
                 </div>
-              </td>
-              <td className="submission-table__cell" role="cell">
+              </div>
+              <div className="submission-table__cell" role="cell">
                 <span className="submission-table__leg">
                   {submission.legName || `Leg ${submission.legNumber}`}
                 </span>
-              </td>
-              <td className="submission-table__cell" role="cell">
+              </div>
+              <div className="submission-table__cell" role="cell">
                 <div className="submission-table__time">
                   <span className="submission-table__time-relative">
                     {formatRelativeTime(submission.submittedAt)}
@@ -231,16 +233,16 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
                     {formatDateTime(submission.submittedAt)}
                   </span>
                 </div>
-              </td>
-              <td className="submission-table__cell" role="cell">
+              </div>
+              <div className="submission-table__cell" role="cell">
                 <span
                   className={`submission-status-badge submission-status-badge--${statusConfig.variant}`}
                   aria-label={`Trạng thái: ${statusConfig.label}`}
                 >
                   {statusConfig.label}
                 </span>
-              </td>
-              <td className="submission-table__cell submission-table__cell--action" role="cell">
+              </div>
+              <div className="submission-table__cell submission-table__cell--action" role="cell">
                 <button
                   type="button"
                   className="submission-table__btn"
@@ -253,11 +255,11 @@ function SubmissionTable({ submissions, onViewDetail, isLoading }) {
                   <Eye size={14} aria-hidden="true" />
                   Chi tiết
                 </button>
-              </td>
-            </tr>
+              </div>
+            </div>
           );
         })}
-      </tbody>
+      </div>
     </div>
   );
 }

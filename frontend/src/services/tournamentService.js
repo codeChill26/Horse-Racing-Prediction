@@ -143,6 +143,9 @@ export const tournamentService = {
   /**
    * POST /api/admin/tournaments/:id/assign-referees
    * Assign referees cho tournament
+   *
+   * Trả về response đầy đủ từ BE bao gồm `totalRaces`, `preAssignment` để caller
+   * biết tournament có race nào chưa + có notification pre-assignment hay không.
    */
   async assignRefereesToTournament(tournamentId, refereeAId, refereeBId) {
     if (!tournamentId) throw new Error("Thiếu mã giải đấu");

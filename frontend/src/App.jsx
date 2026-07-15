@@ -56,6 +56,9 @@ const JockeyNotificationsPage = lazy(() => import("./pages/jockey/JockeyNotifica
 const SpectatorLayout = lazy(() => import("./components/spectator/SpectatorLayout"));
 const SpectatorHomePage = lazy(() => import("./pages/spectator/SpectatorHomePage"));
 const SpectatorProfilePage = lazy(() => import("./pages/spectator/SpectatorProfilePage"));
+const SpectatorRaceResultsPage = lazy(() =>
+  import("./pages/spectator/SpectatorRaceResultsPage")
+);
 const TournamentsPage = lazy(() => import("./pages/tournaments/TournamentsPage"));
 const BettingHistoryPage = lazy(() => import("./pages/betting-history/BettingHistoryPage"));
 const StatisticsPage = lazy(() => import("./pages/statistics/StatisticsPage"));
@@ -70,6 +73,9 @@ const RefereeSubmissionHistoryPage = lazy(() =>
 );
 const RefereeConflictPage = lazy(() => import("./pages/referee/RefereeConflictPage"));
 const RefereeProfilePage = lazy(() => import("./pages/referee/RefereeProfilePage"));
+const RefereeNotificationsPage = lazy(() =>
+  import("./pages/referee/RefereeNotificationsPage")
+);
 
 /**
  * PageFallback — Loading UI khi lazy chunk đang tải.
@@ -154,6 +160,7 @@ function App() {
             >
               <Route index element={<SpectatorHomePage />} />
               <Route path="tournaments" element={<TournamentsPage />} />
+              <Route path="races/:raceId/results" element={<SpectatorRaceResultsPage />} />
               <Route path="betting-history" element={<BettingHistoryPage />} />
               <Route path="statistics" element={<StatisticsPage />} />
               <Route path="profile" element={<SpectatorProfilePage />} />
@@ -208,6 +215,7 @@ function App() {
               <Route path="submissions" element={<RefereeSubmissionHistoryPage />} />
               <Route path="conflicts" element={<RefereeConflictPage />} />
               <Route path="profile" element={<RefereeProfilePage />} />
+              <Route path="notifications" element={<RefereeNotificationsPage />} />
             </Route>
           </Routes>
         </Suspense>

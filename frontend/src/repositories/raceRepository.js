@@ -35,14 +35,14 @@ export const raceRepository = {
   /**
    * GET /api/admin/races — admin list tất cả chặng đua (kèm metadata cho admin).
    * Khác với getAll() (public) — kèm refereeAId, refereeBId, các field chỉ admin thấy.
-   * Dùng cho AdminRaceStagePage. Nếu endpoint chưa mount, fallback public list
-   * (chỉ khi VITE_FALLBACK_TO_MOCK=true).
+   * Dùng cho AdminRaceStagePage. Sử dụng pageSize=-1 để lấy tất cả races không phân trang.
    */
   async getAdminRacesList() {
     try {
-      const res = await fetch(`/api/admin/races`, { headers: authHeaders() });
+      const res = await fetch(`/api/admin/races?pageSize=-1`, { headers: authHeaders() });
       if (!res.ok) await readError(res, "Không tải được danh sách chặng đua (admin)");
       const data = await res.json();
+      // Backend trả về { races: [...] } hoặc { races: [...], total, page, pageSize }
       return data?.races ?? [];
     } catch (err) {
       const fallbackEnabled =
@@ -197,24 +197,29 @@ export const raceRepository = {
   },
 
   /**
-   * GET /api/admin/users?roleCode=RACE_REFEREE
-   * Lấy danh sách user role RACE_REFEREE để chọn trọng tài cho giải đấu.
+   * GET /api/admin/users/referees
+   * Lấy danh sách referee active (role.code ∈ { 'RACE_REFEREE', 'Referee', 'REFEREE' })
+   * để chọn trọng tài cho chặng đua.
+   *
+   * Endpoint này chấp nhận cả 3 biến thể role code để tương thích dữ liệu seed cũ.
+   * Xem routes/admin/users.js router.get('/referees').
    */
   async listReferees() {
-    const res = await fetch(`/api/admin/users?roleCode=RACE_REFEREE`, {
+    const res = await fetch(`/api/admin/users/referees`, {
       headers: authHeaders(),
     });
     if (!res.ok) await readError(res, "Không tải được danh sách trọng tài");
     const data = await res.json();
-    const all = Array.isArray(data?.users) ? data.users : [];
+    const all = Array.isArray(data?.referees) ? data.referees : [];
     return all
-      .filter((u) => u?.isActive && u?.isProfileComplete)
-      .map((u) => ({
-        userId: u.userId,
-        fullName: u.fullName || u.email,
-        email: u.email,
-        avatarUrl: u.avatarUrl || null,
-        roleCode: u?.role?.code || "RACE_REFEREE",
+      .filter((r) => r?.isActive)
+      .map((r) => ({
+        userId: r.userId,
+        fullName: r.fullName || r.email,
+        email: r.email,
+        avatarUrl: r.avatarUrl || null,
+        roleCode: "RACE_REFEREE",
+        isActive: r.isActive,
       }));
   },
 

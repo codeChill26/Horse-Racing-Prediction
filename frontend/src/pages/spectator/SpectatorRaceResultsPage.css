@@ -1,0 +1,455 @@
+/* ============================================
+   SPECTATOR RACE RESULTS PAGE - Dark Theme
+   ============================================ */
+
+.srr-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ============ LOADING ============ */
+.srr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+  color: var(--ard-muted, #8b949e);
+}
+
+.srr-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(141, 214, 166, 0.2);
+  border-top-color: rgba(141, 214, 166, 0.9);
+  border-radius: 50%;
+  animation: srr-spin 0.8s linear infinite;
+}
+
+@keyframes srr-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============ STATES ============ */
+.srr-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  border-radius: 16px;
+  background: #161b22;
+  border: 1px solid #30363d;
+}
+
+.srr-state--error {
+  border-color: rgba(248, 81, 73, 0.4);
+  background: rgba(248, 81, 73, 0.05);
+}
+
+.srr-state__icon {
+  font-size: 2.5rem;
+}
+
+.srr-state h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #dae3ee;
+}
+
+.srr-state p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #8b949e;
+}
+
+/* ============ HEADER ============ */
+.srr-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.75rem;
+  border-radius: 16px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  position: relative;
+  overflow: hidden;
+}
+
+.srr-header::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: 30px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(141, 214, 166, 0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.srr-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #8dd6a6;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: opacity 0.15s;
+}
+
+.srr-back-btn:hover {
+  opacity: 0.7;
+}
+
+.srr-header__eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8dd6a6;
+}
+
+.srr-header__title {
+  margin: 0.25rem 0 0.5rem;
+  font-family: 'Playfair Display', 'Be Vietnam Pro', Georgia, serif;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 800;
+  color: #dae3ee;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.srr-header__tournament {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #8b949e;
+}
+
+.srr-header__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.srr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.srr-status-badge--success {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+  border: 1px solid rgba(141, 214, 166, 0.3);
+}
+
+.srr-status-badge--warn {
+  background: rgba(230, 195, 100, 0.15);
+  color: #e6c364;
+  border: 1px solid rgba(230, 195, 100, 0.3);
+}
+
+.srr-status-badge--info {
+  background: rgba(100, 150, 255, 0.15);
+  color: #6496ff;
+  border: 1px solid rgba(100, 150, 255, 0.3);
+}
+
+.srr-status-badge--muted {
+  background: rgba(139, 148, 158, 0.1);
+  color: #8b949e;
+  border: 1px solid rgba(139, 148, 158, 0.2);
+}
+
+.srr-published-at {
+  font-size: 0.8rem;
+  color: #6e7681;
+}
+
+/* ============ PODIUM ============ */
+.srr-podium {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: #161b22;
+  border: 1px solid #30363d;
+}
+
+.srr-podium__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  max-width: 200px;
+}
+
+.srr-podium__slot--1 {
+  transform: scale(1.1);
+  order: 2;
+}
+
+.srr-podium__slot--2 {
+  order: 1;
+}
+
+.srr-podium__slot--3 {
+  order: 3;
+}
+
+.srr-podium__medal {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.srr-podium__horse {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #dae3ee;
+  text-align: center;
+}
+
+.srr-podium__rank {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8dd6a6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.srr-podium__jockey {
+  font-size: 0.8rem;
+  color: #8b949e;
+}
+
+/* ============ CONTENT ============ */
+.srr-content {
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: #161b22;
+  border: 1px solid #30363d;
+}
+
+.srr-content__title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #dae3ee;
+}
+
+.srr-content__count {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #8b949e;
+}
+
+/* ============ TABLE ============ */
+.srr-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+}
+
+.srr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.srr-table__th {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8b949e;
+  background: #0d1117;
+  border-bottom: 1px solid #30363d;
+}
+
+.srr-table__th--rank { width: 60px; text-align: center; }
+.srr-table__th--gate { width: 60px; text-align: center; }
+.srr-table__th--status { width: 100px; text-align: center; }
+
+.srr-table__row {
+  border-bottom: 1px solid #21262d;
+  transition: background 0.15s;
+}
+
+.srr-table__row:last-child {
+  border-bottom: none;
+}
+
+.srr-table__row:hover {
+  background: rgba(141, 214, 166, 0.04);
+}
+
+.srr-table__row--top3 {
+  background: rgba(141, 214, 166, 0.06);
+}
+
+.srr-table__row--inactive {
+  opacity: 0.5;
+}
+
+.srr-table__td {
+  padding: 0.75rem 1rem;
+  color: #dae3ee;
+  vertical-align: middle;
+}
+
+.srr-table__td--rank { text-align: center; }
+.srr-table__td--gate { text-align: center; }
+.srr-table__td--status { text-align: center; }
+.srr-table__td--jockey { color: #8b949e; }
+
+.srr-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.srr-rank--1 {
+  background: rgba(230, 195, 100, 0.2);
+  color: #e6c364;
+  border: 2px solid rgba(230, 195, 100, 0.5);
+}
+
+.srr-rank--2 {
+  background: rgba(180, 180, 200, 0.15);
+  color: #b4b4c8;
+  border: 2px solid rgba(180, 180, 200, 0.4);
+}
+
+.srr-rank--3 {
+  background: rgba(205, 127, 50, 0.15);
+  color: #cd7f32;
+  border: 2px solid rgba(205, 127, 50, 0.4);
+}
+
+.srr-rank--none {
+  color: #6e7681;
+}
+
+.srr-horse-name {
+  font-weight: 600;
+  color: #dae3ee;
+}
+
+.srr-muted {
+  color: #6e7681;
+  font-style: italic;
+}
+
+/* ============ BADGES ============ */
+.srr-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.srr-badge--success {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+}
+
+.srr-badge--warn {
+  background: rgba(230, 195, 100, 0.15);
+  color: #e6c364;
+}
+
+.srr-badge--danger {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
+.srr-badge--muted {
+  background: rgba(139, 148, 158, 0.1);
+  color: #8b949e;
+}
+
+/* ============ BUTTONS ============ */
+.srr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 0.15s;
+}
+
+.srr-btn--primary {
+  background: rgba(141, 214, 166, 0.15);
+  color: #8dd6a6;
+  border: 1px solid rgba(141, 214, 166, 0.3);
+}
+
+.srr-btn--primary:hover {
+  background: rgba(141, 214, 166, 0.25);
+}
+
+.srr-btn--secondary {
+  background: #21262d;
+  color: #dae3ee;
+  border: 1px solid #30363d;
+}
+
+.srr-btn--secondary:hover {
+  background: #30363d;
+}
+
+.srr-btn--ghost {
+  background: transparent;
+  color: #8b949e;
+  border: none;
+}
+
+.srr-btn--ghost:hover {
+  color: #dae3ee;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ============ NAV ============ */
+.srr-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: flex-end;
+}

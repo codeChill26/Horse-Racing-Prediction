@@ -20,7 +20,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   PlayCircle,
@@ -92,10 +92,11 @@ function RaceHeaderCard({ race, onStartRace, isStarting }) {
     });
   };
 
-  const statusConfig = RACE_STATUS_CONFIG[race.status] || { variant: "muted", label: race.status };
-  const canStart = race.status === "Scheduled";
-  const isInProgress = race.status === "InProgress";
-  const isPaused = race.status === "Paused";
+  const normalizedStatus = normalizeRaceStatus(race.status);
+  const statusConfig = RACE_STATUS_CONFIG[normalizedStatus] || { variant: "muted", label: race.status };
+  const canStart = normalizedStatus === "Scheduled";
+  const isInProgress = normalizedStatus === "InProgress";
+  const isPaused = normalizedStatus === "Paused";
 
   return (
     <div className="race-header-card">
@@ -629,6 +630,10 @@ export default function RefereeRaceControlPage() {
   const [submissionStatus, setSubmissionStatus] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // Inline submit focus — hỗ trợ URL ?focus=submit
+  const [searchParams] = useSearchParams();
+  const submitButtonRef = useRef(null);
+
   // Track original results to detect unsaved changes (BUG-REF-017)
   const [originalResults, setOriginalResults] = useState([]);
 
@@ -683,6 +688,16 @@ export default function RefereeRaceControlPage() {
     };
   }, [raceId]);
 
+  // Khi navigate từ AssignedRacesPage với ?focus=submit → scroll + focus nút Submit
+  useEffect(() => {
+    if (loading) return;
+    if (searchParams.get("focus") !== "submit") return;
+    if (!submitButtonRef.current) return;
+    submitButtonRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    const t = setTimeout(() => submitButtonRef.current?.focus?.(), 350);
+    return () => clearTimeout(t);
+  }, [loading, searchParams]);
+
   // Toast auto dismiss
 
   // Handle leg selection
@@ -696,18 +711,21 @@ export default function RefereeRaceControlPage() {
     }
 
     setSelectedLegId(leg.id || leg.legId);
-    setSubmissionStatus(leg.status);
     setErrors({});
 
     // BUG-REF-008: luôn khởi tạo rỗng; không pre-fill rank/status từ mock data.
-    // BUG-REF-LEG-STATUS: BE không trả leg.status ∈ {"Conflicted","AutoMatched"} —
-    // giá trị này nằm trên submissionStatus (per-referee) hoặc trên race.matchStatus.
-    // Guard dựa trên leg.mySubmissionStatus + submissionStatus để khớp thực tế.
+    // BE hiện trả leg.mySubmissionStatus ∈ {"Submitted","NotSubmitted"} (PascalCase)
+    // và leg.status === race.status (SCREAMING_SNAKE). Chuẩn hoá về 1 dạng
+    // để so sánh ổn định ở canSubmit.
+    const mySub = (leg.mySubmissionStatus || leg.submissionStatus || "").toLowerCase();
     const isAlreadySubmitted =
-      leg.mySubmissionStatus === "SubmittedByMe" ||
-      leg.mySubmissionStatus === "WaitingOtherReferee" ||
-      leg.submissionStatus === "SubmittedByMe" ||
-      leg.submissionStatus === "WaitingOtherReferee";
+      mySub === "submitted" ||
+      mySub === "submittedbyme" ||
+      mySub === "submitted_by_me" ||
+      mySub === "waitingotherreferee" ||
+      mySub === "waiting_other_referee";
+
+    setSubmissionStatus(isAlreadySubmitted ? "SubmittedByMe" : "AwaitingSubmission");
 
     const initialResults = (leg.horses || []).map((h) => ({
       horseId: h.horseId,
@@ -913,20 +931,37 @@ export default function RefereeRaceControlPage() {
     return race.legs?.find((l) => l.id === selectedLegId || l.legId === selectedLegId);
   }, [selectedLegId, race]);
 
-  // Can submit — normalize status (PascalCase / SCREAMING_SNAKE) về 1 dạng để so sánh
+  // Can submit — normalize status (PascalCase / SCREAMING_SNAKE) về 1 dạng để so sánh.
+  // BE hiện trả leg.status = race.status (SCREAMING_SNAKE) và
+  // mySubmissionStatus ∈ {"Submitted","NotSubmitted"} (PascalCase).
+  // Chuẩn hoá lowercase để check 1 lần.
   const normalize = (s) => String(s || "").toLowerCase();
   const raceStatusLower = normalize(race?.status);
   const legStatusLower = normalize(selectedLeg?.status);
-  const legSubmissionStatusLower = normalize(selectedLeg?.mySubmissionStatus || selectedLeg?.submissionStatus);
+  const legSubmissionStatusLower = normalize(
+    selectedLeg?.mySubmissionStatus || selectedLeg?.submissionStatus
+  );
+
+  // Đếm số FINISHED entries để khớp với leg thật
+  const finishedCount = results.filter((r) => r.status === "FINISHED").length;
 
   const canSubmit =
     (raceStatusLower === "inprogress" || raceStatusLower === "in_progress") &&
     selectedLeg &&
-    (legStatusLower === "awaitingsubmission" || legStatusLower === "awaiting_submission" || legStatusLower === "not_submitted") &&
+    // Leg sẵn sàng để nhập: race SCHEDULED→AwaitingSubmission (BE trả "SCHEDULED")
+    // hoặc đã IN_PROGRESS mà referee chưa submit (BE trả "IN_PROGRESS" / "PENDING_RESULT").
+    (legStatusLower === "scheduled" ||
+      legStatusLower === "awaitingsubmission" ||
+      legStatusLower === "awaiting_submission" ||
+      legStatusLower === "not_submitted" ||
+      legStatusLower === "inprogress" ||
+      legStatusLower === "in_progress") &&
+    legSubmissionStatusLower !== "submitted" &&
     legSubmissionStatusLower !== "submittedbyme" &&
     legSubmissionStatusLower !== "submitted_by_me" &&
     legSubmissionStatusLower !== "waitingotherreferee" &&
-    legSubmissionStatusLower !== "waiting_other_referee";
+    legSubmissionStatusLower !== "waiting_other_referee" &&
+    finishedCount > 0;
 
   // Loading state
   if (loading) {
@@ -1070,6 +1105,7 @@ export default function RefereeRaceControlPage() {
                 {canSubmit && (
                   <div className="results-panel__actions">
                     <button
+                      ref={submitButtonRef}
                       type="button"
                       className="race-btn race-btn--submit"
                       onClick={handleSubmitResults}
