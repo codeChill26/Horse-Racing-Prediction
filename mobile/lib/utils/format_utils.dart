@@ -12,6 +12,10 @@ String formatPointsVi(num value) {
   return '${negative ? '-' : ''}${buf.toString()}';
 }
 
+String formatCurrency(int value) {
+  return formatPointsVi(value);
+}
+
 String timeGreetingVi() {
   final hour = DateTime.now().hour;
   if (hour < 12) return 'Chào buổi sáng';

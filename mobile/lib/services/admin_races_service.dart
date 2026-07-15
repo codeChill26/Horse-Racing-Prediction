@@ -304,4 +304,66 @@ class AdminRacesService {
     }
     return ResolveConflictResult.fromJson(data);
   }
+
+  /// GET /api/admin/races — list all races (optionally filter by status/tournament)
+  Future<AdminRacesListResponse> listRaces({
+    String? status,
+    int? tournamentId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final params = <String, String>{};
+    if (status != null && status.isNotEmpty && status != 'ALL') {
+      params['status'] = status;
+    }
+    if (tournamentId != null) {
+      params['tournamentId'] = tournamentId.toString();
+    }
+    params['page'] = page.toString();
+    params['pageSize'] = pageSize.toString();
+
+    final qs = params.isEmpty ? '' : '?${Uri(queryParameters: params)}';
+    final res = await http.get(
+      ApiConfig.uri('/api/admin/races$qs'),
+      headers: await _headers(),
+    );
+    final data = await _decodeBody(res);
+    _throwIfFailed(res, data, 'Không tải được danh sách cuộc đua');
+
+    if (data == null) {
+      return AdminRacesListResponse();
+    }
+    return AdminRacesListResponse.fromJson(data);
+  }
+
+  /// GET /api/admin/races/{id}/ai-odds — get AI odds suggestions
+  Future<AiOddsResponse> getAiOdds(int raceId) async {
+    final res = await http.get(
+      ApiConfig.uri('/api/admin/races/$raceId/ai-odds'),
+      headers: await _headers(),
+    );
+    final data = await _decodeBody(res);
+    _throwIfFailed(res, data, 'Không tải được gợi ý odds từ AI');
+
+    if (data == null) {
+      return AiOddsResponse(raceId: raceId);
+    }
+    return AiOddsResponse.fromJson(data);
+  }
+
+  /// GET /api/admin/races/{id}/risk-score?treasury=... — get AI risk assessment
+  Future<RiskScoreResponse> getRiskScore(int raceId, {double? treasury}) async {
+    final qs = treasury != null ? '?treasury=$treasury' : '';
+    final res = await http.get(
+      ApiConfig.uri('/api/admin/races/$raceId/risk-score$qs'),
+      headers: await _headers(),
+    );
+    final data = await _decodeBody(res);
+    _throwIfFailed(res, data, 'Không tải được đánh giá rủi ro');
+
+    if (data == null) {
+      return RiskScoreResponse(raceId: raceId);
+    }
+    return RiskScoreResponse.fromJson(data);
+  }
 }

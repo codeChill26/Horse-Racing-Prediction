@@ -6,6 +6,7 @@ import '../../widgets/login_welcome.dart';
 import '../home_router.dart';
 import 'admin_horses_screen.dart';
 import 'admin_races_screen.dart';
+import 'admin_race_ai_screen.dart';
 import 'admin_tournaments_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_wallets_screen.dart';
@@ -50,6 +51,7 @@ class _AdminShellState extends State<AdminShell> {
           AdminWalletsScreen(onLogout: _logout),
           AdminTournamentsScreen(onLogout: _logout),
           AdminRacesScreen(onLogout: _logout),
+          AdminRaceAiScreen(),
           AdminHorsesScreen(onLogout: _logout),
         ],
       ),
@@ -78,6 +80,11 @@ class _AdminShellState extends State<AdminShell> {
             icon: Icon(Icons.flag_outlined),
             selectedIcon: Icon(Icons.flag),
             label: 'Cuộc đua',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.auto_awesome_outlined),
+            selectedIcon: Icon(Icons.auto_awesome),
+            label: 'AI Analysis',
           ),
           NavigationDestination(
             icon: Icon(Icons.pets_outlined),

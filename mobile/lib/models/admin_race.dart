@@ -622,6 +622,299 @@ class ResolveConflictResult {
   final DateTime? publishedAt;
 }
 
+/// Response cho GET /api/admin/races?status=...
+class AdminRacesListResponse {
+  AdminRacesListResponse({
+    this.races = const [],
+    this.total = 0,
+    this.page = 1,
+    this.pageSize = 20,
+  });
+
+  factory AdminRacesListResponse.fromJson(Map<String, dynamic> json) {
+    final racesRaw = json['races'] ?? json['data'];
+    final races = racesRaw is List
+        ? racesRaw
+            .whereType<Map<String, dynamic>>()
+            .map(AdminRace.fromJson)
+            .toList()
+        : <AdminRace>[];
+
+    int total = 0;
+    final t = json['total'] ?? json['count'];
+    if (t is int) {
+      total = t;
+    } else if (t != null) {
+      total = int.tryParse(t.toString()) ?? 0;
+    }
+
+    int page = 1;
+    final p = json['page'];
+    if (p is int) {
+      page = p;
+    } else if (p != null) {
+      page = int.tryParse(p.toString()) ?? 1;
+    }
+
+    int pageSize = 20;
+    final ps = json['pageSize'] ?? json['limit'];
+    if (ps is int) {
+      pageSize = ps;
+    } else if (ps != null) {
+      pageSize = int.tryParse(ps.toString()) ?? 20;
+    }
+
+    return AdminRacesListResponse(
+      races: races,
+      total: total,
+      page: page,
+      pageSize: pageSize,
+    );
+  }
+
+  final List<AdminRace> races;
+  final int total;
+  final int page;
+  final int pageSize;
+
+  bool get hasMore => page * pageSize < total;
+}
+
+/// Response cho GET /api/admin/races/:id/ai-odds
+class AiOddsResponse {
+  AiOddsResponse({
+    this.raceId,
+    this.raceName,
+    this.generatedAt,
+    this.suggestions = const [],
+    this.summary,
+  });
+
+  factory AiOddsResponse.fromJson(Map<String, dynamic> json) {
+    final suggestionsRaw = json['suggestions'] ?? json['odds'];
+    final suggestions = suggestionsRaw is List
+        ? suggestionsRaw
+            .whereType<Map<String, dynamic>>()
+            .map(AiOddsSuggestion.fromJson)
+            .toList()
+        : <AiOddsSuggestion>[];
+
+    return AiOddsResponse(
+      raceId: json['raceId'] is int
+          ? json['raceId'] as int
+          : int.tryParse('${json['raceId']}'),
+      raceName: json['raceName']?.toString(),
+      generatedAt: _parseDate(json['generatedAt']),
+      suggestions: suggestions,
+      summary: AiOddsSummary.fromJson(json['summary']),
+    );
+  }
+
+  final int? raceId;
+  final String? raceName;
+  final DateTime? generatedAt;
+  final List<AiOddsSuggestion> suggestions;
+  final AiOddsSummary? summary;
+}
+
+class AiOddsSuggestion {
+  AiOddsSuggestion({
+    this.entryId,
+    this.horseName,
+    this.winProbability = 0,
+    this.fairOdds = 0,
+    this.suggestedOdds = 0,
+    this.confidence = 'MEDIUM',
+  });
+
+  factory AiOddsSuggestion.fromJson(Map<String, dynamic> json) {
+    String confidence = 'MEDIUM';
+    final c = json['confidence']?.toString().toUpperCase();
+    if (c != null && (c == 'HIGH' || c == 'MEDIUM' || c == 'LOW')) {
+      confidence = c;
+    }
+
+    return AiOddsSuggestion(
+      entryId: json['entryId'] is int
+          ? json['entryId'] as int
+          : int.tryParse('${json['entryId']}'),
+      horseName: json['horseName']?.toString() ?? json['horse']?.toString(),
+      winProbability: json['winProbability'] is num
+          ? (json['winProbability'] as num).toDouble()
+          : double.tryParse('${json['winProbability']}') ?? 0,
+      fairOdds: json['fairOdds'] is num
+          ? (json['fairOdds'] as num).toDouble()
+          : double.tryParse('${json['fairOdds']}') ?? 0,
+      suggestedOdds: json['suggestedOdds'] is num
+          ? (json['suggestedOdds'] as num).toDouble()
+          : double.tryParse('${json['suggestedOdds']}') ?? 0,
+      confidence: confidence,
+    );
+  }
+
+  final int? entryId;
+  final String? horseName;
+  final double winProbability;
+  final double fairOdds;
+  final double suggestedOdds;
+  final String confidence;
+
+  double get impliedOdds => winProbability > 0 ? 1 / winProbability : 0;
+  double get oddsGap => suggestedOdds - fairOdds;
+  bool get isUndervalued => suggestedOdds > fairOdds;
+}
+
+class AiOddsSummary {
+  AiOddsSummary({
+    this.totalEntries = 0,
+    this.avgConfidence = 'MEDIUM',
+    this.marketVolatility = 0,
+    this.topPick,
+  });
+
+  factory AiOddsSummary.fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      return AiOddsSummary();
+    }
+
+    String avgConfidence = 'MEDIUM';
+    final c = json['avgConfidence']?.toString().toUpperCase();
+    if (c != null && (c == 'HIGH' || c == 'MEDIUM' || c == 'LOW')) {
+      avgConfidence = c;
+    }
+
+    AiOddsSuggestion? topPick;
+    final tp = json['topPick'];
+    if (tp is Map<String, dynamic>) {
+      topPick = AiOddsSuggestion.fromJson(tp);
+    }
+
+    return AiOddsSummary(
+      totalEntries: json['totalEntries'] is int
+          ? json['totalEntries'] as int
+          : int.tryParse('${json['totalEntries']}') ?? 0,
+      avgConfidence: avgConfidence,
+      marketVolatility: json['marketVolatility'] is num
+          ? (json['marketVolatility'] as num).toDouble()
+          : double.tryParse('${json['marketVolatility']}') ?? 0,
+      topPick: topPick,
+    );
+  }
+
+  final int totalEntries;
+  final String avgConfidence;
+  final double marketVolatility;
+  final AiOddsSuggestion? topPick;
+}
+
+/// Response cho GET /api/admin/races/:id/risk-score?treasury=...
+class RiskScoreResponse {
+  RiskScoreResponse({
+    this.raceId,
+    this.raceName,
+    this.treasury = 0,
+    this.riskScore = 0,
+    this.riskLevel = 'LOW',
+    this.totalPool = 0,
+    this.worstCaseLiability = 0,
+    this.scenarios = const [],
+    this.recommendations = const [],
+  });
+
+  factory RiskScoreResponse.fromJson(Map<String, dynamic> json) {
+    final scenariosRaw = json['scenarios'];
+    final scenarios = scenariosRaw is List
+        ? scenariosRaw
+            .whereType<Map<String, dynamic>>()
+            .map(RiskScenario.fromJson)
+            .toList()
+        : <RiskScenario>[];
+
+    final recsRaw = json['recommendations'];
+    final recommendations = recsRaw is List
+        ? recsRaw.whereType<String>().toList()
+        : <String>[];
+
+    String riskLevel = 'LOW';
+    final r = json['riskLevel']?.toString().toUpperCase();
+    if (r != null && (r == 'LOW' || r == 'MEDIUM' || r == 'HIGH' || r == 'CRITICAL')) {
+      riskLevel = r;
+    }
+
+    return RiskScoreResponse(
+      raceId: json['raceId'] is int
+          ? json['raceId'] as int
+          : int.tryParse('${json['raceId']}'),
+      raceName: json['raceName']?.toString(),
+      treasury: json['treasury'] is num
+          ? (json['treasury'] as num).toDouble()
+          : double.tryParse('${json['treasury']}') ?? 0,
+      riskScore: json['riskScore'] is num
+          ? (json['riskScore'] as num).toDouble()
+          : double.tryParse('${json['riskScore']}') ?? 0,
+      riskLevel: riskLevel,
+      totalPool: json['totalPool'] is num
+          ? (json['totalPool'] as num).toDouble()
+          : double.tryParse('${json['totalPool']}') ?? 0,
+      worstCaseLiability: json['worstCaseLiability'] is num
+          ? (json['worstCaseLiability'] as num).toDouble()
+          : double.tryParse('${json['worstCaseLiability']}') ?? 0,
+      scenarios: scenarios,
+      recommendations: recommendations,
+    );
+  }
+
+  final int? raceId;
+  final String? raceName;
+  final double treasury;
+  final double riskScore;
+  final String riskLevel;
+  final double totalPool;
+  final double worstCaseLiability;
+  final List<RiskScenario> scenarios;
+  final List<String> recommendations;
+
+  double get coverageRatio => worstCaseLiability > 0 ? treasury / worstCaseLiability : 999;
+  bool get isHealthyCoverage => coverageRatio >= 1.0;
+}
+
+class RiskScenario {
+  RiskScenario({
+    this.entryId,
+    this.horseName,
+    this.betType,
+    this.poolAmount = 0,
+    this.payoutIfWin = 0,
+    this.probability = 0,
+  });
+
+  factory RiskScenario.fromJson(Map<String, dynamic> json) {
+    return RiskScenario(
+      entryId: json['entryId'] is int
+          ? json['entryId'] as int
+          : int.tryParse('${json['entryId']}'),
+      horseName: json['horseName']?.toString(),
+      betType: json['betType']?.toString(),
+      poolAmount: json['poolAmount'] is num
+          ? (json['poolAmount'] as num).toDouble()
+          : double.tryParse('${json['poolAmount']}') ?? 0,
+      payoutIfWin: json['payoutIfWin'] is num
+          ? (json['payoutIfWin'] as num).toDouble()
+          : double.tryParse('${json['payoutIfWin']}') ?? 0,
+      probability: json['probability'] is num
+          ? (json['probability'] as num).toDouble()
+          : double.tryParse('${json['probability']}') ?? 0,
+    );
+  }
+
+  final int? entryId;
+  final String? horseName;
+  final String? betType;
+  final double poolAmount;
+  final double payoutIfWin;
+  final double probability;
+}
+
 DateTime? _parseDate(dynamic value) {
   if (value == null) return null;
   if (value is DateTime) return value;
