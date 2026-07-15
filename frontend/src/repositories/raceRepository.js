@@ -197,11 +197,11 @@ export const raceRepository = {
   },
 
   /**
-   * GET /api/admin/users?role=RACE_REFEREE
-   * Backend hiện không có endpoint /api/admin/referees — dùng filter theo role.
+   * GET /api/admin/users?roleCode=RACE_REFEREE
+   * Lấy danh sách user role RACE_REFEREE để chọn trọng tài cho giải đấu.
    */
   async listReferees() {
-    const res = await fetch(`/api/admin/users?role=RACE_REFEREE`, {
+    const res = await fetch(`/api/admin/users?roleCode=RACE_REFEREE`, {
       headers: authHeaders(),
     });
     if (!res.ok) await readError(res, "Không tải được danh sách trọng tài");

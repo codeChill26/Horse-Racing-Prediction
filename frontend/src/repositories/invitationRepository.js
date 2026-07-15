@@ -8,10 +8,10 @@
  *  Owner side:
  *   - GET    /api/invitations/jockeys?name=...        — tìm kỵ sĩ (active + profile đầy đủ)
  *   - GET    /api/invitations?status=...              — danh sách (inbox cho jockey, outbox cho owner)
- *   - POST   /api/invitations                         — owner tạo lời mời { raceId, horseId, jockeyId }
- *   - POST   /api/invitations/:id/confirm             — owner confirm khi jockey đã ACCEPT → tạo RaceEntry
+ *   - POST   /api/invitations                         — owner tạo lời mời { tournamentId, horseId, jockeyId }
+ *   - POST   /api/invitations/:id/confirm             — owner confirm khi jockey đã ACCEPT → tạo RaceEntry cho TẤT CẢ race trong tournament
  *
- *  Jockey side (thiếu trong code cũ, thêm theo mainflow.md):
+ *  Jockey side:
  *   - POST   /api/invitations/:id/respond             — jockey accept/decline
  *                                                       body: { status: 'ACCEPTED' | 'DECLINED', declineReason? }
  */
@@ -81,13 +81,14 @@ export const invitationRepository = {
 
   /**
    * POST /api/invitations — owner tạo lời mời
-   * body: { raceId, horseId, jockeyId }
+   * body: { tournamentId, horseId, jockeyId }
+   * raceId là optional - nếu null thì sẽ đăng ký cho TẤT CẢ race trong tournament
    */
-  async createInvitation({ raceId, horseId, jockeyId }) {
+  async createInvitation({ tournamentId, horseId, jockeyId, raceId }) {
     const res = await fetch(`/api/invitations`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ raceId, horseId, jockeyId }),
+      body: JSON.stringify({ tournamentId, horseId, jockeyId, raceId: raceId || null }),
     });
     if (!res.ok) await readError(res, "Gửi lời mời thất bại");
     const data = await res.json();
@@ -109,7 +110,7 @@ export const invitationRepository = {
     const body = { status };
     if (declineReason) body.declineReason = declineReason;
     const res = await fetch(`/api/invitations/${invitationId}/respond`, {
-      method: "POST",
+      method: "PUT",
       headers: authHeaders(),
       body: JSON.stringify(body),
     });
@@ -120,8 +121,7 @@ export const invitationRepository = {
 
   /**
    * POST /api/invitations/:id/confirm
-   * Owner xác nhận invitation ACCEPTED → tạo RaceEntry.
-   * Server xử lý transaction: tạo RaceEntry + auto-cancel các invitation khác cùng horse+race.
+   * Owner xác nhận invitation ACCEPTED → tạo RaceEntry cho TẤT CẢ race trong tournament.
    */
   async confirmInvitation(invitationId) {
     const res = await fetch(`/api/invitations/${invitationId}/confirm`, {

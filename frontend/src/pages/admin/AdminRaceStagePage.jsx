@@ -4,15 +4,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff, CheckCircle2, Undo2 } from "lucide-react";
+import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, CheckCircle2, Undo2 } from "lucide-react";
 import { raceService } from "../../services/raceService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceDetailService } from "../../services/raceDetailService";
 import { formatDate, mapStatusToVietnamese } from "../../utils/formatter";
 import { useToast } from "../../hooks/useToast";
-import { useSocket } from "../../hooks/useSocket";
-import { onSocketEvent } from "../../utils/socket";
-import { getAccessToken } from "../../utils/token";
 import RaceCreateFormModal from "./RaceCreateFormModal";
 import AssignRefereesModal from "./AssignRefereesModal";
 import "./AdminRaceStagePage.css";
@@ -258,8 +255,6 @@ function RegistrationModal({ race, registrations, onClose }) {
 }
 
 export default function AdminRaceStagePage() {
-  const token = getAccessToken();
-  const { connected } = useSocket(token);
   const toastify = useToast();
   const [races, setRaces] = useState([]);
   const [tournaments, setTournaments] = useState([]);
@@ -302,68 +297,16 @@ export default function AdminRaceStagePage() {
     loadData();
   }, [loadData]);
 
-  // === SOCKET / REALTIME: gate + auto-reject events ===
+  // === Polling fallback: refresh race list every 30s ===
   useEffect(() => {
-    if (!token) return undefined;
-
     const refresh = () => {
       raceService.getAdminRacesList().then((list) => {
         if (Array.isArray(list)) setRaces(list);
       }).catch(() => {});
     };
-
-    const offGateOpen = onSocketEvent("race:gate_opened", (payload) => {
-      refresh();
-      toastify?.info?.(
-        payload?.raceId
-          ? `Cổng đăng ký race #${payload.raceId} vừa được mở.`
-          : "Cổng đăng ký vừa được mở."
-      );
-    });
-    const offGateClose = onSocketEvent("race:gate_closed", (payload) => {
-      refresh();
-      const auto = payload?.autoRejectedCount;
-      const msg = auto
-        ? `Cổng vừa đóng — ${auto} entry PENDING bị auto-reject.`
-        : "Cổng đăng ký vừa được đóng.";
-      toastify?.warn?.(msg);
-    });
-
-    // FLOW 8: race:published → tab khác vừa publish, refresh list
-    const offPublished = onSocketEvent("race:published", (payload) => {
-      refresh();
-      const raceId = String(payload?.race?.raceId ?? payload?.raceId ?? "");
-      if (raceId) {
-        toastify?.success?.(
-          `Race #${raceId} đã được publish — danh sách sẽ cập nhật.`,
-          "Publish"
-        );
-      }
-    });
-
-    // FLOW 8: race:unpublished → rollback settlement
-    const offUnpublished = onSocketEvent("race:unpublished", (payload) => {
-      refresh();
-      const raceId = String(payload?.race?.raceId ?? payload?.raceId ?? "");
-      if (raceId) {
-        toastify?.info?.(
-          `Race #${raceId} đã được rollback về PENDING_RESULT.`,
-          "Rollback"
-        );
-      }
-    });
-
-    // Fallback poll mỗi 30s (lỡ event không đến)
     const interval = setInterval(refresh, 30000);
-
-    return () => {
-      offGateOpen();
-      offGateClose();
-      offPublished();
-      offUnpublished();
-      clearInterval(interval);
-    };
-  }, [token, toastify]);
+    return () => clearInterval(interval);
+  }, []);
 
   const [entriesByRace, setEntriesByRace] = useState({});
 
@@ -500,13 +443,6 @@ export default function AdminRaceStagePage() {
         <div>
           <h1 className="ars-page__title">
             Quản lý chặng đua
-            <span
-              className={`ars-rt ${connected ? "ars-rt--ok" : "ars-rt--off"}`}
-              title={connected ? "Đang nhận cập nhật realtime" : "Mất kết nối realtime"}
-            >
-              {connected ? <Wifi size={11} /> : <WifiOff size={11} />}
-              <span>{connected ? "Realtime" : "Offline"}</span>
-            </span>
           </h1>
           <p className="ars-page__desc">
             Theo dõi các chặng đua, trạng thái cổng đăng ký và kết quả.

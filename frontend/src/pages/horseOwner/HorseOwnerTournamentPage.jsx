@@ -23,9 +23,6 @@ import { raceService } from "../../services/raceService"
 import { horseService } from "../../services/horseService"
 import { raceEntryService } from "../../services/raceEntryService"
 import { horseOwnerScheduleService } from "../../services/horseOwnerScheduleService"
-import { getAccessToken } from "../../utils/token"
-import { onSocketEvent } from "../../utils/socket"
-import { useToast } from "../../hooks/useToast"
 import {
   OwnerPageHeader,
   OwnerToolbar,
@@ -70,8 +67,6 @@ const emptyRegisterForm = () => ({
 })
 
 export default function HorseOwnerTournamentPage() {
-  const token = getAccessToken();
-  const toastify = useToast();
   const [tournaments, setTournaments] = useState([])
   const [horses, setHorses] = useState([])
   const [cachedEntries, setCachedEntries] = useState([])
@@ -120,35 +115,6 @@ export default function HorseOwnerTournamentPage() {
     const t = window.setTimeout(() => setToast(null), 4000)
     return () => window.clearTimeout(t)
   }, [toast])
-
-  // === Realtime: admin vừa duyệt/từ chối entry của tôi → reload cache ===
-  useEffect(() => {
-    if (!token) return undefined;
-    const refresh = () => {
-      setCachedEntries(horseOwnerScheduleService.getCachedEntries());
-      loadData();
-    };
-    const offEntry = onSocketEvent("entry:status_changed", (payload) => {
-      const entry = payload?.entry;
-      if (!entry) return;
-      const status = String(entry.status || "").toUpperCase();
-      const label =
-        status === "APPROVED"
-          ? "Đã duyệt"
-          : status === "REJECTED"
-            ? "Đã từ chối"
-            : entry.status;
-      const horseName = entry.horseName || `#${entry.horseId}`;
-      toastify?.info?.(
-        `Entry ngựa "${horseName}" vừa được cập nhật: ${label}.`,
-        "Cập nhật entry"
-      );
-      refresh();
-    });
-    return () => {
-      offEntry();
-    };
-  }, [token, toastify, loadData])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()

@@ -49,13 +49,14 @@ export const invitationService = {
   },
 
   /**
-   * POST /api/invitations — owner tạo lời mời
+   * POST /api/invitations — owner tạo lời mời (theo giải đấu)
+   * Ngựa + kỵ sĩ sẽ tham gia TẤT CẢ các chặng đua trong giải đấu.
    */
-  async createInvitation({ raceId, horseId, jockeyId }) {
-    if (!raceId) throw new Error("Vui lòng chọn chặng đua");
+  async createInvitation({ tournamentId, horseId, jockeyId }) {
+    if (!tournamentId) throw new Error("Vui lòng chọn giải đấu");
     if (!horseId) throw new Error("Vui lòng chọn ngựa");
     if (!jockeyId) throw new Error("Vui lòng chọn kỵ sĩ");
-    return invitationRepository.createInvitation({ raceId, horseId, jockeyId });
+    return invitationRepository.createInvitation({ tournamentId, horseId, jockeyId });
   },
 
   /**

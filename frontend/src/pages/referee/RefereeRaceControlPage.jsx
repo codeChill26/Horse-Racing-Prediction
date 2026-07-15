@@ -41,14 +41,6 @@ import {
   refereeSubmissionService,
 } from "../../services/refereeService";
 import { showToast } from "../../hooks/showToast";
-import {
-  getSocket,
-  onSocketEvent,
-  onSocketStatus,
-  subscribeRace,
-  unsubscribeRace,
-} from "../../utils/socket";
-import { getAccessToken } from "../../utils/token";
 import RaceStartConfirmModal from "../../components/common/RaceStartConfirmModal";
 import ReportViolationModal from "../../components/referee/ReportViolationModal";
 import { normalizeRaceStatus } from "../../utils/raceStatus";
@@ -692,71 +684,6 @@ export default function RefereeRaceControlPage() {
   }, [raceId]);
 
   // Toast auto dismiss
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 5000);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
-  // FLOW 6 — Realtime: subscribe race room để nhận violation events cho race này.
-  //  - violation:created  (referee khác / camera / system) → toast + reload race
-  //  - violation:resolved → reload race (penalty state đã cập nhật)
-  useEffect(() => {
-    if (!raceId) return undefined;
-    const token = getAccessToken();
-    const currentLoad = loadRace; // capture stable ref mới nhất
-    void currentLoad;
-
-    const offCreated = onSocketEvent("violation:created", (payload) => {
-      const incoming = payload?.violation ?? payload;
-      if (!incoming) return;
-      const incomingRaceId = String(
-        incoming.raceId ?? incoming.race?.raceId ?? ""
-      );
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
-      showToast.info(
-        `Có vi phạm mới trong chặng: ${incoming.type ?? "—"} (mức ${
-          incoming.severity ?? "?"
-        }).`,
-        "FLOW 6 · Vi phạm"
-      );
-      // Reload để cập nhật số liệu tổng quan (best-effort; không block UI)
-      currentLoad().catch(() => {});
-    });
-
-    const offResolved = onSocketEvent("violation:resolved", (payload) => {
-      const incoming = payload?.violation ?? payload;
-      if (!incoming) return;
-      const incomingRaceId = String(
-        incoming.raceId ?? incoming.race?.raceId ?? ""
-      );
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
-      // Im lặng reload — không bắn toast trùng với local toast của mình
-      currentLoad().catch(() => {});
-    });
-
-    // Subscribe race room
-    const sock = getSocket(token);
-    if (sock && sock.connected) {
-      subscribeRace(raceId);
-    }
-    const offStatus = onSocketStatus(({ socket: s }) => {
-      if (s && s.connected) {
-        subscribeRace(raceId);
-      }
-    });
-
-    return () => {
-      offCreated();
-      offResolved();
-      offStatus();
-      try {
-        unsubscribeRace(raceId);
-      } catch {
-        /* noop */
-      }
-    };
-  }, [raceId, loadRace]);
 
   // Handle leg selection
   const handleSelectLeg = (leg) => {

@@ -457,6 +457,17 @@ RefereeSubmitResultRequest: {
         },
       },
 
+      Referee: {
+        type: 'object',
+        properties: {
+          userId: { type: 'integer' },
+          fullName: { type: 'string' },
+          email: { type: 'string', format: 'email' },
+          avatarUrl: { type: 'string', nullable: true },
+          licenseNumber: { type: 'string', nullable: true },
+        },
+      },
+
       AdminAssignRefereesRequest: {
         type: 'object',
         required: ['refereeAId', 'refereeBId'],
@@ -907,6 +918,51 @@ RefereeSubmitResultRequest: {
         },
       },
     },
+    '/api/admin/referees': {
+      get: {
+        tags: ['Admin Users'],
+        summary: 'List active referees (admin)',
+        description:
+          'Trả về danh sách user có role thuộc nhóm trọng tài ' +
+          "('RACE_REFEREE' / 'Referee' / 'REFEREE') và đang active. " +
+          'Dùng để chọn referee khi phân công cho chặng đua.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    referees: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Referee' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '403': {
+            description: 'Forbidden',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/admin/users': {
       get: {
         tags: ['Admin Users'],
@@ -918,7 +974,9 @@ RefereeSubmitResultRequest: {
             in: 'query',
             required: false,
             schema: { type: 'string' },
-            description: 'Filter by role code (e.g. ADMIN)',
+            description:
+              'Filter by role code. For referee role, accepts any of the variants ' +
+              "'RACE_REFEREE' / 'Referee' / 'REFEREE' and returns the union.",
           },
         ],
         responses: {

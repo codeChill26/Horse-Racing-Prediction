@@ -11,6 +11,7 @@ import {
   AdminModalAlert,
 } from "../../components/ui/AdminModal";
 import { tournamentService } from "../../services/tournamentService";
+import { raceService } from "../../services/raceService";
 
 function toDatetimeLocalValue(iso) {
   if (!iso) return "";
@@ -32,6 +33,10 @@ const emptyForm = () => ({
   description: "",
   startAt: "",
   endAt: "",
+  refereeAId: "",
+  refereeBId: "",
+  sendNotification: false,
+  notificationMessage: "",
 });
 
 export default function AdminTournamentFormModal({ tournamentId, onClose, onSaved }) {
@@ -40,32 +45,53 @@ export default function AdminTournamentFormModal({ tournamentId, onClose, onSave
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [referees, setReferees] = useState([]);
+  const [loadingReferees, setLoadingReferees] = useState(false);
 
   useEffect(() => {
+    // Load referees list
+    let cancelled = false;
+    (async () => {
+      setLoadingReferees(true);
+      try {
+        const list = await raceService.listReferees();
+        if (!cancelled) setReferees(list);
+      } catch (e) {
+        if (!cancelled) console.warn("[TournamentForm] load referees failed:", e);
+      } finally {
+        if (!cancelled) setLoadingReferees(false);
+      }
+    })();
+
     if (!isEdit) return;
 
-    let cancelled = false;
+    // Load tournament data for edit mode
+    let cancelled2 = false;
     (async () => {
       setLoading(true);
       setError("");
       try {
         const t = await tournamentService.getTournamentById(tournamentId);
-        if (cancelled) return;
-        setForm({
+        if (cancelled2 || cancelled) return;
+        setForm((prev) => ({
+          ...prev,
           name: t.name ?? "",
           description: t.description ?? "",
           startAt: toDatetimeLocalValue(t.startAt),
           endAt: toDatetimeLocalValue(t.endAt),
-        });
+          refereeAId: t.refereeAId ? String(t.refereeAId) : "",
+          refereeBId: t.refereeBId ? String(t.refereeBId) : "",
+        }));
       } catch (e) {
-        if (!cancelled) setError(e.message || "Không tải được giải đấu");
+        if (!cancelled2 && !cancelled) setError(e.message || "Không tải được giải đấu");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled2 && !cancelled) setLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
+      cancelled2 = true;
     };
   }, [isEdit, tournamentId]);
 
@@ -86,11 +112,41 @@ export default function AdminTournamentFormModal({ tournamentId, onClose, onSave
         endAt: fromDatetimeLocalValue(form.endAt),
       };
 
+      let saved;
       if (isEdit) {
-        await tournamentService.updateTournament(tournamentId, payload);
+        saved = await tournamentService.updateTournament(tournamentId, payload);
       } else {
-        await tournamentService.createTournament(payload);
+        saved = await tournamentService.createTournament(payload);
       }
+
+      // Assign referees if selected (only for new tournament or if changed in edit)
+      if (!isEdit) {
+        if (form.refereeAId && form.refereeBId) {
+          try {
+            await tournamentService.assignRefereesToTournament(
+              saved.tournamentId ?? saved.id ?? tournamentId,
+              Number(form.refereeAId),
+              Number(form.refereeBId)
+            );
+          } catch (refErr) {
+            console.warn("[TournamentForm] assign referees failed:", refErr);
+          }
+        }
+
+        // Send notification if checked
+        if (form.sendNotification) {
+          const defaultMsg = `Giải đấu "${form.name}" đang mở đăng ký. Hãy đăng ký ngựa của bạn!`;
+          try {
+            await tournamentService.notifyHorseOwners(
+              saved.tournamentId ?? saved.id ?? tournamentId,
+              form.notificationMessage || defaultMsg
+            );
+          } catch (notifyErr) {
+            console.warn("[TournamentForm] notify owners failed:", notifyErr);
+          }
+        }
+      }
+
       onSaved?.();
       onClose?.();
     } catch (err) {
@@ -184,6 +240,97 @@ export default function AdminTournamentFormModal({ tournamentId, onClose, onSave
               </AdminModalField>
             </div>
           </AdminModalSection>
+
+          {!isEdit && (
+            <>
+              <AdminModalSection
+                title="Phân công trọng tài"
+                description="Chọn 2 trọng tài cho giải đấu. Cả hai phải được chấp nhận trước khi bắt đầu."
+              >
+                <div className="gs-modal-section gs-modal-section--grid">
+                  <AdminModalField label="Trọng tài A">
+                    <select
+                      name="refereeAId"
+                      value={form.refereeAId}
+                      onChange={handleChange}
+                      disabled={saving || loadingReferees}
+                    >
+                      <option value="">Chọn trọng tài…</option>
+                      {referees.map((r) => (
+                        <option
+                          key={r.userId}
+                          value={String(r.userId)}
+                          disabled={r.userId === Number(form.refereeBId)}
+                        >
+                          {r.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </AdminModalField>
+
+                  <AdminModalField label="Trọng tài B">
+                    <select
+                      name="refereeBId"
+                      value={form.refereeBId}
+                      onChange={handleChange}
+                      disabled={saving || loadingReferees}
+                    >
+                      <option value="">Chọn trọng tài…</option>
+                      {referees.map((r) => (
+                        <option
+                          key={r.userId}
+                          value={String(r.userId)}
+                          disabled={r.userId === Number(form.refereeAId)}
+                        >
+                          {r.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </AdminModalField>
+                </div>
+                {(form.refereeAId && form.refereeBId && form.refereeAId === form.refereeBId) && (
+                  <AdminModalAlert type="warning">
+                    Hai trọng tài phải khác nhau.
+                  </AdminModalAlert>
+                )}
+              </AdminModalSection>
+
+              <AdminModalSection
+                title="Thông báo"
+                description="Gửi thông báo đến chủ ngựa để đăng ký ngựa cho giải đấu."
+              >
+                <AdminModalField label="Gửi thông báo">
+                  <div className="gs-checkbox-wrap">
+                    <input
+                      type="checkbox"
+                      id="sendNotification"
+                      name="sendNotification"
+                      checked={form.sendNotification}
+                      onChange={(e) => setForm((f) => ({ ...f, sendNotification: e.target.checked }))}
+                      disabled={saving}
+                      className="gs-checkbox"
+                    />
+                    <label htmlFor="sendNotification" className="gs-checkbox-label">
+                      Gửi thông báo đến tất cả chủ ngựa
+                    </label>
+                  </div>
+                </AdminModalField>
+                {form.sendNotification && (
+                  <AdminModalField label="Nội dung thông báo" hint="Tối đa 500 ký tự">
+                    <textarea
+                      name="notificationMessage"
+                      value={form.notificationMessage}
+                      onChange={handleChange}
+                      rows={3}
+                      maxLength={500}
+                      disabled={saving}
+                      placeholder={`Giải đấu "${form.name || '...'}" đang mở đăng ký. Hãy đăng ký ngựa của bạn!`}
+                    />
+                  </AdminModalField>
+                )}
+              </AdminModalSection>
+            </>
+          )}
         </form>
       )}
     </AdminModal>

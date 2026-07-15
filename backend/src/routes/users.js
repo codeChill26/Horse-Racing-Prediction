@@ -10,4 +10,7 @@ router.use(authMiddleware);
 // MEDIUM-16: GET /api/me/violations
 router.get('/violations', adminUsersController.getMyViolations);
 
+// HIGH-20: GET /api/me/violations/:id - User xem chi tiết violation của chính mình
+router.get('/violations/:id', adminUsersController.getMyViolationById);
+
 module.exports = router;

@@ -26,20 +26,15 @@ import {
   Flag,
   User as UserIcon,
   Send,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { invitationService } from "../../services/invitationService";
-import { useSocket } from "../../hooks/useSocket";
-import { onSocketEvent } from "../../utils/socket";
-import { useToast } from "../../hooks/useToast";
-import { getAccessToken } from "../../utils/token";
 import ConfirmModal from "../ui/ConfirmModal";
 import "./JockeyInvitationInbox.css";
 
 const STATUS_FILTER_OPTIONS = [
   { value: "PENDING", label: "Đang chờ" },
   { value: "ACCEPTED", label: "Đã chấp nhận" },
+  { value: "CONFIRMED", label: "Đã xác nhận" },
   { value: "DECLINED", label: "Đã từ chối" },
   { value: "CANCELLED", label: "Đã hủy" },
   { value: "ALL", label: "Tất cả" },
@@ -48,6 +43,7 @@ const STATUS_FILTER_OPTIONS = [
 const STATUS_BADGE = {
   PENDING: "jii-badge jii-badge--pending",
   ACCEPTED: "jii-badge jii-badge--ok",
+  CONFIRMED: "jii-badge jii-badge--ok",
   DECLINED: "jii-badge jii-badge--err",
   CANCELLED: "jii-badge jii-badge--muted",
   EXPIRED: "jii-badge jii-badge--muted",
@@ -56,6 +52,7 @@ const STATUS_BADGE = {
 const STATUS_LABEL = {
   PENDING: "Đang chờ",
   ACCEPTED: "Đã chấp nhận",
+  CONFIRMED: "Đã xác nhận",
   DECLINED: "Đã từ chối",
   CANCELLED: "Đã hủy",
   EXPIRED: "Hết hạn",
@@ -88,9 +85,9 @@ function InvitationCard({ invitation, busy, onAccept, onDecline }) {
       <div className="jii-card__body">
         <div className="jii-row">
           <Flag size={13} />
-          <span className="jii-label">Chặng đua</span>
+          <span className="jii-label">Giải đấu</span>
           <span className="jii-value">
-            {invitation.race?.name || invitation.raceName || "—"}
+            {invitation.tournament?.name || "—"}
           </span>
         </div>
         <div className="jii-row">
@@ -265,10 +262,6 @@ function DeclineModal({ invitation, busy, error, onClose, onConfirm }) {
 }
 
 export default function JockeyInvitationInbox() {
-  const token = getAccessToken();
-  const { connected } = useSocket(token);
-  const toast = useToast();
-
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -306,40 +299,6 @@ export default function JockeyInvitationInbox() {
   useEffect(() => {
     loadInvitations();
   }, [loadInvitations]);
-
-  // === Socket real-time: auto-refresh + toast khi owner tạo / confirm ===
-  useEffect(() => {
-    if (!token) return undefined;
-
-    const refresh = () => {
-      // Gọi lại đúng filter hiện tại
-      loadInvitations(true);
-    };
-
-    const offReceived = onSocketEvent("invitation:received", (payload) => {
-      refresh();
-      const inv = payload?.invitation;
-      const where = inv?.race?.name || inv?.raceName || "một chặng đua";
-      toast?.info?.(
-        inv?.horse?.name
-          ? `Có lời mời mới cưỡi "${inv.horse.name}" tại "${where}".`
-          : `Có lời mời mới tại "${where}".`,
-        "Lời mời mới"
-      );
-    });
-    const offConfirmed = onSocketEvent("invitation:confirmed", () => {
-      refresh();
-      toast?.success?.(
-        "Chủ ngựa đã chốt lời mời của bạn — entry đã được tạo!",
-        "Lời mời được chốt"
-      );
-    });
-
-    return () => {
-      offReceived();
-      offConfirmed();
-    };
-  }, [token, loadInvitations, toast]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -433,13 +392,6 @@ export default function JockeyInvitationInbox() {
         <div>
           <div className="jii-head-row">
             <h3 className="jii-inbox__title">Hộp thư lời mời</h3>
-            <span
-              className={`jii-conn ${connected ? "jii-conn--ok" : "jii-conn--off"}`}
-              title={connected ? "Đã kết nối realtime" : "Mất kết nối realtime"}
-            >
-              {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
-              <span>{connected ? "Realtime" : "Offline"}</span>
-            </span>
           </div>
           <p className="jii-inbox__desc">
             Xem và phản hồi các lời mời từ chủ ngựa.

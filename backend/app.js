@@ -29,6 +29,8 @@ var adminWalletsRouter = require('./src/routes/admin/wallets');
 var refereeRouter = require('./src/routes/referee');
 var adminViolationsRouter = require('./src/routes/admin/violations');
 var adminDeviationsRouter = require('./src/routes/admin/deviations');
+var jockeyRouter = require('./src/routes/jockey');
+var raceResultsRouter = require('./src/routes/raceResults');
 
 var app = express();
 
@@ -61,34 +63,6 @@ app.use('/api/admin/horses', adminHorsesRouter);
 app.use('/api/admin/wallets', adminWalletsRouter);
 app.use('/api/admin/deviations', adminDeviationsRouter);
 
-// BỔ SUNG: Router độc lập cho /api/admin/referees phục vụ mục MEDIUM-19
-const adminRefereesRouter = express.Router();
-adminRefereesRouter.get('/', require('./src/middlewares/auth'), require('./src/middlewares/adminOnly'), async (req, res) => {
-  try {
-    const prisma = require('./src/config/prisma');
-    const referees = await prisma.user.findMany({
-      where: {
-        role: {
-          code: { in: ['Referee', 'RACE_REFEREE', 'REFEREE'] }
-        },
-        isActive: true
-      },
-      select: {
-        userId: true,
-        fullName: true,
-        email: true,
-        avatarUrl: true,
-        licenseNumber: true
-      },
-      orderBy: { fullName: 'asc' }
-    });
-    return res.status(200).json({ referees });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-app.use('/api/admin/referees', adminRefereesRouter);
-
 // Gắn kết luồng quyết toán dòng tiền (Publish & Unpublish) lên TRƯỚC để tránh nuốt tham số
 app.use('/api/admin/races', adminSettlementRouter);
 app.use('/api/admin/races', adminRacesRouter);
@@ -101,6 +75,9 @@ app.use('/api/admin/violations', adminViolationsRouter);
 app.use('/api/referee', refereeRouter);
 app.use('/api/referees', refereeRouter);
 
+// Phân hệ dành riêng cho JOCKEY (Kỵ sĩ)
+app.use('/api/jockey', jockeyRouter);
+
 // Phân hệ dành riêng cho CHỦ NGỰA (HORSE OWNER MODULE)
 app.use('/api/owner/entries', ownerEntriesRouter);
 
@@ -108,6 +85,7 @@ app.use('/api/owner/entries', ownerEntriesRouter);
 app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/horses', horsesRouter);
 app.use('/api/races', publicRacesRouter);
+app.use('/api/public', raceResultsRouter);
 app.use('/api/invitations', invitationsRouter);
 app.use('/api/predictions', predictionsRouter);
 app.use('/api/wallet', walletRouter);
@@ -123,6 +101,14 @@ app.use(function(req, res, next) {
 
 // Trình xử lý ngoại lệ trung tâm (Error Handler)
 app.use(function(err, req, res, next) {
+  // Nếu là API route → trả JSON
+  if (req.path.startsWith('/api/')) {
+    return res.status(err.status || 500).json({
+      error: err.message || 'Internal server error',
+    });
+  }
+
+  // Web routes → render HTML error page
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 

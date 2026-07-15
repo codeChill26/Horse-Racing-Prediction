@@ -27,16 +27,11 @@ import {
   PlayCircle,
   Filter,
   X,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { refereeRaceService } from "../../services/refereeService";
 import { normalizeRaceStatus } from "../../utils/raceStatus";
 import { useToast } from "../../hooks/useToast";
-import { useSocket } from "../../hooks/useSocket";
-import { onSocketEvent } from "../../utils/socket";
-import { getAccessToken } from "../../utils/token";
 import "./RefereeAssignedRacesPage.css";
 
 // ============================================================
@@ -300,8 +295,6 @@ function ErrorState({ message, onRetry }) {
 export default function RefereeAssignedRacesPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const token = getAccessToken();
-  const { connected } = useSocket(token);
   const toastify = useToast();
 
   const initialStatus = searchParams.get("status") || "ALL";
@@ -341,41 +334,6 @@ export default function RefereeAssignedRacesPage() {
   useEffect(() => {
     loadRaces();
   }, [loadRaces]);
-
-  // Realtime: race:started / race:auto_matched / race:conflicted (chưa được BE emit
-  // — nhưng đăng ký sẵn để khi BE bật thì FE nhận ngay)
-  useEffect(() => {
-    if (!token) return undefined;
-    const refresh = () => {
-      loadRaces().catch(() => {});
-    };
-    const offStarted = onSocketEvent("race:started", (payload) => {
-      refresh();
-      if (payload?.raceId || payload?.id) {
-        toastify?.info?.(
-          `Race #${payload.raceId || payload.id} đã được kích hoạt.`
-        );
-      }
-    });
-    const offMatched = onSocketEvent("race:auto_matched", (payload) => {
-      refresh();
-      toastify?.success?.(
-        `Race #${payload?.raceId || ""}: 2 kết quả trùng khớp 100%.`
-      );
-    });
-    const offConflict = onSocketEvent("race:conflicted", (payload) => {
-      refresh();
-      toastify?.warn?.(
-        `Race #${payload?.raceId || ""} bị xung đột — chờ Admin xử lý.`
-      );
-    });
-    return () => {
-      offStarted();
-      offMatched();
-      offConflict();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, toastify]);
 
   // Update URL when filter changes
   const handleStatusChange = (newStatus) => {
@@ -496,20 +454,7 @@ export default function RefereeAssignedRacesPage() {
         <header className="assigned-races-page__header">
           <div>
             <p className="assigned-races-page__eyebrow">Referee</p>
-            <h1 className="assigned-races-page__title">
-              Race được phân công
-              <span
-                className={`ars-rt ${connected ? "ars-rt--ok" : "ars-rt--off"}`}
-                title={
-                  connected
-                    ? "Đang nhận cập nhật realtime (FLOW 4)"
-                    : "Mất kết nối realtime"
-                }
-              >
-                {connected ? <Wifi size={11} /> : <WifiOff size={11} />}
-                <span>{connected ? "Realtime" : "Offline"}</span>
-              </span>
-            </h1>
+            <h1 className="assigned-races-page__title">Race được phân công</h1>
             <p className="assigned-races-page__subtitle">
               Danh sách tất cả race bạn được phân công làm trọng tài.
             </p>

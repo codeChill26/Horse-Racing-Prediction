@@ -3,6 +3,7 @@ const redisClient = require('../config/redis');
 const bcrypt = require('bcrypt');
 const { Prisma } = require('@prisma/client');
 const socketEmitter = require('../socket/emitter');
+const { buildRoleWhereForCode } = require('../utils/roleCodeVariants');
 
 async function revokeUserSessions(userId) {
   // 1) Kill all access tokens for this user in Redis (immediate effect)
@@ -32,13 +33,11 @@ async function revokeUserSessions(userId) {
 
 class AdminUsersService {
   async listUsers({ roleCode } = {}) {
-    const where = roleCode
-      ? {
-          role: {
-            code: roleCode,
-          },
-        }
-      : undefined;
+    // Chuẩn hoá: các biến thể role code của cùng 1 vai trò (vd 'Referee' /
+    // 'RACE_REFEREE' / 'REFEREE') đều được gom về 1 nhóm để tránh "biến mất"
+    // user khi DB còn lưu variant cũ. Xem utils/roleCodeVariants.js.
+    const roleWhere = buildRoleWhereForCode(roleCode);
+    const where = roleWhere ? { role: roleWhere } : undefined;
 
     const users = await prisma.user.findMany({
       where,
@@ -363,7 +362,7 @@ class AdminUsersService {
     return updated;
   }
 
- /**
+  /**
    * Truy vấn vi phạm cá nhân
    */
   async getMyViolations(userId) {
@@ -376,6 +375,67 @@ class AdminUsersService {
       where: { entryId: { in: entryIds } }
     });
     return { violations: myViolations, total: myViolations.length };
+  }
+
+  /**
+   * HIGH-20: User xem chi tiết violation của chính mình
+   * Chỉ trả về nếu violation đó thuộc về entry mà user là jockey hoặc owner của horse.
+   */
+  async getMyViolationById(userId, id) {
+    let violationId;
+    if (typeof id === 'string' && id.startsWith('VIO-')) {
+      violationId = parseInt(id.replace('VIO-', ''), 10);
+    } else {
+      violationId = parseInt(id, 10);
+    }
+
+    if (!Number.isInteger(violationId) || violationId <= 0) {
+      throw Object.assign(new Error('Invalid violation id'), { status: 400 });
+    }
+
+    const violation = await prisma.violation.findUnique({
+      where: { violationId },
+      include: {
+        race: { select: { name: true } },
+        entry: {
+          include: {
+            horse: { select: { name: true, ownerId: true } },
+            jockey: { select: { userId: true } },
+          },
+        },
+      },
+    });
+
+    if (!violation) {
+      throw Object.assign(new Error('Violation not found'), { status: 404 });
+    }
+
+    const isJockey = violation.entry?.jockey?.userId === userId;
+    const isOwner = violation.entry?.horse?.ownerId === userId;
+    if (!isJockey && !isOwner) {
+      throw Object.assign(new Error('Access denied'), { status: 403 });
+    }
+
+    return {
+      violation: {
+        violationId: `VIO-${String(violation.violationId).padStart(3, '0')}`,
+        raceId: violation.raceId,
+        raceName: violation.race?.name || 'N/A',
+        entryId: violation.entryId,
+        horseName: violation.entry?.horse?.name || 'N/A',
+        type: violation.type,
+        severity: violation.severity,
+        status: violation.status,
+        penalty: violation.penalty,
+        description: violation.description,
+        resolutionNote: violation.resolutionNote,
+        createdAt: violation.createdAt,
+        updatedAt: violation.updatedAt,
+        resolvedAt: violation.status === 'RESOLVED' || violation.status === 'DISMISSED'
+          ? violation.updatedAt
+          : null,
+      },
+    };
   }
 
   /**

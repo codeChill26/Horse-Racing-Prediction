@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, Play, Info } from "lucide-react";
 import { tournamentService } from "../../services/tournamentService";
 import { formatDate } from "../../utils/formatter";
 import {
@@ -12,6 +12,7 @@ import {
   TOURNAMENT_TRANSITIONS,
   tournamentStatusClass,
   tournamentStatusLabel,
+  checkTournamentReadyToStart,
 } from "../../utils/tournamentStatus";
 import { useToast } from "../../hooks/useToast";
 import AdminTournamentFormModal from "./AdminTournamentFormModal";
@@ -79,8 +80,22 @@ export default function AdminTournamentsPage() {
 
   const handleStatusChange = async (tournament, nextStatus) => {
     if (!nextStatus || nextStatus === tournament.status) return;
+
+    // OPEN → ONGOING: check readiness conditions
+    if (tournament.status === "OPEN" && nextStatus === "ONGOING") {
+      const { ready, reasons } = checkTournamentReadyToStart(
+        tournament,
+        tournament._count?.approvedEntries ?? 0,
+        { refereeAId: tournament.refereeAId, refereeBId: tournament.refereeBId }
+      );
+      if (!ready) {
+        const msg = `Chưa thể bắt đầu giải:\n• ${reasons.join("\n• ")}`;
+        toastify?.error?.(msg);
+        return;
+      }
+    }
+
     if (nextStatus === "CANCELLED") {
-      // Mở modal nhập lý do huỷ thay vì window.prompt
       setCancelModal({ tournament, mode: "status", targetStatus: nextStatus });
       return;
     }
@@ -273,6 +288,26 @@ export default function AdminTournamentsPage() {
                         <span className={tournamentStatusClass(t.status)}>
                           {tournamentStatusLabel(t.status)}
                         </span>
+                        {/* Ready indicator for OPEN tournaments */}
+                        {t.status === "OPEN" && (() => {
+                          const { ready, reasons } = checkTournamentReadyToStart(
+                            t,
+                            t._count?.approvedEntries ?? 0,
+                            { refereeAId: t.refereeAId, refereeBId: t.refereeBId }
+                          );
+                          if (ready) {
+                            return (
+                              <div className="adm-t-ready-badge" title="Sẵn sàng bắt đầu">
+                                <Play size={12} /> Sẵn sàng
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="adm-t-pending-badge" title={reasons.join("; ")}>
+                              <Info size={12} /> {reasons.length} điều kiện chưa đủ
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         {transitions.length > 0 ? (

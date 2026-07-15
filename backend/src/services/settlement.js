@@ -370,6 +370,63 @@ class SettlementService {
       };
     });
   }
+
+  /**
+   * CRITICAL-10: Lấy settlement summary của race đã publish.
+   * Tái dựng các chỉ số tài chính từ bảng Prediction (settled) + Race.publishedAt.
+   * Idempotent — chỉ đọc, không ghi.
+   */
+  async getSettlementSummary(raceId) {
+    if (!Number.isInteger(raceId) || raceId <= 0) {
+      throw Object.assign(new Error('Invalid raceId'), { status: 400 });
+    }
+
+    const race = await prisma.race.findUnique({
+      where: { raceId },
+      select: { raceId: true, status: true, publishedAt: true },
+    });
+
+    if (!race) {
+      throw Object.assign(new Error('Race not found'), { status: 404 });
+    }
+
+    if (race.status !== 'FINISHED' || !race.publishedAt) {
+      throw Object.assign(new Error('Race chưa được publish'), { status: 404 });
+    }
+
+    const predictions = await prisma.prediction.findMany({
+      where: { raceId },
+      select: { status: true, betAmount: true, payout: true },
+    });
+
+    const totalPool = predictions.reduce((sum, p) => sum + p.betAmount, 0);
+    const actualTotalPayout = predictions.reduce((sum, p) => sum + (p.payout || 0), 0);
+    const houseMargin = Math.floor(totalPool * 0.10);
+    const netPool = totalPool - houseMargin;
+    const treasureBalanceChange = netPool - actualTotalPayout;
+
+    const settledCount = predictions.length;
+    const wonCount = predictions.filter((p) => p.status === 'WON').length;
+    const lostCount = predictions.filter((p) => p.status === 'LOST').length;
+    const refundedCount = predictions.filter((p) => p.status === 'REFUNDED').length;
+    const partialWonCount = predictions.filter((p) => p.status === 'PARTIAL_WON').length;
+
+    return {
+      raceId: race.raceId,
+      status: race.status,
+      totalPool,
+      houseMargin,
+      netPool,
+      actualTotalPayout,
+      treasureBalanceChange,
+      settledCount,
+      wonCount,
+      lostCount,
+      refundedCount,
+      partialWonCount,
+      publishedAt: race.publishedAt,
+    };
+  }
 }
 
 module.exports = new SettlementService();

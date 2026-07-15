@@ -1,4 +1,6 @@
 const refereeService = require('../services/referee');
+const notificationService = require('../services/notifications');
+const socketEmitter = require('../socket/emitter');
 const { validateRefereeSubmission } = require('../dto/referee.dto');
 
 class RefereeController {
@@ -30,6 +32,14 @@ class RefereeController {
       }
 
       const report = await refereeService.submitRaceResult(id, refereeUserId, rawResults);
+
+      // Broadcast kết quả cho Spectators khi race kết thúc
+      if (report.status === 'FINISHED' && report.raceResult) {
+        const raceId = parseInt(id);
+        socketEmitter.emitToRace(raceId, 'race:finished', report.raceResult);
+        socketEmitter.emitToAdmin('race:finished', report.raceResult);
+      }
+
       return res.status(200).json({
         success: true,
         status: report.status,
@@ -101,6 +111,70 @@ class RefereeController {
       const refereeUserId = Number(req.user.sub) || req.user.userId;
       const result = await refereeService.reportViolation(req.body, refereeUserId);
       return res.status(201).json(result);
+    } catch (error) {
+      return res.status(error.status || 400).json({ error: error.message });
+    }
+  }
+
+  async getMyNotifications(req, res) {
+    try {
+      const refereeId = Number(req.user.sub) || req.user.userId;
+      const onlyUnread = String(req.query.unread || '').toLowerCase() === 'true';
+      const notifications = await notificationService.getMyNotifications(refereeId, { onlyUnread });
+      return res.status(200).json({ notifications });
+    } catch (error) {
+      return res.status(error.status || 400).json({ error: error.message });
+    }
+  }
+
+  async markNotificationRead(req, res) {
+    try {
+      const refereeId = Number(req.user.sub) || req.user.userId;
+      const notificationId = parseInt(req.params.id);
+      if (!Number.isInteger(notificationId) || notificationId <= 0) {
+        return res.status(400).json({ error: 'Invalid notification id' });
+      }
+      const updated = await notificationService.markRead(refereeId, notificationId);
+      return res.status(200).json({ notification: updated });
+    } catch (error) {
+      return res.status(error.status || 400).json({ error: error.message });
+    }
+  }
+
+  async markAllNotificationsRead(req, res) {
+    try {
+      const refereeId = Number(req.user.sub) || req.user.userId;
+      const result = await notificationService.markAllRead(refereeId);
+      return res.status(200).json({ updated: result.count });
+    } catch (error) {
+      return res.status(error.status || 400).json({ error: error.message });
+    }
+  }
+
+  async respondAssignment(req, res) {
+    try {
+      const refereeId = Number(req.user.sub) || req.user.userId;
+      const notificationId = parseInt(req.params.id);
+      if (!Number.isInteger(notificationId) || notificationId <= 0) {
+        return res.status(400).json({ error: 'Invalid notification id' });
+      }
+      const { response, reason } = req.body || {};
+      if (!['ACCEPTED', 'REFUSED'].includes(response)) {
+        return res.status(400).json({ error: 'response must be ACCEPTED or REFUSED' });
+      }
+      const updated = await notificationService.respondToAssignment(
+        refereeId,
+        notificationId,
+        response,
+        reason
+      );
+      return res.status(200).json({
+        notification: updated,
+        message:
+          response === 'ACCEPTED'
+            ? 'Đã chấp nhận phân công.'
+            : 'Đã từ chối phân công.',
+      });
     } catch (error) {
       return res.status(error.status || 400).json({ error: error.message });
     }

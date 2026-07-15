@@ -18,6 +18,20 @@ const DEV_USERS = [
     phoneNumber: '0900000001',
     roleCode: 'SPECTATOR',
   },
+  {
+    email: 'referee1@local.test',
+    fullName: 'Trọng tài A',
+    phoneNumber: '0900000002',
+    roleCode: 'RACE_REFEREE',
+    licenseNumber: 'REF-0001',
+  },
+  {
+    email: 'referee2@local.test',
+    fullName: 'Trọng tài B',
+    phoneNumber: '0900000003',
+    roleCode: 'RACE_REFEREE',
+    licenseNumber: 'REF-0002',
+  },
 ];
 
 async function seedRoles() {
@@ -69,6 +83,7 @@ async function seedDevUsers() {
         roleId: role.roleId,
         isActive: true,
         isProfileComplete: true,
+        ...(user.licenseNumber ? { licenseNumber: user.licenseNumber } : {}),
       },
     });
 

@@ -5,6 +5,20 @@ const { SettlementResultDto } = require('../dto/settlement.dto');
 const socketEmitter = require('../socket/emitter');
 
 class SettlementController {
+  async getSettlementSummary(req, res) {
+    const raceId = Number(req.params.id);
+    if (!Number.isInteger(raceId) || raceId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid raceId' });
+    }
+    try {
+      const summary = await settlementService.getSettlementSummary(raceId);
+      return res.status(200).json({ settlement: summary });
+    } catch (error) {
+      const status = error.status || 500;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  }
+
   async publishResult(req, res) {
     const raceId = parseInt(req.params.raceId);
 

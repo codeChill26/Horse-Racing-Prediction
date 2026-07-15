@@ -8,6 +8,8 @@
  * POST /api/admin/tournaments/:tournamentId/races
  * body: { name, maxEntries, scheduledAt, registrationDeadline }
  *
+ * Cải tiến: Tự động populate entries và referees từ tournament đã chọn.
+ *
  * mainflow.md:
  *  - tournament phải tồn tại
  *  - maxEntries default 8
@@ -16,8 +18,9 @@
  */
 
 import { useEffect, useState } from "react";
-import { Plus, X, Flag, AlertTriangle } from "lucide-react";
+import { Plus, X, Flag, AlertTriangle, Users } from "lucide-react";
 import { raceService } from "../../services/raceService";
+import { tournamentService } from "../../services/tournamentService";
 import "./RaceCreateFormModal.css";
 
 function toIsoLocal(d) {
@@ -46,6 +49,55 @@ export default function RaceCreateFormModal({
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [loadingTournamentData, setLoadingTournamentData] = useState(false);
+  const [tournamentEntries, setTournamentEntries] = useState([]);
+  const [tournamentReferees, setTournamentReferees] = useState([]);
+
+  // Load entries và referees khi chọn tournament
+  useEffect(() => {
+    if (!form.tournamentId) {
+      setTournamentEntries([]);
+      setTournamentReferees([]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setLoadingTournamentData(true);
+      try {
+        // Lấy tournament details để biết refereeAId, refereeBId
+        const tournament = await tournamentService.getTournamentById(form.tournamentId);
+        if (cancelled) return;
+
+        // Lấy entries đã duyệt của tournament
+        let entries = [];
+        try {
+          entries = await tournamentService.getTournamentEntries(form.tournamentId);
+        } catch (_e) {
+          // Backend chưa có endpoint - entries sẽ rỗng
+          entries = [];
+        }
+        if (cancelled) return;
+
+        setTournamentEntries(Array.isArray(entries) ? entries : []);
+        // Referees từ tournament data (nếu backend trả về)
+        const refs = [];
+        if (tournament.refereeAId) {
+          refs.push({ userId: tournament.refereeAId, fullName: tournament.refereeAName || `Trọng tài #${tournament.refereeAId}` });
+        }
+        if (tournament.refereeBId) {
+          refs.push({ userId: tournament.refereeBId, fullName: tournament.refereeBName || `Trọng tài #${tournament.refereeBId}` });
+        }
+        setTournamentReferees(refs);
+      } catch (_e) {
+        // Ignore errors - form vẫn hoạt động
+      } finally {
+        if (!cancelled) setLoadingTournamentData(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [form.tournamentId]);
 
   useEffect(() => {
     // keep tournamentId luôn hợp lệ
@@ -109,6 +161,19 @@ export default function RaceCreateFormModal({
         form.tournamentId,
         payload
       );
+
+      // Assign referees if available from tournament
+      if (tournamentReferees.length === 2 && created.raceId) {
+        try {
+          await raceService.assignReferees(created.raceId, {
+            refereeAId: tournamentReferees[0].userId,
+            refereeBId: tournamentReferees[1].userId,
+          });
+        } catch (refErr) {
+          console.warn("[RaceCreateFormModal] assign referees failed:", refErr);
+        }
+      }
+
       onCreated?.(created);
     } catch (e2) {
       setError(e2.message || "Không tạo được chặng đua");
@@ -272,6 +337,72 @@ export default function RaceCreateFormModal({
               Có thể để trống nếu muốn cập nhật sau khi mở đăng ký.
             </span>
           </div>
+
+          {/* Tournament entries preview */}
+          {loadingTournamentData && (
+            <div className="rcfm-loading-indicator">
+              <div className="rcfm-spinner-small" />
+              <span>Đang tải dữ liệu giải đấu...</span>
+            </div>
+          )}
+
+          {!loadingTournamentData && form.tournamentId && (
+            <>
+              {/* Entries from tournament */}
+              {tournamentEntries.length > 0 && (
+                <div className="rcfm-field">
+                  <label className="rcfm-label">
+                    <Users size={12} style={{ marginRight: "0.3rem" }} />
+                    Ngựa đã đăng ký ({tournamentEntries.length})
+                  </label>
+                  <div className="rcfm-chip-list">
+                    {tournamentEntries.slice(0, 6).map((entry) => (
+                      <span key={entry.entryId ?? entry.id} className="rcfm-chip">
+                        {entry.horse?.name || `Entry #${entry.entryId ?? entry.id}`}
+                      </span>
+                    ))}
+                    {tournamentEntries.length > 6 && (
+                      <span className="rcfm-chip rcfm-chip--more">
+                        +{tournamentEntries.length - 6} khác
+                      </span>
+                    )}
+                  </div>
+                  <span className="rcfm-hint">
+                    {tournamentEntries.length} ngựa sẵn sàng tham gia chặng đua.
+                  </span>
+                </div>
+              )}
+
+              {/* Referees from tournament */}
+              {tournamentReferees.length > 0 && (
+                <div className="rcfm-field">
+                  <label className="rcfm-label">
+                    <Users size={12} style={{ marginRight: "0.3rem" }} />
+                    Trọng tài đã phân công ({tournamentReferees.length}/2)
+                  </label>
+                  <div className="rcfm-chip-list">
+                    {tournamentReferees.map((ref) => (
+                      <span key={ref.userId} className="rcfm-chip rcfm-chip--referee">
+                        {ref.fullName}
+                      </span>
+                    ))}
+                    {tournamentReferees.length < 2 && (
+                      <span className="rcfm-chip rcfm-chip--warn">
+                        Cần {2 - tournamentReferees.length} trọng tài nữa
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {tournamentEntries.length === 0 && (
+                <div className="rcfm-modal__alert rcfm-modal__alert--info" role="alert">
+                  <AlertTriangle size={14} />
+                  <span>Giải đấu chưa có ngựa đăng ký. Vui lòng chờ chủ ngựa đăng ký trước.</span>
+                </div>
+              )}
+            </>
+          )}
 
           {error ? (
             <div className="rcfm-modal__alert" role="alert">

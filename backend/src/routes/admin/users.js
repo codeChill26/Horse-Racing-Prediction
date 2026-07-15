@@ -6,6 +6,8 @@ const router = express.Router();
 const authMiddleware = require('../../middlewares/auth');
 const adminOnly = require('../../middlewares/adminOnly');
 const adminUsersController = require('../../controllers/adminUsers.controller');
+const prisma = require('../../config/prisma');
+const { REFEREE_ROLE_VARIANTS } = require('../../utils/roleCodeVariants');
 
 /**
  * API Lấy danh sách tài khoản Trọng tài chuyên biệt (Mục MEDIUM-19)
@@ -13,24 +15,26 @@ const adminUsersController = require('../../controllers/adminUsers.controller');
  */
 router.get('/referees', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const prisma = require('../../config/prisma');
-    
     // Tìm kiếm tất cả user có liên kết với Role Trọng tài
+    // Hỗ trợ nhiều biến thể role code (vd 'RACE_REFEREE', 'Referee', 'REFEREE')
+    // để tương thích với dữ liệu seed cũ. Xem utils/roleCodeVariants.js.
     const referees = await prisma.user.findMany({
       where: {
         role: {
-          code: { in: ['Referee', 'RACE_REFEREE', 'REFEREE'] } // Chấp nhận các biến thể định danh hệ thống
+          code: { in: [...REFEREE_ROLE_VARIANTS] },
         },
-        isActive: true
+        isActive: true,
       },
       select: {
         userId: true,
         fullName: true,
         email: true,
         avatarUrl: true,
-        licenseNumber: true
+        licenseNumber: true,
+        isActive: true,
+        role: { select: { roleId: true, code: true, name: true } },
       },
-      orderBy: { fullName: 'asc' }
+      orderBy: { fullName: 'asc' },
     });
 
     return res.status(200).json({ referees });

@@ -23,6 +23,7 @@ export const ROLE_VARIANT = {
 export const STATUS_VARIANT = {
   ACTIVE: "st--ok",
   APPROVED: "st--ok",
+  CONFIRMED: "st--ok",
   OPEN: "st--ok",
   REGISTRATION_OPEN: "st--ok",
   BETTING_OPEN: "st--ok",

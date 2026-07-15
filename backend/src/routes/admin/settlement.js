@@ -14,10 +14,12 @@ const adminOnly = require('../../middlewares/adminOnly');
 router.post('/:raceId/publish', auth, adminOnly, settlementController.publishResult);
 
 /**
- * @route   POST /api/admin/races/:raceId/unpublish
- * @desc    Admin thu hồi kết quả trận đua, thực hiện hoàn tác điểm ví người chơi và đưa trận đấu về PENDING_RESULT
+ * @route   GET /api/admin/races/:id/settlement
+ * @desc    CRITICAL-10: Lấy settlement summary (totalPool, payouts, win/lost counts...) sau khi race đã publish
  * @access  Private (Chỉ Quản trị viên - Admin)
  */
+router.get('/:id/settlement', auth, adminOnly, settlementController.getSettlementSummary);
+
 router.post('/:raceId/unpublish', auth, adminOnly, settlementController.unpublishResult);
 
 module.exports = router;
