@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { applyPositionRatingUpdates } = require('./ratingUpdate');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -170,7 +171,7 @@ class RefereeService {
           }
         });
 
-        // Populate RaceResult (xếp hạng từng ngựa) từ finalResults
+        // Tạo RaceResult từ finalResults
         const raceEntries = await tx.raceEntry.findMany({
           where: { raceId: parseInt(raceId) },
           select: { entryId: true, horseId: true }
@@ -201,6 +202,9 @@ class RefereeService {
           status: 'FINISHED',
           results: raceResultsData
         };
+
+        // Kết quả đã chính thức -> cập nhật OR/RPR theo vị trí về đích (rule-based).
+        await applyPositionRatingUpdates(parseInt(raceId), tx);
 
         return {
           status: 'FINISHED',

@@ -62,9 +62,24 @@ async function revokeHorse(req, res) {
   }
 }
 
+async function updateRating(req, res) {
+  try {
+    const horseId = parseHorseId(req, res);
+    if (!horseId) return null;
+
+    const rating = validator.validateUpdateRating(req.body);
+    const horse = await horsesService.updateRating(horseId, rating);
+
+    return res.status(200).json({ message: 'Horse rating updated successfully', horse });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   listHorses,
   getHorseById,
   reviewHorse,
+  updateRating,
   revokeHorse,
 };

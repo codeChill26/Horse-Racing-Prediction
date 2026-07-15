@@ -5,41 +5,71 @@
 *.swp
 .DS_Store
 .atom/
-.build/
 .buildlog/
 .history
 .svn/
-.swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+# Git ignore for Dart
+# https://github.com/github/gitignore/blob/main/Dart.gitignore
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Compiled Dart files
+*.dart_tool/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
+# Archives
+*.zip
+*.tar.gz
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+
+# Flutter/Dart specific
+# https://github.com/flutter/flutter/blob/master/.gitignore
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
-/coverage/
+.dart_tool/
+.packages
+.pubignore
 
-# Symbolication related
-app.*.symbols
+# Android / iOS
+build/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+*.xcuserstate
+*.xcworkspace
+!ios/**/*.xcworkspace
 
-# Obfuscation related
-app.*.map.json
+# macOS
+.dart_tool/Flutter/ephemeral/
+*.xcuserstate
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# VS Code
+.vscode/
+
+# IntelliJ
+*.iml
+.idea/
+
+# Lock files
+*.lock
+pubspec.lock
+
+# UTM / VM
+*.vmx
+*.vmem
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.gr.dart
+*.config.dart
+GeneratedPluginRegistrant.swift
+GeneratedPluginRegistrant.h
+GeneratedPluginRegistrant.m
+flutter_export_environment.sh

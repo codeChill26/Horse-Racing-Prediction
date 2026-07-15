@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const notificationService = require('./notifications');
+const { applyPositionRatingUpdates } = require('./ratingUpdate');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -278,6 +279,9 @@ class AdminRefereeService {
         await tx.raceResult.deleteMany({ where: { raceId: parseInt(raceId) } });
         await tx.raceResult.createMany({ data: raceResultsData });
       }
+
+      // Kết quả đã chốt -> cập nhật OR/RPR theo vị trí về đích (rule-based).
+      await applyPositionRatingUpdates(parseInt(raceId), tx);
 
       // Chuyển sang FINISHED và trả về kết quả để emit socket
       const updatedRace = await tx.race.update({

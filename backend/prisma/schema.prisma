@@ -244,6 +244,11 @@ model Horse {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  // Rating phong độ cho AI Prediction Engine (Agent 1). Admin cập nhật thủ công,
+  // nullable vì ngựa mới chưa có rating -> model tự impute median khi thiếu.
+  officialRating   Int? // OR - Official Rating
+  racingPostRating Int? // RPR - Racing Post Rating
+
   owner      User  @relation("HorseOwner", fields: [ownerId], references: [userId], onDelete: Restrict)
   reviewedBy User? @relation("HorseReviewedBy", fields: [reviewedById], references: [userId], onDelete: SetNull)
 
@@ -267,6 +272,17 @@ model RaceEntry {
   reviewedAt      DateTime?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+
+  // Thông tin riêng cho lượt đua này (không phải thuộc tính cố định của ngựa),
+  // dùng làm feature cho AI Prediction Engine. Admin/Referee nhập lúc duyệt entry.
+  weightLb     Int? // Cân nặng ngựa mang khi vào đua
+  saddleNumber Int? // Số ô xuất phát (draw)
+
+  // Snapshot rating của ngựa TẠI thời điểm vào đua (chốt lúc duyệt entry). Horse.OR/RPR
+  // là giá trị hiện tại và sẽ bị cập nhật sau mỗi đua; snapshot giữ lại rating cũ để
+  // không làm sai lệch dữ liệu lịch sử của các lượt đua đã qua.
+  officialRatingSnapshot   Int? // OR tại lúc vào đua
+  racingPostRatingSnapshot Int? // RPR tại lúc vào đua
 
   race       Race  @relation(fields: [raceId], references: [raceId], onDelete: Restrict)
   horse      Horse @relation(fields: [horseId], references: [horseId], onDelete: Restrict)
