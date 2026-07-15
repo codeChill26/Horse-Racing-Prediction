@@ -351,9 +351,14 @@ class AdminRefereeService {
   }
 
   async getDeviationDetail(resultId) {
+    const parsedId = parseInt(resultId);
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      throw httpError('Invalid deviation ID', 400);
+    }
+
     // Lấy official result và race
     const officialResult = await prisma.officialRaceResult.findUnique({
-      where: { officialResultId: parseInt(resultId) },
+      where: { officialResultId: parsedId },
       include: {
         race: {
           include: {
@@ -365,26 +370,128 @@ class AdminRefereeService {
     });
     if (!officialResult) throw httpError('Deviation not found', 404);
 
+    const raceId = officialResult.raceId;
+
     // Lấy referee submissions
     const submissions = await prisma.refereeSubmission.findMany({
-      where: { raceId: officialResult.raceId },
+      where: { raceId: raceId },
       orderBy: { submittedAt: 'asc' }
     });
 
-    // Lấy entries với horse và jockey
-    const entries = await prisma.raceEntry.findMany({
-      where: { raceId: officialResult.raceId, status: 'APPROVED' },
-      include: {
-        horse: { select: { horseId: true, name: true } },
-        jockey: { select: { userId: true, fullName: true } }
-      }
+    // Lấy entries với horse và jockey từ raceEntry table
+    let entries = [];
+    const allEntryIds = new Set();
+    submissions.forEach(sub => {
+      (sub.rawResults || []).forEach(r => {
+        if (r.entryId) allEntryIds.add(r.entryId);
+      });
     });
 
+    try {
+      // Thử lấy entries theo raceId trước
+      let raceEntries = await prisma.raceEntry.findMany({
+        where: { raceId: raceId },
+        include: {
+          horse: { select: { horseId: true, name: true } },
+          jockey: { select: { userId: true, fullName: true } }
+        }
+      });
+      console.log('[getDeviationDetail] Query by raceId result:', raceEntries.length);
+
+      // Nếu không có, thử theo entryIds
+      if (raceEntries.length === 0 && allEntryIds.size > 0) {
+        raceEntries = await prisma.raceEntry.findMany({
+          where: { entryId: { in: [...allEntryIds] } },
+          include: {
+            horse: { select: { horseId: true, name: true } },
+            jockey: { select: { userId: true, fullName: true } }
+          }
+        });
+        console.log('[getDeviationDetail] Query by entryIds result:', raceEntries.length, [...allEntryIds]);
+      }
+
+      console.log('[getDeviationDetail] Race entries found:', raceEntries.length);
+
+      if (raceEntries.length > 0) {
+        // Map entries với horse/jockey info
+        entries = raceEntries.map(e => ({
+          entryId: e.entryId,
+          horseId: e.horse?.horseId,
+          horseName: e.horse?.name || `Entry #${e.entryId}`,
+          jockeyId: e.jockey?.userId,
+          jockeyName: e.jockey?.fullName || null,
+          gateNumber: e.gateNumber,
+          status: e.status,
+        }));
+      } else {
+        // Fallback: Build entries từ submissions rawResults
+        console.log('[getDeviationDetail] No race entries found, building from submissions...');
+        const entryDataMap = {};
+        submissions.forEach(sub => {
+          (sub.rawResults || []).forEach(r => {
+            if (r.entryId && !entryDataMap[r.entryId]) {
+              entryDataMap[r.entryId] = {
+                entryId: r.entryId,
+                horseId: r.horseId || null,
+                horseName: r.horseName || `Entry #${r.entryId}`,
+                jockeyId: r.jockeyId || null,
+                jockeyName: r.jockeyName || null,
+                gateNumber: r.gateNumber || null,
+                status: null,
+              };
+            }
+          });
+        });
+        entries = Object.values(entryDataMap);
+        console.log('[getDeviationDetail] Built entries from submissions:', entries.length);
+      }
+    } catch (err) {
+      console.error('[getDeviationDetail] Error fetching entries:', err.message);
+    }
+
+    // Enrich submissions' rawResults với horse/jockey info từ entries
+    const enrichedSubmissions = submissions.map(sub => {
+      const enrichedRawResults = (sub.rawResults || []).map(r => {
+        const entry = entries.find(e => e.entryId === r.entryId);
+        if (entry && !r.horseName) {
+          return {
+            ...r,
+            horseId: entry.horseId || r.horseId,
+            horseName: entry.horseName || r.horseName,
+            jockeyId: entry.jockeyId || r.jockeyId,
+            jockeyName: entry.jockeyName || r.jockeyName,
+            gateNumber: entry.gateNumber || r.gateNumber,
+          };
+        }
+        return r;
+      });
+      return { ...sub, rawResults: enrichedRawResults };
+    });
+
+    // DEBUG: Log để verify
+    console.log('[getDeviationDetail] resultId:', resultId, 'raceId:', raceId);
+    console.log('[getDeviationDetail] submissions count:', submissions.length);
+    console.log('[getDeviationDetail] allEntryIds:', [...allEntryIds]);
+    console.log('[getDeviationDetail] entries count:', entries.length);
+    console.log('[getDeviationDetail] entries:', JSON.stringify(entries));
+
+    // Trả về entries và refereeSubmissions NẰM TRONG race object
+    // để frontend mapDeviationResponse đọc đúng path
     return {
-      ...officialResult,
+      officialResultId: officialResult.officialResultId,
+      raceId: officialResult.raceId,
+      matchStatus: officialResult.matchStatus,
+      finalResults: officialResult.finalResults,
+      resolveReason: officialResult.resolveReason,
+      resolvedById: officialResult.resolvedById,
+      createdAt: officialResult.createdAt,
+      updatedAt: officialResult.updatedAt,
       race: {
-        ...officialResult.race,
-        refereeSubmissions: submissions,
+        raceId: raceId,
+        name: officialResult.race?.name,
+        refereeA: officialResult.race?.refereeA,
+        refereeB: officialResult.race?.refereeB,
+        refereeSubmissions: enrichedSubmissions,
         entries: entries
       }
     };

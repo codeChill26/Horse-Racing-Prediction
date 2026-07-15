@@ -67,12 +67,34 @@ class RefereeService {
       const hasSubmitted = race.refereeSubmissions.some(s => s.refereeId === refereeUserId);
       if (hasSubmitted) throw httpError('Bạn đã nộp kết quả trước đó. Hệ thống cấm chỉnh sửa.', 409);
 
-      // Lưu kết quả Blind
+      // Lấy entries để enrich rawResults với horse/jockey info
+      const raceEntries = await tx.raceEntry.findMany({
+        where: { raceId: parseInt(raceId) },
+        include: {
+          horse: { select: { horseId: true, name: true } },
+          jockey: { select: { userId: true, fullName: true } }
+        }
+      });
+
+      // Enrich rawResults với horse/jockey info
+      const enrichedRawResults = rawResults.map(r => {
+        const entry = raceEntries.find(e => e.entryId === r.entryId);
+        return {
+          ...r,
+          horseId: entry?.horse?.horseId || null,
+          horseName: entry?.horse?.name || null,
+          jockeyId: entry?.jockey?.userId || null,
+          jockeyName: entry?.jockey?.fullName || null,
+          gateNumber: entry?.gateNumber || null,
+        };
+      });
+
+      // Lưu kết quả Blind với thông tin ngựa/jockey đã được enrich
       const currentSubmission = await tx.refereeSubmission.create({
         data: {
           raceId: parseInt(raceId),
           refereeId: refereeUserId,
-          rawResults: rawResults
+          rawResults: enrichedRawResults
         }
       });
 

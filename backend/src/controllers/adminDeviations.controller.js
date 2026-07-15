@@ -17,9 +17,13 @@ class AdminDeviationsController {
   async getDeviationDetail(req, res) {
     try {
       const { id } = req.params;
+      console.log('[Controller] getDeviationDetail called with id:', id);
       const result = await adminRefereeService.getDeviationDetail(id);
+      console.log('[Controller] Result has entries:', result?.race?.entries?.length);
+      console.log('[Controller] Result has submissions:', result?.race?.refereeSubmissions?.length);
       return res.status(200).json(result);
     } catch (error) {
+      console.error('[Controller] getDeviationDetail error:', error.message);
       return res.status(error.status || 400).json({ error: error.message });
     }
   }
