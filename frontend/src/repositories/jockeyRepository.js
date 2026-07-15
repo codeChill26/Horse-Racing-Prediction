@@ -4,39 +4,23 @@
  *
  * Jockey Repository — gọi API thật cho Jockey self-service endpoints.
  *
- * Endpoint (theo D:\PRM\project\.cursor\prompts\mainflow.md + openapi.js):
- *  - GET    /api/jockeys/me                         — profile
- *  - PUT    /api/jockeys/me                         — update profile
- *  - POST   /api/jockeys/me/avatar                  — upload avatar (multipart)
- *  - GET    /api/jockeys/me/races?status=&date=     — danh sách race đã/đang tham gia
- *  - GET    /api/races/:id                          — chi tiết race
- *  - GET    /api/races/:id/competitors               — danh sách competitor trong race
- *  - POST   /api/races/:id/confirm                  — xác nhận tham gia
- *  - POST   /api/races/:id/scratch                  — xin rút khỏi race
- *  - GET    /api/jockeys/me/schedule                — toàn bộ schedule
- *  - GET    /api/jockeys/me/schedule/upcoming       — race sắp tới
- *  - GET    /api/jockeys/me/schedule/past           — race đã qua
- *  - GET    /api/jockeys/me/horses                  — danh sách ngựa được gán
- *  - GET    /api/horses/:id                         — chi tiết ngựa
- *  - PUT    /api/horses/:id/status                  — owner cập nhật status ngựa
- *  - GET    /api/jockeys/me/notifications           — danh sách thông báo
- *  - PUT    /api/notifications/:id/read             — đánh dấu đã đọc
- *  - PUT    /api/jockeys/me/notifications/read-all  — đánh dấu tất cả đã đọc
- *  - DELETE /api/notifications/:id                  — xoá thông báo
- *  - GET    /api/jockeys/me/notifications/unread-count
- *  - GET    /api/jockeys/me/stats/career            — thống kê sự nghiệp
- *  - GET    /api/jockeys/me/stats/season/:season    — thống kê theo mùa
- *  - GET    /api/jockeys/me/stats/history?limit=N   — lịch sử thi đấu
+ * Backend paths (cập nhật 2026-07-14 sau khi audit backend):
+ *  - GET    /api/jockey/profile                    — profile + career stats
+ *  - POST   /api/jockey/profile                   — update profile
+ *  - GET    /api/jockey/invitations               — danh sách lời mời
+ *  - POST   /api/jockey/invitations/:id/respond   — accept/decline invitation
+ *  - GET    /api/jockey/races                     — races được assign
+ *  - GET    /api/jockey/races/:raceId/history    — race history
+ *  - GET    /api/jockey/notifications             — notifications
+ *  - POST   /api/jockey/notifications/:id/read    — mark notification read
  *
- * Lưu ý: Tính đến 2026-07-10, toàn bộ endpoint trên chưa được backend triển khai
- * (chưa có /api/jockeys/me router). Repository này graceful fallback về mock khi
- * 404 để FE không vỡ khi deploy.
+ * Lưu ý: Backend hiện CHƯA CÓ router /api/jockey/* — đang dùng mock data.
+ * Khi backend implement, update endpoints từ /api/jockeys/me → /api/jockey
  */
 
 import {
   MOCK_JOCKEY_PROFILE,
   MOCK_JOCKEY_RACES,
-  MOCK_JOCKEY_SCHEDULE,
   MOCK_JOCKEY_NOTIFICATIONS,
   MOCK_HORSES_ASSIGNED,
   MOCK_RACE_COMPETITORS,
@@ -91,11 +75,11 @@ async function withFallback(apiCall, mockCall, errorContext) {
 // ============================================
 
 export const jockeyProfileRepository = {
-  /** GET /api/jockeys/me */
+  /** GET /api/jockey/profile */
   async getProfile() {
     return withFallback(
       async () => {
-        const res = await fetch("/api/jockeys/me", {
+        const res = await fetch("/api/jockey/profile", {
           headers: authHeaders(),
         });
         if (!res.ok) await readError(res, "Không tải được hồ sơ");
@@ -110,12 +94,12 @@ export const jockeyProfileRepository = {
     );
   },
 
-  /** PUT /api/jockeys/me */
+  /** POST /api/jockey/profile */
   async updateProfile(data) {
     return withFallback(
       async () => {
-        const res = await fetch("/api/jockeys/me", {
-          method: "PUT",
+        const res = await fetch("/api/jockey/profile", {
+          method: "POST",
           headers: authHeaders(),
           body: JSON.stringify(data),
         });
@@ -131,13 +115,13 @@ export const jockeyProfileRepository = {
     );
   },
 
-  /** POST /api/jockeys/me/avatar (multipart) */
+  /** POST /api/jockey/profile/avatar (multipart) */
   async updateAvatar(file) {
     return withFallback(
       async () => {
         const formData = new FormData();
         formData.append("avatar", file);
-        const res = await fetch("/api/jockeys/me/avatar", {
+        const res = await fetch("/api/jockey/profile/avatar", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${getAccessToken() ?? ""}`,
@@ -162,7 +146,7 @@ export const jockeyProfileRepository = {
 // ============================================
 
 export const jockeyRaceRepository = {
-  /** GET /api/jockeys/me/races?status=&date= */
+  /** GET /api/jockey/races */
   async getMyRaces(filters = {}) {
     return withFallback(
       async () => {
@@ -171,7 +155,7 @@ export const jockeyRaceRepository = {
         if (filters.surface) params.set("surface", filters.surface);
         if (filters.date) params.set("date", filters.date);
         const qs = params.toString();
-        const url = `/api/jockeys/me/races${qs ? `?${qs}` : ""}`;
+        const url = `/api/jockey/races${qs ? `?${qs}` : ""}`;
         const res = await fetch(url, { headers: authHeaders() });
         if (!res.ok) await readError(res, "Không tải được danh sách race");
         const data = await res.json();
@@ -202,6 +186,25 @@ export const jockeyRaceRepository = {
         return races;
       },
       "getMyRaces"
+    );
+  },
+
+  /** GET /api/jockey/races/:raceId/history */
+  async getRaceHistory(raceId) {
+    return withFallback(
+      async () => {
+        const res = await fetch(`/api/jockey/races/${raceId}/history`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) await readError(res, "Không tải được lịch sử race");
+        const data = await res.json();
+        return data?.history ?? data ?? [];
+      },
+      async () => {
+        await delay(300);
+        return [];
+      },
+      "getRaceHistory"
     );
   },
 
@@ -294,75 +297,23 @@ export const jockeyRaceRepository = {
 };
 
 // ============================================
-// Schedule Repository
+// Schedule Repository (sử dụng races endpoint thay vì schedule riêng)
 // ============================================
 
 export const jockeyScheduleRepository = {
-  /** GET /api/jockeys/me/schedule */
+  /** GET /api/jockey/races - dùng chung với races endpoint */
   async getSchedule() {
-    return withFallback(
-      async () => {
-        const res = await fetch("/api/jockeys/me/schedule", {
-          headers: authHeaders(),
-        });
-        if (!res.ok) await readError(res, "Không tải được lịch trình");
-        const data = await res.json();
-        return data?.schedule ?? data;
-      },
-      async () => {
-        await delay(350);
-        return structuredClone(MOCK_JOCKEY_SCHEDULE);
-      },
-      "getSchedule"
-    );
+    return jockeyRaceRepository.getMyRaces();
   },
 
-  /** GET /api/jockeys/me/schedule/upcoming */
+  /** GET /api/jockey/races?status=SCHEDULED - races sắp tới */
   async getUpcomingRaces() {
-    return withFallback(
-      async () => {
-        const res = await fetch("/api/jockeys/me/schedule/upcoming", {
-          headers: authHeaders(),
-        });
-        if (!res.ok)
-          await readError(res, "Không tải được race sắp tới");
-        const data = await res.json();
-        return Array.isArray(data?.upcoming)
-          ? data.upcoming
-          : Array.isArray(data)
-            ? data
-            : [];
-      },
-      async () => {
-        await delay(300);
-        return structuredClone(MOCK_JOCKEY_SCHEDULE.upcoming);
-      },
-      "getUpcomingRaces"
-    );
+    return jockeyRaceRepository.getMyRaces({ status: "SCHEDULED" });
   },
 
-  /** GET /api/jockeys/me/schedule/past */
+  /** GET /api/jockey/races?status=FINISHED - races đã qua */
   async getPastRaces() {
-    return withFallback(
-      async () => {
-        const res = await fetch("/api/jockeys/me/schedule/past", {
-          headers: authHeaders(),
-        });
-        if (!res.ok)
-          await readError(res, "Không tải được race đã qua");
-        const data = await res.json();
-        return Array.isArray(data?.past)
-          ? data.past
-          : Array.isArray(data)
-            ? data
-            : [];
-      },
-      async () => {
-        await delay(300);
-        return structuredClone(MOCK_JOCKEY_SCHEDULE.past);
-      },
-      "getPastRaces"
-    );
+    return jockeyRaceRepository.getMyRaces({ status: "FINISHED" });
   },
 };
 
@@ -443,11 +394,11 @@ export const jockeyHorseRepository = {
 // ============================================
 
 export const jockeyNotificationRepository = {
-  /** GET /api/jockeys/me/notifications */
+  /** GET /api/jockey/notifications */
   async getNotifications() {
     return withFallback(
       async () => {
-        const res = await fetch("/api/jockeys/me/notifications", {
+        const res = await fetch("/api/jockey/notifications", {
           headers: authHeaders(),
         });
         if (!res.ok) await readError(res, "Không tải được thông báo");
@@ -466,13 +417,13 @@ export const jockeyNotificationRepository = {
     );
   },
 
-  /** PUT /api/notifications/:id/read */
+  /** POST /api/jockey/notifications/:id/read */
   async markAsRead(notificationId) {
     return withFallback(
       async () => {
         const res = await fetch(
-          `/api/notifications/${notificationId}/read`,
-          { method: "PUT", headers: authHeaders() }
+          `/api/jockey/notifications/${notificationId}/read`,
+          { method: "POST", headers: authHeaders() }
         );
         if (!res.ok) await readError(res, "Đánh dấu đã đọc thất bại");
         return await res.json();
@@ -485,12 +436,12 @@ export const jockeyNotificationRepository = {
     );
   },
 
-  /** PUT /api/jockeys/me/notifications/read-all */
+  /** PUT /api/jockey/notifications/read-all */
   async markAllAsRead() {
     return withFallback(
       async () => {
         const res = await fetch(
-          "/api/jockeys/me/notifications/read-all",
+          "/api/jockey/notifications/read-all",
           { method: "PUT", headers: authHeaders() }
         );
         if (!res.ok) await readError(res, "Đánh dấu tất cả đã đọc thất bại");
@@ -504,11 +455,11 @@ export const jockeyNotificationRepository = {
     );
   },
 
-  /** DELETE /api/notifications/:id */
+  /** DELETE /api/jockey/notifications/:id */
   async deleteNotification(notificationId) {
     return withFallback(
       async () => {
-        const res = await fetch(`/api/notifications/${notificationId}`, {
+        const res = await fetch(`/api/jockey/notifications/${notificationId}`, {
           method: "DELETE",
           headers: authHeaders(),
         });
@@ -523,12 +474,12 @@ export const jockeyNotificationRepository = {
     );
   },
 
-  /** GET /api/jockeys/me/notifications/unread-count */
+  /** GET /api/jockey/notifications/unread-count */
   async getUnreadCount() {
     return withFallback(
       async () => {
         const res = await fetch(
-          "/api/jockeys/me/notifications/unread-count",
+          "/api/jockey/notifications/unread-count",
           { headers: authHeaders() }
         );
         if (!res.ok) await readError(res, "Không tải được số thông báo");
@@ -551,16 +502,16 @@ export const jockeyNotificationRepository = {
 // ============================================
 
 export const jockeyStatsRepository = {
-  /** GET /api/jockeys/me/stats/career */
+  /** GET /api/jockey/profile (career stats included in profile response) */
   async getCareerStats() {
     return withFallback(
       async () => {
-        const res = await fetch("/api/jockeys/me/stats/career", {
+        const res = await fetch("/api/jockey/profile", {
           headers: authHeaders(),
         });
         if (!res.ok) await readError(res, "Không tải được thống kê sự nghiệp");
         const data = await res.json();
-        return data?.stats ?? data;
+        return data?.careerStats ?? data?.stats ?? data;
       },
       async () => {
         await delay(350);
@@ -578,17 +529,16 @@ export const jockeyStatsRepository = {
     );
   },
 
-  /** GET /api/jockeys/me/stats/season/:season */
+  /** GET /api/jockey/profile (stats included in profile response) */
   async getSeasonStats(season = "2026") {
     return withFallback(
       async () => {
-        const res = await fetch(
-          `/api/jockeys/me/stats/season/${season}`,
-          { headers: authHeaders() }
-        );
+        const res = await fetch("/api/jockey/profile", {
+          headers: authHeaders(),
+        });
         if (!res.ok) await readError(res, "Không tải được thống kê mùa");
         const data = await res.json();
-        return data?.stats ?? data;
+        return data?.stats ?? data?.seasonStats ?? { season };
       },
       async () => {
         await delay(300);
@@ -614,21 +564,17 @@ export const jockeyStatsRepository = {
     );
   },
 
-  /** GET /api/jockeys/me/stats/history?limit=N */
+  /** GET /api/jockey/races/:raceId/history */
   async getPerformanceHistory(limit = 10) {
     return withFallback(
       async () => {
-        const res = await fetch(
-          `/api/jockeys/me/stats/history?limit=${limit}`,
-          { headers: authHeaders() }
-        );
+        const res = await fetch(`/api/jockey/races?status=FINISHED&limit=${limit}`, {
+          headers: authHeaders(),
+        });
         if (!res.ok) await readError(res, "Không tải được lịch sử thi đấu");
         const data = await res.json();
-        return Array.isArray(data?.history)
-          ? data.history
-          : Array.isArray(data)
-            ? data
-            : [];
+        const races = Array.isArray(data?.races) ? data.races : Array.isArray(data) ? data : [];
+        return races.slice(0, limit);
       },
       async () => {
         await delay(300);

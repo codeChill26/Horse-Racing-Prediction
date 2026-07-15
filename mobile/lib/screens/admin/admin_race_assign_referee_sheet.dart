@@ -74,6 +74,7 @@ class _AssignRefereeSheetState extends State<_AssignRefereeSheet> {
       final assignments = await _service.assignReferees(
         widget.raceId,
         _selected.toList()..sort(),
+        referees: _referees,
       );
       if (!mounted) return;
       Navigator.of(context).pop(assignments);

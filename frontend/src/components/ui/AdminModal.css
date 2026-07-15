@@ -284,6 +284,28 @@
   color: #fbbf24;
 }
 
+/* === Checkbox === */
+.gs-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.gs-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #8dd6a6;
+  cursor: pointer;
+}
+
+.gs-checkbox-label {
+  font-size: 0.8rem;
+  color: #dae3ee;
+  cursor: pointer;
+  user-select: none;
+}
+
 @keyframes gs-fade-in {
   from {
     opacity: 0;

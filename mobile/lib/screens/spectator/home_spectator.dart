@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../models/race_summary.dart';
 import '../../services/auth_service.dart';
 import '../../services/spectator_api.dart';
+import '../../services/tournaments_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format_utils.dart';
 import '../../widgets/login_welcome.dart';
 import '../home_router.dart';
+import '../tournaments/public_tournament_detail_screen.dart';
 import '../tournaments/public_tournaments_screen.dart';
 import '../tournaments/tournament_view_theme.dart';
 import 'place_bet_screen.dart';
@@ -32,9 +35,11 @@ class HomeSpectator extends StatefulWidget {
 
 class _HomeSpectatorState extends State<HomeSpectator> {
   final _api = SpectatorApi();
+  final _tournamentsService = TournamentsService();
 
   int _index = 0;
   int _walletSubTab = 0;
+  bool _loadingBettableRaces = false;
 
   @override
   void initState() {
@@ -60,8 +65,55 @@ class _HomeSpectatorState extends State<HomeSpectator> {
     });
   }
 
-  Future<void> _openPlaceBet(int? raceId, {String? raceName}) async {
-    final args = PlaceBetArgs(raceId: raceId, raceName: raceName);
+  Future<void> _openPlaceBet(
+    int? raceId, {
+    String? raceName,
+    List<RaceSummary>? availableRaces,
+  }) async {
+    if (_loadingBettableRaces) return;
+
+    // Nếu chưa biết race cụ thể VÀ chưa có sẵn dropdown race → tải danh sách
+    // race bettable từ backend để màn đặt cược hiển thị dropdown chọn race.
+    List<RaceSummary>? races = availableRaces;
+    if (raceId == null && (races == null || races.isEmpty)) {
+      setState(() => _loadingBettableRaces = true);
+      try {
+        races = await _tournamentsService.listBettableRaces();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.errorText,
+            content: Text(
+              'Không tải được danh sách chặng đua: '
+              '${e.toString().replaceFirst('Exception: ', '')}',
+            ),
+          ),
+        );
+        setState(() => _loadingBettableRaces = false);
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _loadingBettableRaces = false);
+
+      if (races.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.errorText,
+            content: Text(
+              'Hiện chưa có chặng đua nào mở cược. Vui lòng quay lại sau.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    final args = PlaceBetArgs(
+      raceId: raceId,
+      raceName: raceName,
+      availableRaces: races,
+    );
     final result = await Navigator.of(context).push<PlaceBetResult>(
       MaterialPageRoute(
         builder: (_) => PlaceBetScreen(api: _api, args: args),
@@ -93,13 +145,17 @@ class _HomeSpectatorState extends State<HomeSpectator> {
       ),
       PublicTournamentsScreenWithBet(
         theme: TournamentViewTheme.spectator,
-        onPlaceBet: (raceId, raceName) => _openPlaceBet(raceId, raceName: raceName),
+        onOpenPlaceBet: (raceId, raceName, races) => _openPlaceBet(
+          raceId,
+          raceName: raceName,
+          availableRaces: races,
+        ),
       ),
       _SpectatorWalletTab(
         api: _api,
         initialSubTab: _walletSubTab,
         onSubTabChanged: (i) => setState(() => _walletSubTab = i),
-        onOpenPlaceBet: () => _openPlaceBet(null),
+        onOpenPlaceBet: (raceId) => _openPlaceBet(raceId),
       ),
       SpectatorProfileScreen(onLogout: _logout),
     ];
@@ -158,8 +214,19 @@ class _HomeSpectatorState extends State<HomeSpectator> {
           ? FloatingActionButton.extended(
               backgroundColor: AppColors.green,
               foregroundColor: Colors.white,
-              onPressed: () => _openPlaceBet(null),
-              icon: const Icon(Icons.add),
+              onPressed: _loadingBettableRaces
+                  ? null
+                  : () => _openPlaceBet(null),
+              icon: _loadingBettableRaces
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.add),
               label: const Text('Đặt cược'),
             )
           : null,
@@ -202,7 +269,9 @@ class _SpectatorWalletTab extends StatelessWidget {
   final SpectatorApi api;
   final int initialSubTab;
   final ValueChanged<int> onSubTabChanged;
-  final VoidCallback onOpenPlaceBet;
+
+  /// Mở màn đặt cược. Tự tải danh sách race bettable khi không truyền raceId.
+  final Future<void> Function(int? raceId) onOpenPlaceBet;
 
   @override
   Widget build(BuildContext context) {
@@ -236,25 +305,8 @@ class _SpectatorWalletTab extends StatelessWidget {
                 ),
                 SpectatorPredictionsScreen(
                   api: api,
-                  onOpenPlaceBet: (int? raceId) async {
-                    final args = PlaceBetArgs(raceId: raceId);
-                    final result = await Navigator.of(context).push<PlaceBetResult>(
-                      MaterialPageRoute(
-                        builder: (_) => PlaceBetScreen(api: api, args: args),
-                      ),
-                    );
-                    if (!context.mounted) return;
-                    if (result?.success == true) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: AppColors.green,
-                          content: Text(
-                            'Đặt cược thành công! Đã trừ '
-                            '${formatPointsVi(result!.prediction?.betAmount ?? 0)} điểm.',
-                          ),
-                        ),
-                      );
-                    }
+                  onOpenPlaceBet: (int? raceId) {
+                    onOpenPlaceBet(raceId);
                   },
                 ),
                 SpectatorTransactionsScreen(api: api),
@@ -267,32 +319,52 @@ class _SpectatorWalletTab extends StatelessWidget {
   }
 }
 
-/// Wrapper cho PublicTournamentsScreen cũ + thêm callback đặt cược từ race OPEN.
-/// Vì file gốc không nhận callback đặt cược, ta giữ nguyên màn cũ và bổ sung
-/// AppBar nút "Đặt cược" — bấm sẽ mở PlaceBetScreen với raceId=null (chọn race
-/// trong form). Người dùng có thể đặt từ tab Giải đấu, tab Trang chủ, hoặc tab Ví.
+/// Tab "Giải đấu" cho khán giả — danh sách giải + bấm vào giải để mở chi tiết
+/// (danh sách race, nút "Đặt cược" cho từng race). FAB nhanh mở form đặt cược
+/// khi user chưa chọn được race cụ thể.
 class PublicTournamentsScreenWithBet extends StatelessWidget {
   const PublicTournamentsScreenWithBet({
     super.key,
     required this.theme,
-    required this.onPlaceBet,
+    required this.onOpenPlaceBet,
   });
 
   final TournamentViewTheme theme;
-  final void Function(int raceId, String? raceName) onPlaceBet;
+
+  /// Callback khi user nhấn "Đặt cược" ở 1 race trong `PublicTournamentDetailScreen`.
+  /// Truyền (raceId, raceName, races) — race đã được chọn sẵn + danh sách race của
+  /// giải để làm dropdown chọn lại trong màn đặt cược.
+  final void Function(int raceId, String raceName, List<RaceSummary> races)
+      onOpenPlaceBet;
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        const PublicTournamentsScreen(theme: TournamentViewTheme.spectator),
+        PublicTournamentsScreen(
+          theme: theme,
+          onOpenDetail: (t) {
+            final id = t.tournamentId;
+            if (id == null) return;
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PublicTournamentDetailScreen(
+                  tournamentId: id,
+                  theme: theme,
+                  onPlaceBet: (raceId, raceName, races) =>
+                      onOpenPlaceBet(raceId, raceName, races),
+                ),
+              ),
+            );
+          },
+        ),
         Positioned(
           right: 16,
           bottom: 16,
           child: FloatingActionButton.extended(
             backgroundColor: AppColors.green,
             foregroundColor: Colors.white,
-            onPressed: () => onPlaceBet(0, null),
+            onPressed: () => onOpenPlaceBet(0, '', const []),
             icon: const Icon(Icons.add),
             label: const Text('Đặt cược'),
           ),

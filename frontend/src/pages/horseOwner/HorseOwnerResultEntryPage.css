@@ -1,0 +1,387 @@
+/* Horse Owner Result Entry Page */
+
+.hoe-rep-page {
+  --hoe-rep-card: #161b22;
+  --hoe-rep-border: #30363d;
+  --hoe-rep-text: #dae3ee;
+  --hoe-rep-muted: #8b949e;
+  --hoe-rep-primary: #8dd6a6;
+  --hoe-rep-secondary: #e6c364;
+  --hoe-rep-radius: 14px;
+}
+
+.hoe-rep-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.hoe-rep-page__title {
+  margin: 0;
+  font-family: ui-serif, Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--hoe-rep-text);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.hoe-rep-page__desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--hoe-rep-muted);
+}
+
+/* Stats */
+.hoe-rep-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .hoe-rep-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.hoe-rep-stat {
+  background: var(--hoe-rep-card);
+  border: 1px solid var(--hoe-rep-border);
+  border-radius: var(--hoe-rep-radius);
+  padding: 0.9rem 1rem;
+}
+
+.hoe-rep-stat__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--hoe-rep-muted);
+}
+
+.hoe-rep-stat__value {
+  margin-top: 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--hoe-rep-text);
+  font-family: ui-serif, Georgia, serif;
+}
+
+.hoe-rep-stat__value--warn { color: #e6c364; }
+.hoe-rep-stat__value--ok { color: #8dd6a6; }
+.hoe-rep-stat__value--err { color: #ff7b72; }
+
+/* Toolbar */
+.hoe-rep-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.hoe-rep-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.hoe-rep-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--hoe-rep-muted);
+}
+
+.hoe-rep-search {
+  width: 100%;
+  background: var(--hoe-rep-card);
+  border: 1px solid var(--hoe-rep-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem 0.55rem 2.25rem;
+  color: var(--hoe-rep-text);
+  font-size: 0.8rem;
+}
+
+.hoe-rep-search:focus { outline: none; border-color: var(--hoe-rep-primary); }
+
+.hoe-rep-select {
+  background: var(--hoe-rep-card);
+  border: 1px solid var(--hoe-rep-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  color: var(--hoe-rep-text);
+  font-size: 0.8rem;
+}
+
+/* Buttons */
+.hoe-rep-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.hoe-rep-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.hoe-rep-btn:active:not(:disabled) { transform: scale(0.98); }
+
+.hoe-rep-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--hoe-rep-border);
+  color: var(--hoe-rep-muted);
+}
+
+.hoe-rep-btn--ghost:hover:not(:disabled) {
+  color: var(--hoe-rep-text);
+  border-color: var(--hoe-rep-muted);
+}
+
+/* Alert */
+.hoe-rep-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.hoe-rep-alert--error {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: #ff7b72;
+}
+
+/* Panel */
+.hoe-rep-panel {
+  background: var(--hoe-rep-card);
+  border: 1px solid var(--hoe-rep-border);
+  border-radius: var(--hoe-rep-radius);
+  overflow: hidden;
+}
+
+.hoe-rep-table-wrap { overflow-x: auto; }
+
+.hoe-rep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.hoe-rep-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--hoe-rep-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.65rem;
+  border-bottom: 1px solid var(--hoe-rep-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.hoe-rep-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.7);
+  color: var(--hoe-rep-text);
+  vertical-align: middle;
+}
+
+.hoe-rep-table tr:last-child td { border-bottom: none; }
+.hoe-rep-table tr:hover td { background: rgba(141, 214, 166, 0.04); }
+
+.hoe-rep-name { font-weight: 700; }
+.hoe-rep-meta {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--hoe-rep-muted);
+}
+
+.hoe-rep-reason {
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  color: #ff7b72;
+}
+
+/* Status badges */
+.hoe-rep-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.hoe-rep-badge--approved {
+  color: #8dd6a6;
+  border-color: rgba(141, 214, 166, 0.35);
+  background: rgba(141, 214, 166, 0.1);
+}
+
+.hoe-rep-badge--pending {
+  color: #e6c364;
+  border-color: rgba(230, 195, 100, 0.35);
+  background: rgba(230, 195, 100, 0.1);
+}
+
+.hoe-rep-badge--rejected {
+  color: #ff7b72;
+  border-color: rgba(248, 81, 73, 0.35);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.hoe-rep-badge--scratched {
+  color: #8b949e;
+  border-color: rgba(139, 148, 158, 0.35);
+  background: rgba(139, 148, 158, 0.1);
+}
+
+/* Icon button */
+.hoe-rep-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--hoe-rep-border);
+  background: transparent;
+  color: var(--hoe-rep-muted);
+  cursor: pointer;
+}
+
+.hoe-rep-icon-btn:hover {
+  color: var(--hoe-rep-text);
+  border-color: var(--hoe-rep-muted);
+}
+
+/* Empty / Loading */
+.hoe-rep-empty, .hoe-rep-loading {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--hoe-rep-muted);
+  font-size: 0.85rem;
+}
+
+.hoe-rep-spinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid var(--hoe-rep-border);
+  border-top-color: var(--hoe-rep-primary);
+  animation: hoe-rep-spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes hoe-rep-spin { to { transform: rotate(360deg); } }
+
+/* Modal */
+.hoe-rep-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(6, 15, 22, 0.82);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: hoe-rep-fade 0.18s ease;
+}
+
+@keyframes hoe-rep-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.hoe-rep-modal {
+  width: 100%;
+  max-width: 540px;
+  background: var(--hoe-rep-card);
+  border: 1px solid var(--hoe-rep-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.hoe-rep-modal__bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--hoe-rep-primary), var(--hoe-rep-secondary), var(--hoe-rep-primary));
+}
+
+.hoe-rep-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--hoe-rep-border);
+}
+
+.hoe-rep-modal__title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--hoe-rep-primary);
+  text-transform: uppercase;
+}
+
+.hoe-rep-modal__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  color: var(--hoe-rep-muted);
+}
+
+.hoe-rep-modal__close {
+  border: none;
+  background: transparent;
+  color: var(--hoe-rep-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.hoe-rep-modal__close:hover {
+  color: var(--hoe-rep-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hoe-rep-modal__body {
+  padding: 1.1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.hoe-rep-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.85rem 1.25rem 1.1rem;
+  border-top: 1px solid var(--hoe-rep-border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.hoe-rep-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed rgba(48, 54, 61, 0.5);
+}
+
+.hoe-rep-detail-row:last-child { border-bottom: none; }
+
+.hoe-rep-detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--hoe-rep-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

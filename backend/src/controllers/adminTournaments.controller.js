@@ -96,6 +96,42 @@ async function deleteTournament(req, res) {
   }
 }
 
+async function notifyHorseOwners(req, res) {
+  try {
+    const tournamentId = Number(req.params.id);
+    if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ error: 'Invalid tournament id' });
+    }
+
+    const { message } = validator.validateNotifyOwners(req.body);
+    const result = await adminTournamentsService.notifyHorseOwners(tournamentId, { message });
+
+    return res.status(200).json({
+      message: `Sent notification to ${result.notified} horse owner(s).`,
+      notified: result.notified,
+      tournamentId,
+    });
+  } catch (error) {
+    const status = error.status || 400;
+    return res.status(status).json({ error: error.message });
+  }
+}
+
+async function getTournamentEntries(req, res) {
+  try {
+    const tournamentId = Number(req.params.id);
+    if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ error: 'Invalid tournament id' });
+    }
+
+    const entries = await adminTournamentsService.getTournamentEntries(tournamentId);
+    return res.status(200).json({ entries });
+  } catch (error) {
+    const status = error.status || 400;
+    return res.status(status).json({ error: error.message });
+  }
+}
+
 module.exports = {
   listTournaments,
   getTournamentById,
@@ -103,4 +139,6 @@ module.exports = {
   updateTournament,
   changeStatus,
   deleteTournament,
+  notifyHorseOwners,
+  getTournamentEntries,
 };

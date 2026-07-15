@@ -72,18 +72,22 @@ class InvitationsService {
   }
 
   Future<JockeyInvitation> sendInvitation({
-    required int raceId,
+    required int tournamentId,
     required int horseId,
     required int jockeyId,
+    int? raceId,
   }) async {
+    final body = <String, dynamic>{
+      'tournamentId': tournamentId,
+      'horseId': horseId,
+      'jockeyId': jockeyId,
+    };
+    if (raceId != null) body['raceId'] = raceId;
+
     final res = await http.post(
       ApiConfig.uri('/api/invitations'),
       headers: await _headers(),
-      body: jsonEncode({
-        'raceId': raceId,
-        'horseId': horseId,
-        'jockeyId': jockeyId,
-      }),
+      body: jsonEncode(body),
     );
     final data = await _decodeBody(res);
     _throwIfFailed(res, data, 'Gửi lời mời thất bại');

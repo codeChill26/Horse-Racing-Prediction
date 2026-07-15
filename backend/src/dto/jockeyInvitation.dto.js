@@ -2,10 +2,11 @@
 
 class JockeyInvitationDtoValidator {
   validateSendInvitation(body) {
-    const { raceId, horseId, jockeyId } = body;
-    if (!raceId || !Number.isInteger(raceId)) throw new Error('Valid raceId is required');
+    const { tournamentId, raceId, horseId, jockeyId } = body;
+    if (!tournamentId || !Number.isInteger(tournamentId)) throw new Error('Valid tournamentId is required');
     if (!horseId || !Number.isInteger(horseId)) throw new Error('Valid horseId is required');
     if (!jockeyId || !Number.isInteger(jockeyId)) throw new Error('Valid jockeyId is required');
+    // raceId is optional - if provided, invite for specific race; if null, invite for all races in tournament
     return body;
   }
 

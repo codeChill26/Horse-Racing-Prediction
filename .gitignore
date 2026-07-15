@@ -1,75 +1,158 @@
-# Node
+# =========================================================================
+# ROOT .gitignore — Horse Racing Prediction Monorepo
+# =========================================================================
+# Áp dụng cho toàn bộ project. Các thư mục con (frontend/, backend/)
+# sẽ có .gitignore riêng bổ sung thêm.
+# =========================================================================
+
+# -------------------------------------------------------------------------
+# 1. THƯ VIỆN VÀ PHỤ THUỘC (Dependencies)
+# -------------------------------------------------------------------------
 node_modules/
-npm-debug.log
-yarn-error.log
-.env
-.DS_Store
-
-# Logs
-logs
-*.log
-
-# Dependency directories
-backend/node_modules/
 frontend/node_modules/
+backend/node_modules/
+*/node_modules/
 
+# -------------------------------------------------------------------------
+# 2. BIẾN MÔI TRƯỜNG VÀ BẢO MẬT (ENV / SECRETS)
+# -------------------------------------------------------------------------
+# CẢNH BÁO: Không bao giờ đẩy file .env lên Git. Chứa:
+#   - Database password / connection string
+#   - JWT secret key
+#   - API keys (Gmail, Supabase, v.v.)
+#   - Admin credentials
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# -------------------------------------------------------------------------
+# 3. BUILD OUTPUTS
+# -------------------------------------------------------------------------
+dist/
+dist-ssr/
+build/
 # AI dataset — 133MB dữ liệu đua ngựa 2016-2020 dùng train model, KHÔNG push lên GitHub.
 # Chỉ cần cho việc train local (python ai/train.py); model đã train nằm ở ai/models/model.pkl.
 docs/horseracing_dataset/
-
-# Build outputs
-backend/public/
 frontend/dist/
+backend/public/
 
-# OS generated files
-Thumbs.db
-.DS_Store
-
-# Flutter/Dart
-**/build/
-.dart_tool/
-.packages
-.pub/
-.flutter-plugins
-.flutter-plugins-dependencies
-.flutter-versions
-.idea/
-*.iml
-.venv
-# VS Code
-.vscode/
-
+# -------------------------------------------------------------------------
+# 4. HỆ THỐNG & TRÌNH SOẠN THẢO (OS / IDE)
+# -------------------------------------------------------------------------
 # macOS
-*.DS_Store
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
 
 # Windows
-*.exe
-*.dll
-*.pdb
-*.db
-*.suo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 *.user
 *.userosscache
 *.sln.docstates
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# Others
-coverage/
+# Linux
+*~
+
+# JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+atlassian-ide-plugin.xml
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Cursor (không đẩy bộ nhớ ngữ cảnh & cấu hình workspace)
+.cursor/
+.cursorrc
+.cursor/rules/
+.cursor/prompts/
+.cursor/reports/
+
+# -------------------------------------------------------------------------
+# 5. TÀI LIỆU & BÁO CÁO (Docs & Reports)
+# -------------------------------------------------------------------------
+# Các file này thường được generate tự động hoặc chỉ dùng nội bộ
+docs/
+.cursor/reports/
+.cursor/prompts/
+*/reports/
+*.md.txt
+
+# -------------------------------------------------------------------------
+# 6. LOG FILES & NHẬT KÝ
+# -------------------------------------------------------------------------
+logs/
 *.log
-*.tmp
-*.swp
-*.swo
-*.bak
-*.orig
-*.old
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log.*
 
-# Python
+# Backend log files
+backend/be.log
+backend/be.err.log
+backend/*.log
+backend/*.err.log
+
+# -------------------------------------------------------------------------
+# 7. TEST COVERAGE
+# -------------------------------------------------------------------------
+coverage/
+.nyc_output/
+frontend/coverage/
+backend/coverage/
+
+# -------------------------------------------------------------------------
+# 8. PYTHON / NOTEBOOK
+# -------------------------------------------------------------------------
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
 # Jupyter
 .ipynb_checkpoints/
+*.ipynb
 
-# Misc
+# -------------------------------------------------------------------------
+# 9. ARCHIVE FILES
+# -------------------------------------------------------------------------
 *.tgz
 *.tar.gz
 *.zip
@@ -94,120 +177,56 @@ __pycache__/
 *.msm
 *.msp
 *.msu
-*.psd
-*.ai
-*.sketch
-*.xcf
-*.svgz
-*.blend
-*.fbx
-*.obj
-*.3ds
-*.dae
-*.stl
-*.ply
-*.gltf
-*.glb
-*.usd
-*.usdz
-*.vox
-*.voxlap
-*.voxlap2
-*.voxlap3
-*.voxlap4
-*.voxlap5
-*.voxlap6
-*.voxlap7
-*.voxlap8
-*.voxlap9
-*.voxlap10
-*.voxlap11
-*.voxlap12
-*.voxlap13
-*.voxlap14
-*.voxlap15
-*.voxlap16
-*.voxlap17
-*.voxlap18
-*.voxlap19
-*.voxlap20
-*.voxlap21
-*.voxlap22
-*.voxlap23
-*.voxlap24
-*.voxlap25
-*.voxlap26
-*.voxlap27
-*.voxlap28
-*.voxlap29
-*.voxlap30
-*.voxlap31
-*.voxlap32
-*.voxlap33
-*.voxlap34
-*.voxlap35
-*.voxlap36
-*.voxlap37
-*.voxlap38
-*.voxlap39
-*.voxlap40
-*.voxlap41
-*.voxlap42
-*.voxlap43
-*.voxlap44
-*.voxlap45
-*.voxlap46
-*.voxlap47
-*.voxlap48
-*.voxlap49
-*.voxlap50
-*.voxlap51
-*.voxlap52
-*.voxlap53
-*.voxlap54
-*.voxlap55
-*.voxlap56
-*.voxlap57
-*.voxlap58
-*.voxlap59
-*.voxlap60
-*.voxlap61
-*.voxlap62
-*.voxlap63
-*.voxlap64
-*.voxlap65
-*.voxlap66
-*.voxlap67
-*.voxlap68
-*.voxlap69
-*.voxlap70
-*.voxlap71
-*.voxlap72
-*.voxlap73
-*.voxlap74
-*.voxlap75
-*.voxlap76
-*.voxlap77
-*.voxlap78
-*.voxlap79
-*.voxlap80
-*.voxlap81
-*.voxlap82
-*.voxlap83
-*.voxlap84
-*.voxlap85
-*.voxlap86
-*.voxlap87
-*.voxlap88
-*.voxlap89
-*.voxlap90
-*.voxlap91
-*.voxlap92
-*.voxlap93
-*.voxlap94
-*.voxlap95
-*.voxlap96
-*.voxlap97
-*.voxlap98
-*.voxlap99
-*.voxlap100
+
+# -------------------------------------------------------------------------
+# 10. BACKEND SPECIFIC
+# -------------------------------------------------------------------------
+# Mock data files (JSON test fixtures — không phải source code)
+backend/*.json
+!backend/package.json
+!backend/package-lock.json
+
+# Docker
+.docker/
+
+# Prisma generated
+src/generated/prisma/
+
+# -------------------------------------------------------------------------
+# 11. FRONTEND SPECIFIC
+# -------------------------------------------------------------------------
+*.local
+.env.production
+.env.staging
+
+# Test files that shouldn't be in final repo
+*.test.js
+*.spec.js
+*.stories.jsx
+
+# -------------------------------------------------------------------------
+# 12. MISCELLANEOUS
+# -------------------------------------------------------------------------
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+*.old
+*.backup
+*.temp
+*.cache
+*.pid
+*.seed
+*.sgimgrc
+
+# SSL certificates
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# Temporary files
+tmp/
+temp/
+.tmp/

@@ -39,7 +39,8 @@ export const bettingRepository = {
   },
 
   /**
-   * GET /api/predictions/stats — thống kê tổng quan của spectator.
+   * GET /api/predictions/my-stats — thống kê tổng quan của spectator.
+   * Backend: predictions.js line 10 - router.get('/my-stats')
    * Trả về:
    *   {
    *     totalBets, totalSpent, totalWon, totalPayout, winRate, totalRaces,
@@ -48,7 +49,7 @@ export const bettingRepository = {
    *   }
    */
   async getMyStats() {
-    const res = await fetch('/api/predictions/stats', { headers: authHeaders() })
+    const res = await fetch('/api/predictions/my-stats', { headers: authHeaders() })
     if (!res.ok) await readError(res, 'Không tải được thống kê đặt cược')
     const data = await res.json()
     return data?.stats ?? data

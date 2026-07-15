@@ -133,4 +133,17 @@ export const raceEntryRepository = {
     const data = await res.json();
     return data?.entry ?? data;
   },
+
+  /**
+   * GET /api/entries/mine — entries của owner đang đăng nhập
+   * Backend trả về danh sách entries mà user là owner
+   */
+  async getMyEntries() {
+    const res = await fetch(`/api/entries/mine`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) await readError(res, "Không tải được danh sách đơn đăng ký của tôi");
+    const data = await res.json();
+    return data?.entries ?? [];
+  },
 };

@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, Play, Info } from "lucide-react";
 import { tournamentService } from "../../services/tournamentService";
 import { formatDate } from "../../utils/formatter";
 import {
@@ -12,6 +12,7 @@ import {
   TOURNAMENT_TRANSITIONS,
   tournamentStatusClass,
   tournamentStatusLabel,
+  checkTournamentReadyToStart,
 } from "../../utils/tournamentStatus";
 import { useToast } from "../../hooks/useToast";
 import AdminTournamentFormModal from "./AdminTournamentFormModal";
@@ -79,8 +80,22 @@ export default function AdminTournamentsPage() {
 
   const handleStatusChange = async (tournament, nextStatus) => {
     if (!nextStatus || nextStatus === tournament.status) return;
+
+    // OPEN → ONGOING: check readiness conditions
+    if (tournament.status === "OPEN" && nextStatus === "ONGOING") {
+      const { ready, reasons } = checkTournamentReadyToStart(
+        tournament,
+        tournament._count?.approvedEntries ?? 0,
+        { refereeAId: tournament.refereeAId, refereeBId: tournament.refereeBId }
+      );
+      if (!ready) {
+        const msg = `Chưa thể bắt đầu giải:\n• ${reasons.join("\n• ")}`;
+        toastify?.error?.(msg);
+        return;
+      }
+    }
+
     if (nextStatus === "CANCELLED") {
-      // Mở modal nhập lý do huỷ thay vì window.prompt
       setCancelModal({ tournament, mode: "status", targetStatus: nextStatus });
       return;
     }
@@ -164,8 +179,7 @@ export default function AdminTournamentsPage() {
         <div>
           <h1 className="adm-t-page__title">Quản lý giải đua ngựa</h1>
           <p className="adm-t-page__desc">
-           
-      
+            Tạo giải đấu, theo dõi trạng thái và quản lý các chặng đua trong từng giải.
           </p>
         </div>
         <button type="button" className="adm-t-btn adm-t-btn--primary" onClick={() => setModal({ mode: "create" })}>
@@ -233,7 +247,11 @@ export default function AdminTournamentsPage() {
             </div>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="adm-t-empty">Chưa có giải đấu nào phù hợp bộ lọc.</div>
+          <div className="adm-t-empty">
+            {tournaments.length === 0
+              ? "Chưa có giải đấu nào. Nhấn \"Tạo giải đấu\" để bắt đầu."
+              : "Không có giải đấu nào phù hợp bộ lọc hiện tại."}
+          </div>
         ) : (
           <div className="adm-t-table-wrap">
             <table className="adm-t-table">
@@ -273,6 +291,26 @@ export default function AdminTournamentsPage() {
                         <span className={tournamentStatusClass(t.status)}>
                           {tournamentStatusLabel(t.status)}
                         </span>
+                        {/* Ready indicator for OPEN tournaments */}
+                        {t.status === "OPEN" && (() => {
+                          const { ready, reasons } = checkTournamentReadyToStart(
+                            t,
+                            t._count?.approvedEntries ?? 0,
+                            { refereeAId: t.refereeAId, refereeBId: t.refereeBId }
+                          );
+                          if (ready) {
+                            return (
+                              <div className="adm-t-ready-badge" title="Sẵn sàng bắt đầu">
+                                <Play size={12} /> Sẵn sàng
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="adm-t-pending-badge" title={reasons.join("; ")}>
+                              <Info size={12} /> {reasons.length} điều kiện chưa đủ
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         {transitions.length > 0 ? (
@@ -325,13 +363,34 @@ export default function AdminTournamentsPage() {
       </div>
 
       {modal?.mode === "create" && (
-        <AdminTournamentFormModal onClose={() => setModal(null)} onSaved={loadTournaments} />
+        <AdminTournamentFormModal
+          onClose={() => setModal(null)}
+          onSaved={async (feedback) => {
+            if (feedback?.hints?.length > 0) {
+              toastify?.info?.(feedback.hints.join("\n"));
+            }
+            if (feedback?.warnings?.length > 0) {
+              toastify?.error?.(feedback.warnings.join("\n"));
+            }
+            await loadTournaments();
+          }}
+          onCreatedToast={() => toastify?.success?.("Đã tạo giải đấu mới")}
+        />
       )}
       {modal?.mode === "edit" && (
         <AdminTournamentFormModal
           tournamentId={modal.id}
           onClose={() => setModal(null)}
-          onSaved={loadTournaments}
+          onSaved={async (feedback) => {
+            if (feedback?.hints?.length > 0) {
+              toastify?.info?.(feedback.hints.join("\n"));
+            }
+            if (feedback?.warnings?.length > 0) {
+              toastify?.error?.(feedback.warnings.join("\n"));
+            }
+            await loadTournaments();
+          }}
+          onCreatedToast={() => toastify?.success?.("Đã cập nhật giải đấu")}
         />
       )}
 

@@ -111,6 +111,11 @@ export const horseService = {
     return this.reviewHorse(horseId, { status: "REJECTED", reason });
   },
 
+  /** GET /api/admin/horses?status=PENDING — đếm badge sidebar */
+  async getPendingCount() {
+    return horseRepository.getPendingCount();
+  },
+
   /**
    * Revoke (APPROVED → INACTIVE) — HIỆN CHƯA ĐƯỢC HỖ TRỢ ở backend.
    *

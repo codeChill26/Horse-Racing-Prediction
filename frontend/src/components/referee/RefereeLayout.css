@@ -108,6 +108,28 @@
   transition: color 0.15s;
 }
 
+/* Notification nav link — flex layout chứa badge */
+.ref-nav-link--notifications {
+  position: relative;
+}
+
+.ref-nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f85149, #da3633);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #060f16;
+}
+
 /* Footer */
 .ref-sidebar-footer {
   padding: 0.85rem 0.85rem;

@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Edit, XCircle, Wifi, WifiOff, Sparkles } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Edit, XCircle, Sparkles } from "lucide-react";
 import { raceDetailService } from "../../services/raceDetailService";
 import { raceEntryService } from "../../services/raceEntryService";
 import { settlementService } from "../../services/settlementService";
@@ -35,16 +35,6 @@ import {
 } from "../../components/admin/race/AdminRaceDetailModals";
 import AiAdvisoryModal from "../../components/admin/race/AiAdvisoryModal";
 import { useSettlementActions } from "../../hooks/useSettlementActions";
-import { useSocket } from "../../hooks/useSocket";
-import {
-  getSocket,
-  onSocketEvent,
-  onSocketStatus,
-  subscribeRace,
-  unsubscribeRace,
-} from "../../utils/socket";
-import { useToast } from "../../hooks/useToast";
-import { getAccessToken } from "../../utils/token";
 import "./AdminRaceDetailPage.css";
 
 // Toast Component
@@ -65,10 +55,6 @@ function Toast({ message, type, onClose }) {
 export default function AdminRaceDetailPage() {
   const { raceId } = useParams();
   const navigate = useNavigate();
-
-  const token = getAccessToken();
-  const { connected } = useSocket(token);
-  const toastify = useToast();
 
   const [race, setRace] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -107,7 +93,6 @@ export default function AdminRaceDetailPage() {
     rollbackBusy,
     settlement,
     setSettlement,
-    refetchSettlement,
     publishRace,
     unpublishRace,
   } = useSettlementActions({ raceId, onRaceUpdated });
@@ -159,117 +144,6 @@ export default function AdminRaceDetailPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  // === Socket realtime ===
-  useEffect(() => {
-    if (!token) return undefined;
-
-    const offCreated = onSocketEvent("entry:created", (payload) => {
-      const incoming = payload?.entry;
-      if (!incoming) return;
-      const incomingRaceId = String(incoming.raceId ?? "");
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
-      raceEntryService
-        .getEntriesByRace(raceId)
-        .then((list) => {
-          if (Array.isArray(list)) setEntries(list);
-        })
-        .catch(() => {});
-      toastify?.info?.(
-        `Có entry mới: ${incoming.horseName || `#${incoming.horseId || ""}`} vừa được đăng ký.`,
-        "Entry mới"
-      );
-    });
-
-    const offEntryStatus = onSocketEvent("entry:status_changed", (payload) => {
-      const incoming = payload?.entry;
-      if (!incoming) return;
-      const incomingRaceId = String(incoming.raceId ?? "");
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
-      raceEntryService
-        .getEntriesByRace(raceId)
-        .then((list) => {
-          if (Array.isArray(list)) setEntries(list);
-        })
-        .catch(() => {});
-    });
-
-    const offOdds = onSocketEvent("odds:updated", (payload) => {
-      const incomingRaceId = String(payload?.raceId ?? "");
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
-      raceDetailService
-        .getStatistics(raceId)
-        .then((stats) => {
-          if (stats) setStatistics(stats);
-        })
-        .catch(() => {});
-      raceEntryService
-        .getEntriesByRace(raceId)
-        .then((list) => {
-          if (Array.isArray(list)) setEntries(list);
-        })
-        .catch(() => {});
-    });
-
-    // FLOW 8: race:published → tab admin khác vừa publish, refresh detail page
-    const offPublished = onSocketEvent("race:published", (payload) => {
-      const incomingRaceId = String(
-        payload?.race?.raceId ?? payload?.raceId ?? ""
-      );
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
-      onRaceUpdated({
-        status: "FINISHED",
-        publishedAt: payload?.publishedAt ?? new Date().toISOString(),
-      });
-      if (payload?.settlement) {
-        setSettlement(payload.settlement);
-      } else {
-        refetchSettlement();
-      }
-      showToast.success(
-        "Race vừa được publish — trang sẽ tự động cập nhật.",
-        "Realtime"
-      );
-    });
-
-    // FLOW 8: race:unpublished → rollback settlement
-    const offUnpublished = onSocketEvent("race:unpublished", (payload) => {
-      const incomingRaceId = String(
-        payload?.race?.raceId ?? payload?.raceId ?? ""
-      );
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return;
-      onRaceUpdated({ status: "PENDING_RESULT" });
-      setSettlement(null);
-      showToast.info(
-        "Race vừa được rollback — settlement bị hủy.",
-        "Realtime"
-      );
-    });
-
-    const sock = getSocket(token);
-    if (sock && sock.connected) {
-      subscribeRace(raceId);
-    }
-    const offStatus = onSocketStatus(({ socket: s }) => {
-      if (s && s.connected) {
-        subscribeRace(raceId);
-      }
-    });
-
-    return () => {
-      offCreated();
-      offEntryStatus();
-      offOdds();
-      offPublished();
-      offUnpublished();
-      offStatus();
-      try {
-        unsubscribeRace(raceId);
-      } catch {
-        /* noop */
-      }
-    };
-  }, [token, raceId, toastify, refetchSettlement, onRaceUpdated, setSettlement]);
 
   // === Action handlers (Flow 2/3/8) ===
 
@@ -523,17 +397,6 @@ export default function AdminRaceDetailPage() {
                 {!loading && entries.length > 0 && (
                   <span className="ard-section__count">{entries.length}</span>
                 )}
-                <span
-                  className={`ard-rt ${connected ? "ard-rt--ok" : "ard-rt--off"}`}
-                  title={
-                    connected
-                      ? "Đang nhận cập nhật realtime"
-                      : "Mất kết nối realtime"
-                  }
-                >
-                  {connected ? <Wifi size={11} /> : <WifiOff size={11} />}
-                  <span>{connected ? "Realtime" : "Offline"}</span>
-                </span>
               </h2>
               <select
                 className="ard-select"

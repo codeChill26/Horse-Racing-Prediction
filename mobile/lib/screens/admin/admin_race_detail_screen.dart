@@ -391,21 +391,23 @@ class _AdminRaceDetailScreenState extends State<AdminRaceDetailScreen> {
           children: [
             _HeaderCard(race: r),
             const SizedBox(height: 16),
-            _ActionPanel(
-              isBusy: _busy,
-              race: r,
-              onEdit: isPublished || status == 'CANCELLED' ? null : _openEdit,
-              onDelete: r.isDeletedSafe ? _onDelete : null,
-              onToggleGate: isScheduled ? _toggleRegistrationGate : null,
-              onPublish:
-                  status == 'PENDING_RESULT' || status == 'REGISTRATION_CLOSED'
-                      ? _onPublish
-                      : null,
-              onUnpublish: isPublished ? _onUnpublish : null,
-              onAssignReferees: status == 'SCHEDULED' ? _openAssignReferees : null,
-              onResolveConflict: isPaused ? _openResolveConflict : null,
-              onOpenRefereeManager: _openRefereeManager,
-            ),
+          _ActionPanel(
+            isBusy: _busy,
+            race: r,
+            status: status,
+            onEdit: isPublished || status == 'CANCELLED' ? null : _openEdit,
+            onDelete: r.isDeletedSafe ? _onDelete : null,
+            onToggleGate: isScheduled ? _toggleRegistrationGate : null,
+            onPublish:
+                status == 'PENDING_RESULT' || status == 'REGISTRATION_CLOSED'
+                    ? _onPublish
+                    : null,
+            onUnpublish: isPublished ? _onUnpublish : null,
+            onAssignReferees: status == 'SCHEDULED' ? _openAssignReferees : null,
+            onResolveConflict: isPaused ? _openResolveConflict : null,
+            onOpenRefereeManager:
+                !isPublished && status != 'CANCELLED' ? _openRefereeManager : null,
+          ),
             const SizedBox(height: 16),
             _InfoCard(
               title: 'Thông tin race',
@@ -586,6 +588,7 @@ class _ActionPanel extends StatelessWidget {
   const _ActionPanel({
     required this.isBusy,
     required this.race,
+    required this.status,
     required this.onEdit,
     required this.onDelete,
     required this.onToggleGate,
@@ -598,6 +601,7 @@ class _ActionPanel extends StatelessWidget {
 
   final bool isBusy;
   final AdminRace race;
+  final String status;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onToggleGate;
@@ -609,6 +613,57 @@ class _ActionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final buttons = <_ActionSpec>[
+      _ActionSpec(
+        icon: Icons.edit_outlined,
+        label: 'Sửa',
+        color: AppColors.adminAccent,
+        onTap: onEdit,
+      ),
+      _ActionSpec(
+        icon: Icons.delete_outline,
+        label: 'Xóa',
+        color: const Color(0xFFDC2626),
+        onTap: onDelete,
+      ),
+      _ActionSpec(
+        icon: race.registrationOpen ? Icons.lock_outline : Icons.lock_open,
+        label: race.registrationOpen ? 'Đóng ĐK' : 'Mở ĐK',
+        color: AppColors.ownerTeal,
+        onTap: onToggleGate,
+      ),
+      _ActionSpec(
+        icon: Icons.sports_score,
+        label: 'Phân công TT',
+        color: const Color(0xFF7C3AED),
+        onTap: onAssignReferees,
+      ),
+      _ActionSpec(
+        icon: Icons.flag_circle_outlined,
+        label: 'Công bố',
+        color: AppColors.ownerTeal,
+        onTap: onPublish,
+      ),
+      _ActionSpec(
+        icon: Icons.undo,
+        label: 'Hủy công bố',
+        color: AppColors.textMuted,
+        onTap: onUnpublish,
+      ),
+      _ActionSpec(
+        icon: Icons.warning_amber_outlined,
+        label: 'Xử lý tranh chấp',
+        color: const Color(0xFFB91C1C),
+        onTap: onResolveConflict,
+      ),
+      _ActionSpec(
+        icon: Icons.assignment_ind,
+        label: 'Quản lý trọng tài',
+        color: const Color(0xFF7C3AED),
+        onTap: onOpenRefereeManager,
+      ),
+    ].where((b) => b.onTap != null).toList();
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -628,71 +683,104 @@ class _ActionPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+          if (status == 'FINISHED')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF065F46)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.check_circle,
+                        size: 18, color: Color(0xFF065F46)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Race đã kết thúc. Chỉ có thể "Hủy công bố" để quay về chờ kết quả.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF065F46),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (status == 'CANCELLED')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.errorText),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.block, size: 18, color: AppColors.errorText),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Race đã bị hủy. Không thể chỉnh sửa, mở đăng ký, công bố hay phân công trọng tài.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.errorText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (isBusy)
             const Center(child: CircularProgressIndicator())
+          else if (buttons.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Không có thao tác khả dụng ở trạng thái này.',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+            )
           else
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: [
-                _ActionButton(
-                  icon: Icons.edit_outlined,
-                  label: 'Sửa',
-                  color: AppColors.adminAccent,
-                  onTap: onEdit,
-                ),
-                _ActionButton(
-                  icon: Icons.delete_outline,
-                  label: 'Xóa',
-                  color: const Color(0xFFDC2626),
-                  onTap: onDelete,
-                ),
-                _ActionButton(
-                  icon: race.registrationOpen
-                      ? Icons.lock_outline
-                      : Icons.lock_open,
-                  label: race.registrationOpen
-                      ? 'Đóng ĐK'
-                      : 'Mở ĐK',
-                  color: AppColors.ownerTeal,
-                  onTap: onToggleGate,
-                ),
-                _ActionButton(
-                  icon: Icons.sports_score,
-                  label: 'Phân công TT',
-                  color: const Color(0xFF7C3AED),
-                  onTap: onAssignReferees,
-                ),
-                _ActionButton(
-                  icon: Icons.flag_circle_outlined,
-                  label: 'Công bố',
-                  color: AppColors.ownerTeal,
-                  onTap: onPublish,
-                ),
-                _ActionButton(
-                  icon: Icons.undo,
-                  label: 'Hủy công bố',
-                  color: AppColors.textMuted,
-                  onTap: onUnpublish,
-                ),
-                _ActionButton(
-                  icon: Icons.warning_amber_outlined,
-                  label: 'Xử lý tranh chấp',
-                  color: const Color(0xFFB91C1C),
-                  onTap: onResolveConflict,
-                ),
-                _ActionButton(
-                  icon: Icons.assignment_ind,
-                  label: 'Quản lý trọng tài',
-                  color: const Color(0xFF7C3AED),
-                  onTap: onOpenRefereeManager,
-                ),
-              ],
+              children: buttons
+                  .map((b) => _ActionButton(
+                        icon: b.icon,
+                        label: b.label,
+                        color: b.color,
+                        onTap: b.onTap,
+                      ))
+                  .toList(),
             ),
         ],
       ),
     );
   }
+}
+
+class _ActionSpec {
+  const _ActionSpec({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
 }
 
 class _ActionButton extends StatelessWidget {

@@ -3,7 +3,6 @@ import { X, Coins, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { bettingService } from '../../services/bettingService'
 import { formatPoints } from '../../utils/formatter'
 import { showToast } from '../../hooks/showToast'
-import { onSocketEvent, subscribeRace, unsubscribeRace } from '../../utils/socket'
 import { StatusBadge } from '../ui/Badges'
 import './BettingModal.css'
 
@@ -98,60 +97,6 @@ export default function BettingModal({
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [submitting, success])
-
-  // FIX BUG-7.05: subscribe `odds:updated` để cập nhật odds real-time trong modal.
-  // Backend (theo socket.js docs) emit `odds:updated` trong room race:${raceId}.
-  // Payload khuyến nghị: { raceId, entries: [{ entryId, oddsFinal }] }
-  useEffect(() => {
-    const raceId = race?.raceId
-    if (!raceId) return undefined
-
-    subscribeRace(raceId)
-    const offOdds = onSocketEvent('odds:updated', (payload) => {
-      const incomingRaceId = String(payload?.raceId ?? payload?.race?.raceId ?? '')
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return
-      const updates = Array.isArray(payload?.entries) ? payload.entries : []
-      if (updates.length === 0) return
-
-      setLiveEntries((prev) =>
-        prev.map((e) => {
-          const patch = updates.find((u) => String(u.entryId ?? u.id) === String(e.entryId))
-          if (!patch) return e
-          return { ...e, oddsFinal: patch.oddsFinal ?? patch.odds ?? e.oddsFinal }
-        })
-      )
-    })
-
-    return () => {
-      offOdds?.()
-      unsubscribeRace(raceId)
-    }
-  }, [race?.raceId])
-
-  // FIX BUG-7.06: subscribe `entry:status_changed` & `race:started` để disable bet
-  // khi race bắt đầu trong lúc user đang chọn. Service không tự check, modal phải
-  // reflect UI ngay.
-  useEffect(() => {
-    const raceId = race?.raceId
-    if (!raceId) return undefined
-
-    const offEntryChange = onSocketEvent('entry:status_changed', (payload) => {
-      const incomingRaceId = String(payload?.raceId ?? '')
-      if (incomingRaceId && incomingRaceId !== String(raceId)) return
-      // Nếu race chuyển sang IN_PROGRESS, status thay đổi → modal tự disable.
-      const newStatus = String(payload?.raceStatus ?? '').toUpperCase()
-        if (newStatus) {
-          setRaceStatus(newStatus)
-          if (newStatus !== 'SCHEDULED' && newStatus !== 'BETTING_OPEN' &&
-              newStatus !== 'REGISTRATION_OPEN' && newStatus !== 'UPCOMING') {
-            // Race đã chuyển sang IN_PROGRESS / FINISHED → disable bet.
-            setRaceChangedDuringOpen(true)
-          }
-        }
-    })
-
-    return () => offEntryChange?.()
-  }, [race?.raceId])
 
   // Reset picks when switching between single/dual mode
   useEffect(() => {

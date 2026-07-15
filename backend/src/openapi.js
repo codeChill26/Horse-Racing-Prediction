@@ -513,6 +513,17 @@ module.exports = {
         },
       },
 
+      Referee: {
+        type: 'object',
+        properties: {
+          userId: { type: 'integer' },
+          fullName: { type: 'string' },
+          email: { type: 'string', format: 'email' },
+          avatarUrl: { type: 'string', nullable: true },
+          licenseNumber: { type: 'string', nullable: true },
+        },
+      },
+
       AdminAssignRefereesRequest: {
         type: 'object',
         required: ['refereeAId', 'refereeBId'],
@@ -997,6 +1008,51 @@ module.exports = {
         },
       },
     },
+    '/api/admin/referees': {
+      get: {
+        tags: ['Admin Users'],
+        summary: 'List active referees (admin)',
+        description:
+          'Trả về danh sách user có role thuộc nhóm trọng tài ' +
+          "('RACE_REFEREE' / 'Referee' / 'REFEREE') và đang active. " +
+          'Dùng để chọn referee khi phân công cho chặng đua.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    referees: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Referee' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '403': {
+            description: 'Forbidden',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/admin/users': {
       get: {
         tags: ['Admin Users'],
@@ -1008,7 +1064,9 @@ module.exports = {
             in: 'query',
             required: false,
             schema: { type: 'string' },
-            description: 'Filter by role code (e.g. ADMIN)',
+            description:
+              'Filter by role code. For referee role, accepts any of the variants ' +
+              "'RACE_REFEREE' / 'Referee' / 'REFEREE' and returns the union.",
           },
         ],
         responses: {
@@ -1670,6 +1728,16 @@ module.exports = {
         tags: ['Races'],
         summary: 'List races with registration open (public)',
         description: 'Trả về các races đang mở cổng đăng ký để Horse Owner chọn đăng ký ngựa.',
+        responses: {
+          '200': { description: 'OK' },
+        },
+      },
+    },
+    '/api/races/bettable': {
+      get: {
+        tags: ['Races'],
+        summary: 'List races available for spectator betting (public)',
+        description: 'Trả về các race SCHEDULED (đã chốt entry, chưa mở đăng ký) thuộc tournament OPEN/ONGOING. Dùng cho dropdown chọn race ở màn đặt cược khi khán giả chưa chọn race cụ thể.',
         responses: {
           '200': { description: 'OK' },
         },

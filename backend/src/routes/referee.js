@@ -35,4 +35,16 @@ router.get('/me/profile', refereeController.getProfile);
 // POST /api/referee/violations
 router.post('/violations', refereeController.reportViolation);
 
+// =======================================================================
+// 4. API THÔNG BÁO (Notification dành cho trọng tài)
+// =======================================================================
+// GET /api/referee/me/notifications?unread=true
+router.get('/me/notifications', refereeController.getMyNotifications);
+// POST /api/referee/me/notifications/:id/read
+router.post('/me/notifications/:id/read', refereeController.markNotificationRead);
+// POST /api/referee/me/notifications/read-all
+router.post('/me/notifications/read-all', refereeController.markAllNotificationsRead);
+// POST /api/referee/me/notifications/:id/respond { response: 'ACCEPTED'|'REFUSED', reason? }
+router.post('/me/notifications/:id/respond', refereeController.respondAssignment);
+
 module.exports = router;

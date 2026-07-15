@@ -171,6 +171,120 @@ class AdminTournamentsService {
     await prisma.tournament.delete({ where: { tournamentId } });
     return { action: 'DELETED' };
   }
+
+  async notifyHorseOwners(tournamentId, { message }) {
+    const tournament = await prisma.tournament.findUnique({
+      where: { tournamentId },
+      select: {
+        tournamentId: true,
+        name: true,
+        status: true,
+      },
+    });
+
+    if (!tournament) throw httpError('Tournament not found', 404);
+
+    // Find the Horse Owner role
+    const horseOwnerRole = await prisma.role.findUnique({
+      where: { code: 'Horse Owner' },
+      select: { roleId: true },
+    });
+
+    if (!horseOwnerRole) {
+      throw httpError("Role 'Horse Owner' not found in system", 500);
+    }
+
+    // Fetch all active Horse Owners
+    const owners = await prisma.user.findMany({
+      where: {
+        roleId: horseOwnerRole.roleId,
+        isActive: true,
+      },
+      select: { userId: true },
+    });
+
+    if (owners.length === 0) {
+      return { notified: 0, tournamentId, message };
+    }
+
+    const title = `Giải đấu "${tournament.name}" đang mở đăng ký`;
+    const payload = {
+      tournamentId: tournament.tournamentId,
+      name: tournament.name,
+      status: tournament.status,
+    };
+
+    const result = await prisma.notification.createMany({
+      data: owners.map((o) => ({
+        userId: o.userId,
+        type: 'TOURNAMENT_OPEN',
+        title,
+        message,
+        payload,
+      })),
+    });
+
+    return {
+      notified: result.count,
+      tournamentId,
+      message,
+    };
+  }
+
+  /**
+   * Lấy tất cả RaceEntry thuộc các Race trong Tournament (dùng cho admin populate race).
+   * Trả về entries đang PENDING hoặc APPROVED.
+   */
+  async getTournamentEntries(tournamentId) {
+    const tournament = await prisma.tournament.findUnique({
+      where: { tournamentId },
+      select: { tournamentId: true },
+    });
+    if (!tournament) throw httpError('Tournament not found', 404);
+
+    const entries = await prisma.raceEntry.findMany({
+      where: {
+        race: { tournamentId },
+      },
+      orderBy: [{ raceId: 'asc' }, { entryId: 'asc' }],
+      select: {
+        entryId: true,
+        raceId: true,
+        horseId: true,
+        jockeyId: true,
+        status: true,
+        rejectionReason: true,
+        createdAt: true,
+        horse: {
+          select: {
+            horseId: true,
+            name: true,
+            horseCode: true,
+            ownerUserId: true,
+          },
+        },
+        jockey: {
+          select: {
+            userId: true,
+            fullName: true,
+            licenseNumber: true,
+            weight: true,
+          },
+        },
+        race: {
+          select: {
+            raceId: true,
+            name: true,
+            raceNumber: true,
+            scheduledStart: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return entries;
+  }
 }
 
 module.exports = new AdminTournamentsService();

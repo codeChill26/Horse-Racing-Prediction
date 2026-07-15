@@ -15,13 +15,16 @@ import {
   AlertTriangle,
   User,
   ShieldCheck,
+  Bell,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { logoutUser } from "../../api/auth";
 import {
   clearAuthTokens,
   getAccessToken,
   getRefreshToken,
 } from "../../utils/token";
+import { refereeNotificationService } from "../../services/refereeService";
 import "./RefereeLayout.css";
 
 const NAV_ITEMS = [
@@ -32,8 +35,28 @@ const NAV_ITEMS = [
   { label: "Profile", path: "/referee/profile", icon: User, end: false },
 ];
 
+const POLL_INTERVAL_MS = 30_000;
+
 export default function RefereeLayout() {
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshUnread = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const list = await refereeNotificationService.getMyNotifications({ unread: true });
+      setUnreadCount(Array.isArray(list) ? list.length : 0);
+    } catch {
+      // Silent fail — polling best-effort
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshUnread();
+    const id = setInterval(refreshUnread, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [refreshUnread]);
 
   const onLogout = async () => {
     try {
@@ -75,6 +98,21 @@ export default function RefereeLayout() {
               </NavLink>
             );
           })}
+
+          <NavLink
+            to="/referee/notifications"
+            className={({ isActive }) =>
+              `ref-nav-link${isActive ? " is-active" : ""} ref-nav-link--notifications`
+            }
+          >
+            <Bell className="ref-nav-icon" size={16} />
+            <span>Thông báo</span>
+            {unreadCount > 0 && (
+              <span className="ref-nav-badge" aria-label={`${unreadCount} chưa đọc`}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </NavLink>
         </nav>
 
         <div className="ref-sidebar-footer">

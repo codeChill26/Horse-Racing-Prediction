@@ -12,6 +12,15 @@ async function listOpenRaces(req, res) {
   }
 }
 
+async function listBettableRaces(req, res) {
+  try {
+    const races = await ownerService.listBettableRaces();
+    return res.status(200).json({ races });
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 async function listMyEntries(req, res) {
   try {
     const ownerId = Number(req.user.sub);
@@ -51,6 +60,7 @@ async function getRaceDetail(req, res) {
 
 module.exports = {
   listOpenRaces,
+  listBettableRaces,
   listMyEntries,
   listRaceEntries,
   getRaceDetail,

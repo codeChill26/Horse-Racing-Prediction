@@ -17,16 +17,6 @@ class RefereeService {
         where: { raceId: parseInt(raceId) }
       });
 
-    console.log('====================');
-    console.log('raceId =', raceId);
-    console.log('refereeUserId =', refereeUserId);
-    console.log('typeof refereeUserId =', typeof refereeUserId);
-
-    console.log('race.refereeAId =', race?.refereeAId);
-    console.log('race.refereeBId =', race?.refereeBId);
-    console.log('typeof race.refereeAId =', typeof race?.refereeAId);
-    console.log('====================');
-
       if (!race) throw httpError('Trận đấu không tồn tại trong hệ thống.', 404);
       if (race.status !== 'SCHEDULED') throw httpError('Trận đấu chỉ có thể bắt đầu khi ở trạng thái SCHEDULED.', 409);
       if (!race.refereeAId || !race.refereeBId) throw httpError('Trận đấu chưa được cấu hình phân công đủ 2 trọng tài.', 409);
@@ -62,7 +52,13 @@ class RefereeService {
       });
 
       if (!race) throw httpError('Trận đấu không tồn tại.', 404);
-      if (race.status !== 'IN_PROGRESS') throw httpError('Cổng nhập kết quả chỉ mở khi trận đấu đang ở trạng thái IN_PROGRESS.', 409);
+      // Hỗ trợ race ở trạng thái IN_PROGRESS (submission đầu tiên)
+      // hoặc FINISHED (race vừa được referee kia finish trong cùng transaction —
+      // race condition nhưng vẫn hợp lệ vì kết quả giống nhau).
+      const allowedStatuses = ['IN_PROGRESS', 'FINISHED'];
+      if (!allowedStatuses.includes(race.status)) {
+        throw httpError('Cổng nhập kết quả chỉ mở khi trận đấu đang ở trạng thái IN_PROGRESS.', 409);
+      }
       
       if (race.refereeAId !== refereeUserId && race.refereeBId !== refereeUserId) {
         throw httpError('Bạn không phải trọng tài được phân công gán cho trận đấu này.', 403);
@@ -72,19 +68,46 @@ class RefereeService {
       const hasSubmitted = race.refereeSubmissions.some(s => s.refereeId === refereeUserId);
       if (hasSubmitted) throw httpError('Bạn đã nộp kết quả trước đó. Hệ thống cấm chỉnh sửa.', 409);
 
-      // Lưu kết quả Blind
+      // Lấy entries để enrich rawResults với horse/jockey info
+      const raceEntries = await tx.raceEntry.findMany({
+        where: { raceId: parseInt(raceId) },
+        include: {
+          horse: { select: { horseId: true, name: true } },
+          jockey: { select: { userId: true, fullName: true } }
+        }
+      });
+
+      // Enrich rawResults với horse/jockey info
+      const enrichedRawResults = rawResults.map(r => {
+        const entry = raceEntries.find(e => e.entryId === r.entryId);
+        return {
+          ...r,
+          horseId: entry?.horse?.horseId || null,
+          horseName: entry?.horse?.name || null,
+          jockeyId: entry?.jockey?.userId || null,
+          jockeyName: entry?.jockey?.fullName || null,
+          gateNumber: entry?.gateNumber || null,
+        };
+      });
+
+      // Lưu kết quả Blind với thông tin ngựa/jockey đã được enrich
       const currentSubmission = await tx.refereeSubmission.create({
         data: {
           raceId: parseInt(raceId),
           refereeId: refereeUserId,
-          rawResults: rawResults
+          rawResults: enrichedRawResults
         }
       });
 
       const allSubmissions = [...race.refereeSubmissions, currentSubmission];
 
+      console.log(`[submitRaceResult] raceId=${raceId} refereeUserId=${refereeUserId} refereeAId=${race.refereeAId} refereeBId=${race.refereeBId}`);
+      console.log(`[submitRaceResult] total submissions after this: ${allSubmissions.length}`);
+      console.log(`[submitRaceResult] all refereeIds: ${allSubmissions.map(s => s.refereeId).join(',')}`);
+
       // Nếu mới có 1 người nộp -> Đợi người còn lại
       if (allSubmissions.length < 2) {
+        console.log(`[submitRaceResult] Only ${allSubmissions.length} submission(s) — returning PENDING_PARTNER`);
         return {
           status: 'PENDING_PARTNER',
           message: 'Nộp kết quả thành công. Đang chờ trọng tài thứ hai hoàn thành Blind Submission.'
@@ -92,45 +115,119 @@ class RefereeService {
       }
 
       // Nếu đã đủ 2 người nộp -> Tiến hành Match Engine đối chiếu kết quả
-      const submissionA = allSubmissions.find(s => s.refereeId === race.refereeAId);
-      const submissionB = allSubmissions.find(s => s.refereeId === race.refereeBId);
+      // Fetch lại để đảm bảo có đủ 2 submissions trong transaction (Prisma không tự cập nhật
+      // include khi tạo record mới trong cùng transaction).
+      const refreshedSubmissions = await tx.refereeSubmission.findMany({
+        where: { raceId: parseInt(raceId) },
+      });
+      const submissionA = refreshedSubmissions.find(s => s.refereeId === race.refereeAId);
+      const submissionB = refreshedSubmissions.find(s => s.refereeId === race.refereeBId);
+      console.log(`[submitRaceResult] refreshedSubmissions.length=${refreshedSubmissions.length}`);
+      console.log(`[submitRaceResult] submissionA.refereeId=${submissionA?.refereeId} submissionB.refereeId=${submissionB?.refereeId}`);
+
+      // Kiểm tra điều kiện đủ 2 submissions thực sự
+      if (!submissionA || !submissionB) {
+        console.log(`[submitRaceResult] Still waiting for the other referee — returning PENDING_PARTNER`);
+        return {
+          status: 'PENDING_PARTNER',
+          message: 'Nộp kết quả thành công. Đang chờ trọng tài thứ hai hoàn thành Blind Submission.'
+        };
+      }
 
       // Sắp xếp theo entryId trước khi chuỗi hóa JSON để đảm bảo tính so sánh chính xác tuyệt đối
-      const sortedA = [...submissionA.rawResults].sort((a, b) => a.entryId - b.entryId);
-      const sortedB = [...submissionB.rawResults].sort((a, b) => a.entryId - b.entryId);
+      const getRawResults = (sub) => Array.isArray(sub?.rawResults) ? sub.rawResults : [];
+      const sortedA = [...getRawResults(submissionA)].sort((a, b) => (a?.entryId ?? 0) - (b?.entryId ?? 0));
+      const sortedB = [...getRawResults(submissionB)].sort((a, b) => (a?.entryId ?? 0) - (b?.entryId ?? 0));
+      console.log(`[submitRaceResult] sortedA.length=${sortedA.length} sortedB.length=${sortedB.length}`);
+      console.log(`[submitRaceResult] sortedA=`, JSON.stringify(sortedA));
+      console.log(`[submitRaceResult] sortedB=`, JSON.stringify(sortedB));
 
-      if (JSON.stringify(sortedA) === JSON.stringify(sortedB)) {
-        // KHỚP 100% -> Chuyển sang PENDING_RESULT
+      const isMatch = sortedA.length === sortedB.length &&
+        sortedA.every((item, i) => item.entryId === sortedB[i]?.entryId &&
+          item.rank === sortedB[i]?.rank &&
+          item.isDnf === sortedB[i]?.isDnf &&
+          item.isDq === sortedB[i]?.isDq);
+
+      if (isMatch) {
+        // KHỚP 100% -> Auto-finish race (không cần chờ Admin duyệt)
+        console.log(`[submitRaceResult] MATCH! Updating race to FINISHED`);
         await tx.race.update({
           where: { raceId: parseInt(raceId) },
-          data: { status: 'PENDING_RESULT' }
+          data: { status: 'FINISHED' }
         });
 
-        await tx.officialRaceResult.create({
-          data: {
+        // upsert để xử lý race condition: nếu transaction 1 đã tạo
+        // OfficialRaceResult rồi thì transaction 2 ghi đè bằng cùng kết quả (idempotent).
+        await tx.officialRaceResult.upsert({
+          where: { raceId: parseInt(raceId) },
+          create: {
             raceId: parseInt(raceId),
+            matchStatus: 'AUTO_MATCHED',
+            finalResults: submissionA.rawResults
+          },
+          update: {
             matchStatus: 'AUTO_MATCHED',
             finalResults: submissionA.rawResults
           }
         });
 
+        // Tạo RaceResult từ finalResults
+        const raceEntries = await tx.raceEntry.findMany({
+          where: { raceId: parseInt(raceId) },
+          select: { entryId: true, horseId: true }
+        });
+        const entryMap = Object.fromEntries(raceEntries.map(e => [e.entryId, e.horseId]));
+
+        const raceResultsData = submissionA.rawResults.map(item => ({
+          raceId: parseInt(raceId),
+          horseId: entryMap[item.entryId],
+          finishPosition: item.rank
+        })).filter(r => r.horseId != null);
+
+        if (raceResultsData.length > 0) {
+          // Xóa kết quả cũ (nếu có) rồi tạo mới
+          await tx.raceResult.deleteMany({ where: { raceId: parseInt(raceId) } });
+          await tx.raceResult.createMany({ data: raceResultsData });
+          console.log(`[submitRaceResult] Created ${raceResultsData.length} RaceResult records`);
+        }
+
+        // Lấy thông tin race để broadcast
+        const raceInfo = await tx.race.findUnique({
+          where: { raceId: parseInt(raceId) },
+          select: { name: true, tournamentId: true }
+        });
+        const raceResultPayload = {
+          raceId: parseInt(raceId),
+          raceName: raceInfo.name,
+          status: 'FINISHED',
+          results: raceResultsData
+        };
+
         // Kết quả đã chính thức -> cập nhật OR/RPR theo vị trí về đích (rule-based).
         await applyPositionRatingUpdates(parseInt(raceId), tx);
 
         return {
-          status: 'AUTO_MATCHED',
-          message: 'Kết quả trùng khớp 100%! Trận đấu chuyển sang PENDING_RESULT chờ Admin duyệt.'
+          status: 'FINISHED',
+          message: 'Kết quả trùng khớp 100%! Trận đấu đã kết thúc và công bố kết quả.',
+          raceResult: raceResultPayload
         };
       } else {
         // LỆCH KẾT QUẢ -> Đóng băng chuyển sang trạng thái PAUSED
+        console.log(`[submitRaceResult] CONFLICT! Updating race to PAUSED`);
         await tx.race.update({
           where: { raceId: parseInt(raceId) },
           data: { status: 'PAUSED' }
         });
 
-        await tx.officialRaceResult.create({
-          data: {
+        // upsert tương tự cho trường hợp conflict
+        await tx.officialRaceResult.upsert({
+          where: { raceId: parseInt(raceId) },
+          create: {
             raceId: parseInt(raceId),
+            matchStatus: 'CONFLICTED',
+            finalResults: {}
+          },
+          update: {
             matchStatus: 'CONFLICTED',
             finalResults: {}
           }
@@ -180,6 +277,7 @@ class RefereeService {
         name: race.name,
         tournamentName: race.tournament.name,
         tournamentId: race.tournamentId,
+        location: race.tournament?.location || '',
         scheduledStartTime: race.scheduledAt,
         actualStartTime: race.publishedAt,
         status: race.status,
@@ -194,9 +292,10 @@ class RefereeService {
           status: race.status === 'SCHEDULED' ? 'AwaitingSubmission' : race.status,
           mySubmissionStatus: mySub ? 'Submitted' : 'NotSubmitted',
           otherRefereeStatus: 'Hidden', // Bảo mật kết quả đối phương
-          horses: race.entries.map(e => ({
+          horses: race.entries.map((e, idx) => ({
+            entryId: e.entryId,
             horseId: e.horseId,
-            gateNumber: e.saddleNo || 0,
+            gateNumber: e.saddleNo || idx + 1,
             horseName: e.horse.name,
             jockeyName: e.jockey?.fullName || 'N/A'
           }))
@@ -222,7 +321,14 @@ class RefereeService {
   async getSubmissionsHistory(refereeId, queryParams = {}) {
     return await prisma.refereeSubmission.findMany({
       where: { refereeId: refereeId },
-      include: { race: { select: { name: true } } },
+      include: {
+        race: {
+          select: {
+            name: true,
+            officialRaceResult: { select: { matchStatus: true } }
+          }
+        }
+      },
       orderBy: { submittedAt: 'desc' }
     });
   }

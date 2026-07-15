@@ -114,4 +114,49 @@ export const tournamentService = {
       description: data.location ? `${data.location} · ${data.dates ?? ""}` : data.dates,
     });
   },
+
+  /**
+   * GET /api/admin/tournaments/:id/entries
+   * Lấy entries đã APPROVED của tournament
+   */
+  async getTournamentEntries(tournamentId) {
+    if (!tournamentId) throw new Error("Thiếu mã giải đấu");
+    return tournamentRepository.getTournamentEntries(tournamentId);
+  },
+
+  /**
+   * POST /api/admin/tournaments/:id/notify-owners
+   * Gửi thông báo đến horse owners
+   */
+  async notifyHorseOwners(tournamentId, message) {
+    if (!tournamentId) throw new Error("Thiếu mã giải đấu");
+    const trimmedMsg = message ? String(message).trim() : "";
+    if (!trimmedMsg) {
+      throw new Error("Nội dung thông báo là bắt buộc");
+    }
+    if (trimmedMsg.length > 500) {
+      throw new Error("Nội dung thông báo tối đa 500 ký tự");
+    }
+    return tournamentRepository.notifyHorseOwners(tournamentId, trimmedMsg);
+  },
+
+  /**
+   * POST /api/admin/tournaments/:id/assign-referees
+   * Assign referees cho tournament
+   *
+   * Trả về response đầy đủ từ BE bao gồm `totalRaces`, `preAssignment` để caller
+   * biết tournament có race nào chưa + có notification pre-assignment hay không.
+   */
+  async assignRefereesToTournament(tournamentId, refereeAId, refereeBId) {
+    if (!tournamentId) throw new Error("Thiếu mã giải đấu");
+    if (!refereeAId) throw new Error("Thiếu mã trọng tài A");
+    if (!refereeBId) throw new Error("Thiếu mã trọng tài B");
+    if (refereeAId === refereeBId) {
+      throw new Error("Hai trọng tài phải khác nhau");
+    }
+    return tournamentRepository.assignReferees(tournamentId, {
+      refereeAId,
+      refereeBId,
+    });
+  },
 };

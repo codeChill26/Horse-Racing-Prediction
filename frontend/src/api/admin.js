@@ -88,16 +88,8 @@ export async function changeAdminUserRole(userId, roleCode) {
 
 /**
  * Admin Referee Management
+ * Lấy danh sách user có role RACE_REFEREE (seed code trong DB).
  */
 export async function listReferees() {
-  const res = await fetch('/api/admin/users?roleCode=REFEREE', { headers: authHeaders() })
-  if (!res.ok) await readError(res, 'Không tải được danh sách trọng tài')
-  const data = await res.json()
-  return Array.isArray(data?.users) ? data.users : []
-}
-
-export async function getRefereeStats() {
-  const res = await fetch('/api/admin/referees/stats', { headers: authHeaders() })
-  if (!res.ok) await readError(res, 'Không tải được thống kê trọng tài')
-  return res.json()
+  return listAdminUsers('RACE_REFEREE')
 }

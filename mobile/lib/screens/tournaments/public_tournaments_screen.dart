@@ -9,9 +9,17 @@ import 'tournament_view_theme.dart';
 
 /// GET /api/tournaments — dùng chung cho Chủ ngựa, Kỵ sĩ, Khán giả.
 class PublicTournamentsScreen extends StatefulWidget {
-  const PublicTournamentsScreen({super.key, required this.theme});
+  const PublicTournamentsScreen({
+    super.key,
+    required this.theme,
+    this.onOpenDetail,
+  });
 
   final TournamentViewTheme theme;
+
+  /// Callback tuỳ chọn khi user bấm vào 1 giải đấu. Nếu null → dùng
+  /// hành vi cũ (mở `PublicTournamentDetailScreen` mặc định).
+  final void Function(PublicTournament tournament)? onOpenDetail;
 
   @override
   State<PublicTournamentsScreen> createState() => _PublicTournamentsScreenState();
@@ -54,6 +62,10 @@ class _PublicTournamentsScreenState extends State<PublicTournamentsScreen> {
   }
 
   void _openDetail(PublicTournament t) {
+    if (widget.onOpenDetail != null) {
+      widget.onOpenDetail!(t);
+      return;
+    }
     final id = t.tournamentId;
     if (id == null) return;
     Navigator.of(context).push(

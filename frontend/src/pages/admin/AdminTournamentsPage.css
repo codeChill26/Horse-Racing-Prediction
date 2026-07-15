@@ -481,3 +481,31 @@
   border: 1px solid rgba(248, 81, 73, 0.3);
   color: #ff7b72;
 }
+
+/* Ready / Pending badges for tournament status */
+.adm-t-ready-badge,
+.adm-t-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.adm-t-ready-badge {
+  background: rgba(141, 214, 166, 0.15);
+  border: 1px solid rgba(141, 214, 166, 0.4);
+  color: #8dd6a6;
+}
+
+.adm-t-pending-badge {
+  background: rgba(230, 195, 100, 0.12);
+  border: 1px solid rgba(230, 195, 100, 0.3);
+  color: #e6c364;
+  cursor: help;
+}

@@ -4,6 +4,10 @@ const router = express.Router();
 const ownerController = require('../controllers/owner.controller');
 const raceEntriesController = require('../controllers/raceEntries.controller');
 
+// GET /api/races/bettable - Race khán giả có thể đặt cược (SCHEDULED + tournament OPEN/ONGOING).
+// Phải đặt TRƯỚC /:id để tránh bị match bởi 'bettable' như 1 race id.
+router.get('/bettable', ownerController.listBettableRaces);
+
 // GET /api/races/open - List all races with registration open
 router.get('/open', ownerController.listOpenRaces);
 

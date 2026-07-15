@@ -106,7 +106,10 @@ class _RaceRefereeScreenState extends State<_RaceRefereeScreen>
       _loadingAssigned = true;
     });
     try {
-      final list = await _service.listAssignedReferees(widget.raceId);
+      final list = await _service.listAssignedReferees(
+        widget.raceId,
+        refereesCache: _referees,
+      );
       if (!mounted) return;
       setState(() {
         _assigned = list;
@@ -129,12 +132,15 @@ class _RaceRefereeScreenState extends State<_RaceRefereeScreen>
       _loadingReferees = true;
     });
     try {
-      final list = await _service.listAvailableReferees(raceId: widget.raceId);
+      final list = await _service.listAvailableReferees();
       if (!mounted) return;
       setState(() {
         _referees = list;
         _loadingReferees = false;
       });
+      // Sau khi đã có danh sách referee, tra lại ai đang được phân công
+      // (dùng cache để dựng name/email cho RefereeAssignment).
+      await _loadAssigned();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -194,6 +200,7 @@ class _RaceRefereeScreenState extends State<_RaceRefereeScreen>
       final list = await _service.assignReferees(
         widget.raceId,
         _selected.toList()..sort(),
+        referees: _referees,
       );
       if (!mounted) return;
       setState(() {

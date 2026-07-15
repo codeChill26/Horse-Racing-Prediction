@@ -107,7 +107,17 @@ class AdminRacesService {
     const tournament = await prisma.tournament.findUnique({ where: { tournamentId }, select: { tournamentId: true, status: true } });
     if (!tournament) throw httpError('Tournament not found', 404);
 
-    return prisma.race.create({
+    // Auto-populate entries: lấy tất cả (horseId, jockeyId) đã tham gia races khác
+    // trong cùng tournament, rồi tạo entries PENDING cho race mới
+    const existingEntries = await prisma.raceEntry.findMany({
+      where: {
+        race: { tournamentId },
+      },
+      select: { horseId: true, jockeyId: true },
+      distinct: ['horseId', 'jockeyId'],
+    });
+
+    const race = await prisma.race.create({
       data: {
         tournamentId,
         name,
@@ -115,9 +125,21 @@ class AdminRacesService {
         scheduledAt: scheduledAt ?? null,
         registrationDeadline: registrationDeadline ?? null,
         status: 'SCHEDULED',
+        entries: existingEntries.length > 0 ? {
+          createMany: {
+            data: existingEntries.map(e => ({
+              horseId: e.horseId,
+              jockeyId: e.jockeyId ?? null,
+              status: 'PENDING',
+            })),
+            skipDuplicates: true, // bỏ qua nếu (raceId, horseId) đã tồn tại
+          }
+        } : undefined,
       },
       select: adminRaceSelect(),
     });
+
+    return race;
   }
 
   async updateRace(raceId, { name, maxEntries, scheduledAt, registrationDeadline }) {
@@ -315,12 +337,37 @@ class AdminRacesService {
 
   /**
    * Lấy danh sách toàn bộ Race (Có phân trang)
+   * HOẶC lấy tất cả không phân trang nếu pageSize = -1
    */
-  async listAllRaces({ page = 1, pageSize = 10, status } = {}) {
+  async listAllRaces({ page = 1, pageSize = 50, status } = {}) {
     const skip = (page - 1) * pageSize;
-    const where = status ? { status } : {};
+    const where = {};
+    if (status && status !== 'ALL') {
+      where.status = status;
+    }
 
-    const [total, races] = await prisma.$transaction([
+    let races;
+    if (pageSize === -1) {
+      // Lấy tất cả không phân trang (cho AdminRaceStagePage)
+      const allRaces = await prisma.race.findMany({
+        where,
+        orderBy: { scheduledAt: 'asc' },
+        include: {
+          refereeA: { select: { userId: true, fullName: true } },
+          refereeB: { select: { userId: true, fullName: true } },
+          _count: { select: { entries: { where: { status: 'APPROVED' } } } }
+        }
+      });
+      races = allRaces.map(r => ({
+        ...r,
+        refereeAId: r.refereeA?.userId,
+        refereeBId: r.refereeB?.userId,
+        approvedEntriesCount: r._count.entries
+      }));
+      return { races };
+    }
+
+    const [total, paginatedRaces] = await prisma.$transaction([
       prisma.race.count({ where }),
       prisma.race.findMany({
         where,
@@ -328,24 +375,21 @@ class AdminRacesService {
         take: parseInt(pageSize),
         orderBy: { scheduledAt: 'asc' },
         include: {
-          refereeA: { select: { fullName: true } },
-          refereeB: { select: { fullName: true } },
+          refereeA: { select: { userId: true, fullName: true } },
+          refereeB: { select: { userId: true, fullName: true } },
           _count: { select: { entries: { where: { status: 'APPROVED' } } } }
         }
       })
     ]);
 
-    const formattedRaces = races.map(r => ({
+    races = paginatedRaces.map(r => ({
       ...r,
+      refereeAId: r.refereeA?.userId,
+      refereeBId: r.refereeB?.userId,
       approvedEntriesCount: r._count.entries
     }));
 
-    return { 
-      total, 
-      page: parseInt(page), 
-      pageSize: parseInt(pageSize), 
-      races: formattedRaces 
-    };
+    return { total, page: parseInt(page), pageSize: parseInt(pageSize), races };
   }
 
   /**

@@ -20,6 +20,7 @@ import {
   refereeSubmissionRepository,
   refereeConflictRepository,
   refereeProfileRepository,
+  refereeNotificationRepository,
 } from "../repositories/refereeRepository";
 
 /* --------------------------------- Race --------------------------------- */
@@ -138,5 +139,43 @@ export const refereeConflictService = {
 export const refereeProfileService = {
   async getProfile() {
     return refereeProfileRepository.getProfile();
+  },
+};
+
+/* ----------------------------- Notifications ----------------------------- */
+
+/**
+ * Notification service cho trọng tài.
+ * BE: GET /api/referee/me/notifications, POST .../read, POST .../read-all,
+ *     POST .../:id/respond { response: 'ACCEPTED'|'REFUSED', reason? }
+ */
+export const refereeNotificationService = {
+  async getMyNotifications(params) {
+    return refereeNotificationRepository.getMyNotifications(params);
+  },
+
+  async markAsRead(notificationId) {
+    if (!notificationId) throw new Error("Thiếu mã thông báo");
+    return refereeNotificationRepository.markAsRead(notificationId);
+  },
+
+  async markAllAsRead() {
+    return refereeNotificationRepository.markAllAsRead();
+  },
+
+  /**
+   * Phản hồi phân công (chấp nhận hoặc từ chối).
+   * @param {{ notificationId?: number|string, id?: number|string }} notification
+   * @param {'ACCEPTED'|'REFUSED'} response
+   * @param {string} [reason]
+   */
+  async respondAssignment(notification, response, reason) {
+    const id = notification?.notificationId ?? notification?.id;
+    if (!id) throw new Error("Thiếu mã thông báo");
+    return refereeNotificationRepository.respondAssignment({
+      notificationId: id,
+      response,
+      reason,
+    });
   },
 };

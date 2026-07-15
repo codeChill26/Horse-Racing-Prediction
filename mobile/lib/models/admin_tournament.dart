@@ -52,6 +52,16 @@ class AdminTournament {
     return s != 'FINISHED' && s != 'CANCELLED';
   }
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdminTournament &&
+          runtimeType == other.runtimeType &&
+          tournamentId == other.tournamentId;
+
+  @override
+  int get hashCode => tournamentId?.hashCode ?? 0;
+
   AdminTournament copyWith({
     int? tournamentId,
     String? name,
