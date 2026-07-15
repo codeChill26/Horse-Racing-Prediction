@@ -4,7 +4,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff, CheckCircle2, Undo2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff, CheckCircle2, Undo2, ExternalLink } from "lucide-react";
 import { raceService } from "../../services/raceService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceDetailService } from "../../services/raceDetailService";
@@ -258,6 +259,7 @@ function RegistrationModal({ race, registrations, onClose }) {
 }
 
 export default function AdminRaceStagePage() {
+  const navigate = useNavigate();
   const token = getAccessToken();
   const { connected } = useSocket(token);
   const toastify = useToast();
@@ -691,6 +693,14 @@ export default function AdminRaceStagePage() {
                             onClick={() => setDetail(r)}
                           >
                             <Eye size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="ars-icon-btn"
+                            title="Trang chi tiết đầy đủ (entries, gợi ý AI, settlement...)"
+                            onClick={() => navigate(`/admin/races/${r.raceId}`)}
+                          >
+                            <ExternalLink size={14} />
                           </button>
                           {r.status !== "FINISHED" && r.status !== "CANCELLED" && (
                             <>

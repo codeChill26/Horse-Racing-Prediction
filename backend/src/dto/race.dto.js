@@ -65,6 +65,30 @@ class RaceDtoValidator {
     return parsePositiveInt(params?.id, 'race id');
   }
 
+  parseEntryId(params) {
+    return parsePositiveInt(params?.entryId, 'entry id');
+  }
+
+  // Body: { entries: [{ entryId, oddsFinal }, ...] } — bắt buộc gửi ĐỦ toàn bộ entry
+  // của race (không cho sửa từng phần), xem lý do ở odds.js applyOddsSuggestions().
+  validateApplyOddsSuggestions(body) {
+    const entries = body?.entries;
+    if (!Array.isArray(entries) || entries.length === 0) {
+      throw new Error('entries must be a non-empty array');
+    }
+    return entries.map((e) => {
+      const entryId = Number(e?.entryId);
+      const oddsFinal = Number(e?.oddsFinal);
+      if (!Number.isInteger(entryId) || entryId <= 0) {
+        throw new Error('Each entry must have a valid entryId');
+      }
+      if (!Number.isFinite(oddsFinal) || oddsFinal <= 0) {
+        throw new Error(`Odds phải là số dương (entry ${e?.entryId})`);
+      }
+      return { entryId, oddsFinal };
+    });
+  }
+
   parseTreasury(query) {
     const raw = query?.treasury;
     if (raw === undefined || raw === null || raw === '') {

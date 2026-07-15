@@ -1,0 +1,119 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e47]:
+    - complementary [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]: GrandStride
+        - generic [ref=e51]: Bảng Điều Khiển Admin
+      - button "Đăng ký ngựa đua" [ref=e53] [cursor=pointer]
+      - navigation [ref=e56]:
+        - link "Tổng Quan" [ref=e57] [cursor=pointer]:
+          - /url: /admin
+        - link "Người Dùng" [ref=e63] [cursor=pointer]:
+          - /url: /admin/users
+        - link "Danh Sách Ngựa" [ref=e71] [cursor=pointer]:
+          - /url: /admin/horses
+        - link "Giải Đấu" [ref=e77] [cursor=pointer]:
+          - /url: /admin/tournaments
+        - link "Chặng Đua" [ref=e86] [cursor=pointer]:
+          - /url: /admin/races
+        - link "Xử Lý Sai Lệch" [ref=e91] [cursor=pointer]:
+          - /url: /admin/discrepancies
+        - link "Vi Phạm Kỷ Luật" [ref=e96] [cursor=pointer]:
+          - /url: /admin/violations
+        - link "Trọng Tài" [ref=e105] [cursor=pointer]:
+          - /url: /admin/referees
+        - link "Quản Lý Ví Điểm" [ref=e110] [cursor=pointer]:
+          - /url: /admin/points
+      - generic [ref=e116]:
+        - generic [ref=e117]:
+          - img "Avatar quản trị viên" [ref=e119]
+          - generic [ref=e120]: Quản trị viên
+        - button "Đăng xuất" [ref=e122] [cursor=pointer]
+    - generic [ref=e127]:
+      - banner [ref=e128]:
+        - heading "GrandStride" [level=1] [ref=e131]
+        - generic [ref=e132]:
+          - textbox "Tìm kiếm hồ sơ..." [ref=e137]
+          - generic [ref=e138]:
+            - button [ref=e139] [cursor=pointer]
+            - button [ref=e144] [cursor=pointer]
+          - generic [ref=e148]:
+            - generic [ref=e149]: Ban Điều Hành
+            - img "Admin Profile" [ref=e151]
+      - main [ref=e152]:
+        - generic [ref=e153]:
+          - generic [ref=e154]:
+            - heading "Hệ Thống Kiểm Soát GrandStride" [level=2] [ref=e155]
+            - paragraph [ref=e156]: Theo dõi thời gian thực, quản lý giải đấu và xét duyệt thẩm phán trường đua chuyên nghiệp.
+          - generic [ref=e157]:
+            - text: "ĐỒNG BỘ MÁY CHỦ BÁO CÁO:"
+            - generic [ref=e159]: HOẠT ĐỘNG
+        - generic [ref=e160]:
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - generic [ref=e167]: Duyệt Hồ Sơ Ngựa
+              - generic [ref=e173]: "15"
+              - paragraph [ref=e175]: Tổ hợp đăng ký ngựa tham chiến chính quy
+            - generic [ref=e176]:
+              - generic [ref=e180]: Sai Lệch Trọng Tài
+              - generic [ref=e185]:
+                - generic [ref=e186]: "0"
+                - generic [ref=e187]: Đã sạch
+              - paragraph [ref=e188]: Mâu thuẫn kết quả từ các tháp camera
+            - generic [ref=e189]:
+              - generic [ref=e197]: Vi Phạm Kỷ Luật
+              - generic [ref=e206]:
+                - generic [ref=e207]: "0"
+                - generic [ref=e208]: Chờ biểu quyết
+              - paragraph [ref=e209]: Sử dụng roi quá hạn hoặc vấn đề dược phẩm
+            - generic [ref=e210]:
+              - generic [ref=e215]: Quỹ Ví Khán Giả (Ví dụ)
+              - generic [ref=e221]:
+                - generic [ref=e222]: "0"
+                - generic [ref=e223]: PTS
+              - paragraph [ref=e224]: Tổng lưu lượng hạch toán ban điều hành
+          - generic [ref=e225]:
+            - generic [ref=e226]:
+              - generic [ref=e228]:
+                - heading "Lực lượng lượng dịch thể thao" [level=3] [ref=e229]
+                - paragraph [ref=e230]: Thống kê lưu huỳnh người đăng ký và điểm giao dịch hành chính nửa đầu 2026.
+              - img [ref=e234]:
+                - generic [ref=e239]:
+                  - generic [ref=e240]: Tháng 1
+                  - generic [ref=e242]: Tháng 2
+                  - generic [ref=e244]: Tháng 3
+                  - generic [ref=e246]: Tháng 4
+                  - generic [ref=e248]: Tháng 5
+                  - generic [ref=e250]: Tháng 6
+                - generic [ref=e253]:
+                  - generic [ref=e254]: "0"
+                  - generic [ref=e256]: "150"
+                  - generic [ref=e258]: "300"
+                  - generic [ref=e260]: "450"
+                  - generic [ref=e262]: "600"
+            - generic [ref=e268]:
+              - generic [ref=e269]:
+                - heading "Cấu Trúc Giống Ngựa" [level=3] [ref=e270]
+                - paragraph [ref=e271]: Phân bố tỉ trọng chủng ngựa đăng ký tại GrandStride Turf.
+              - generic [ref=e285]:
+                - generic [ref=e286]: Arabian Thorough (45%)
+                - generic [ref=e289]: Thoroughbred (35%)
+                - generic [ref=e292]: Quarter Horse (12%)
+                - generic [ref=e295]: Appaloosa (8%)
+          - generic [ref=e298]:
+            - heading "Nhiệm Vụ Kiểm Tra Gần Đây" [level=3] [ref=e299]
+            - generic [ref=e300]:
+              - generic [ref=e301]:
+                - generic [ref=e306]:
+                  - generic [ref=e307]: Giải quyết xung đột kết quả chung cuộc RC-1402
+                  - paragraph [ref=e308]: Hai tháp camera ghi nhận thứ tự 2 và 3 mẫu thuẫn ở vạch đích.
+                - generic [ref=e309]: ƯU TIÊN LỚN
+              - generic [ref=e310]:
+                - generic [ref=e319]:
+                  - generic [ref=e320]: Xem xét phiếu kháng nghị nài ngựa J. Doe
+                  - paragraph [ref=e321]: Khiếu nại về hành vi sử dụng roi quá số lần quy định tại Belmont Stakes.
+                - generic [ref=e322]: MẪU KHÁNG NGHỊ
+      - contentinfo [ref=e323]:
+        - generic [ref=e324]: © 2026 GRANDSTRIDE TURF CLUB INC. TẤT CẢ QUYỀN ĐƯỢC BẢO LƯU
+        - generic [ref=e325]: PHL-V4.2 // CLOUD INGRESS ACTIVE
+  - generic [ref=e326]: "0"

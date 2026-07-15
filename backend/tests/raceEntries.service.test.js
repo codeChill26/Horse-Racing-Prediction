@@ -14,6 +14,7 @@ describe('RaceEntriesService approved horse rule', () => {
       raceEntry: {
         create: jest.fn(),
         findUnique: jest.fn(),
+        count: jest.fn(),
         update: jest.fn(),
         updateMany: jest.fn(),
       },
@@ -32,7 +33,7 @@ describe('RaceEntriesService approved horse rule', () => {
     jest.resetModules();
     const prismaMock = makePrismaMock();
 
-    prismaMock.race.findUnique.mockResolvedValue({ raceId: 1, registrationOpen: true });
+    prismaMock.race.findUnique.mockResolvedValue({ raceId: 1, registrationOpen: true, maxEntries: 8 });
     prismaMock.horse.findUnique.mockResolvedValue({
       horseId: 2,
       ownerId: 7,
@@ -50,7 +51,7 @@ describe('RaceEntriesService approved horse rule', () => {
     jest.resetModules();
     const prismaMock = makePrismaMock();
 
-    prismaMock.race.findUnique.mockResolvedValue({ raceId: 1, registrationOpen: true });
+    prismaMock.race.findUnique.mockResolvedValue({ raceId: 1, registrationOpen: true, maxEntries: 8 });
     prismaMock.horse.findUnique.mockResolvedValue({
       horseId: 2,
       ownerId: 7,
@@ -89,6 +90,7 @@ describe('RaceEntriesService approved horse rule', () => {
     jest.resetModules();
     const prismaMock = makePrismaMock();
 
+    prismaMock.race.findUnique.mockResolvedValue({ raceId: 1, maxEntries: 8 });
     prismaMock.raceEntry.findUnique.mockResolvedValue({ entryId: 3, status: 'PENDING' });
     prismaMock.raceEntry.update.mockResolvedValue({ entryId: 3, status: 'APPROVED' });
 

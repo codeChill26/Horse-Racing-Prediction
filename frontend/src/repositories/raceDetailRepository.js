@@ -330,4 +330,59 @@ export const raceDetailRepository = {
   async closeRegistration(raceId) {
     return this.setRegistrationGate(raceId, false);
   },
+
+  /**
+   * GET /api/admin/races/:id/ai-odds?margin=
+   * Agent 1 (AI Prediction) — gợi ý xác suất thắng + odds cho các entry APPROVED.
+   * Không có mock fallback — đây là tính năng gọi thẳng AI service qua backend.
+   * @param {string|number} raceId
+   * @param {number} [margin]
+   */
+  async getAiOdds(raceId, margin) {
+    const qs = margin !== undefined && margin !== null && margin !== "" ? `?margin=${margin}` : "";
+    const res = await fetch(`/api/admin/races/${raceId}/ai-odds${qs}`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) await readError(res, "Không lấy được gợi ý odds từ AI");
+    return res.json();
+  },
+
+  /**
+   * GET /api/admin/races/:id/risk-score?treasury=
+   * Agent 2 (AI Risk) — risk score dựa trên các cược PENDING + odds hiện tại.
+   * @param {string|number} raceId
+   * @param {number} treasury
+   */
+  async getRiskScore(raceId, treasury) {
+    const res = await fetch(
+      `/api/admin/races/${raceId}/risk-score?treasury=${treasury}`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) await readError(res, "Không lấy được đánh giá rủi ro từ AI");
+    return res.json();
+  },
+
+  /**
+   * PATCH /api/admin/races/:id/entries/:entryId/odds
+   * Admin ghi đè odds thủ công cho 1 entry (vd theo gợi ý AI, có thể sửa tay trước khi áp dụng).
+   * @param {string|number} raceId
+   * @param {string|number} entryId
+   * @param {number} oddsFinal
+   */
+  /**
+   * PATCH /api/admin/races/:id/odds
+   * Áp dụng odds mới cho TOÀN BỘ entries của race cùng lúc (1 transaction) — không hỗ
+   * trợ sửa từng entry riêng lẻ, vì chỉ đổi 1 con sẽ làm lệch tổng margin của cả race.
+   * @param {string|number} raceId
+   * @param {{entryId: number, oddsFinal: number}[]} entries
+   */
+  async applyOddsSuggestions(raceId, entries) {
+    const res = await fetch(`/api/admin/races/${raceId}/odds`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ entries }),
+    });
+    if (!res.ok) await readError(res, "Không áp dụng được odds mới");
+    return res.json();
+  },
 };

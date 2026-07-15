@@ -176,7 +176,10 @@ class AdminRacesService {
         },
         jockey: {
           select: { userId: true, fullName: true, email: true },
-        }
+        },
+        odds: {
+          select: { oddsFinal: true },
+        },
       },
     });
 
@@ -197,6 +200,7 @@ class AdminRacesService {
       ownerEmail: e.horse.owner?.email || 'N/A',
       gate: e.entryId, // Dùng entryId làm gate mặc định
       status: e.status,
+      oddsFinal: e.odds?.[0] ? Number(e.odds[0].oddsFinal) : null,
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
       rejectionReason: e.rejectionReason

@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Edit, XCircle, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Edit, XCircle, Wifi, WifiOff, Sparkles } from "lucide-react";
 import { raceDetailService } from "../../services/raceDetailService";
 import { raceEntryService } from "../../services/raceEntryService";
 import { settlementService } from "../../services/settlementService";
@@ -33,6 +33,7 @@ import {
   CancelReasonModal,
   RollbackReasonModal,
 } from "../../components/admin/race/AdminRaceDetailModals";
+import AiAdvisoryModal from "../../components/admin/race/AiAdvisoryModal";
 import { useSettlementActions } from "../../hooks/useSettlementActions";
 import { useSocket } from "../../hooks/useSocket";
 import {
@@ -81,6 +82,7 @@ export default function AdminRaceDetailPage() {
   const [cancelModal, setCancelModal] = useState(false);
   const [rejectEntryModal, setRejectEntryModal] = useState(null);
   const [rollbackModal, setRollbackModal] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [entryBusyId, setEntryBusyId] = useState(null);
   const [entryError, setEntryError] = useState("");
   const [approveConfirmModal, setApproveConfirmModal] = useState(null);
@@ -122,14 +124,20 @@ export default function AdminRaceDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [raceData, entriesData, statsData] = await Promise.all([
+      // allSettled: /statistics chưa có trên BE (404 luôn) — không được để nó
+      // kéo sập race/entries (Promise.all fail-fast sẽ hủy cả 2 cái đã tải được).
+      const [raceResult, entriesResult, statsResult] = await Promise.allSettled([
         raceDetailService.getRaceDetail(raceId),
         raceDetailService.getEntries(raceId),
         raceDetailService.getStatistics(raceId),
       ]);
+
+      if (raceResult.status === "rejected") throw raceResult.reason;
+
+      const raceData = raceResult.value;
       setRace(raceData);
-      setEntries(entriesData);
-      setStatistics(statsData);
+      setEntries(entriesResult.status === "fulfilled" ? entriesResult.value : []);
+      setStatistics(statsResult.status === "fulfilled" ? statsResult.value : null);
 
       if (String(raceData?.status || "").toUpperCase() === "FINISHED") {
         try {
@@ -566,6 +574,15 @@ export default function AdminRaceDetailPage() {
               <button
                 type="button"
                 className="ard-quick-btn"
+                onClick={() => setAiModalOpen(true)}
+                disabled={busy || loading}
+              >
+                <Sparkles size={16} />
+                Gợi ý AI
+              </button>
+              <button
+                type="button"
+                className="ard-quick-btn"
                 onClick={handleEdit}
                 disabled={busy}
               >
@@ -638,6 +655,11 @@ export default function AdminRaceDetailPage() {
           onConfirm={handleConfirmRejectEntry}
         />
       ) : null}
+
+      {/* AI Advisory Modal — gợi ý odds + đánh giá rủi ro */}
+      {aiModalOpen && (
+        <AiAdvisoryModal race={race} onClose={() => setAiModalOpen(false)} />
+      )}
 
       {/* Confirm Modal: approve entry */}
       {approveConfirmModal ? (
