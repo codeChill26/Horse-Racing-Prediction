@@ -319,6 +319,8 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
   Widget _buildSummaryCard() {
     final summary = _aiOdds!.summary;
     final generatedAt = _aiOdds!.generatedAt;
+    final source = _aiOdds!.source;
+    final note = _aiOdds!.note;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -341,30 +343,70 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
                   fontSize: 16,
                 ),
               ),
+              if (source != null && source.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.adminAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    source,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.adminAccent,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
+          if (note != null && note.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              note,
+              style: const TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildStatChip(
-                'Tổng ngựa',
-                '${summary?.totalEntries ?? 0}',
-                Icons.pets,
-              ),
-              const SizedBox(width: 12),
-              _buildStatChip(
-                'Độ tin cậy TB',
-                summary?.avgConfidence ?? 'N/A',
-                Icons.verified,
-              ),
-              const SizedBox(width: 12),
-              _buildStatChip(
-                'Biến động',
-                summary?.marketVolatility.toStringAsFixed(2) ?? 'N/A',
-                Icons.trending_up,
-              ),
-            ],
-          ),
+          if (summary != null)
+            Row(
+              children: [
+                _buildStatChip(
+                  'Tổng ngựa',
+                  '${summary.totalEntries}',
+                  Icons.pets,
+                ),
+                const SizedBox(width: 12),
+                _buildStatChip(
+                  'Độ tin cậy TB',
+                  summary.avgConfidence,
+                  Icons.verified,
+                ),
+                const SizedBox(width: 12),
+                _buildStatChip(
+                  'Biến động',
+                  summary.marketVolatility.toStringAsFixed(2),
+                  Icons.trending_up,
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                _buildStatChip(
+                  'Tổng ngựa',
+                  '${_aiOdds!.suggestions.length}',
+                  Icons.pets,
+                ),
+              ],
+            ),
           if (generatedAt != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -440,7 +482,8 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
             color: AppColors.adminBg,
             child: const Row(
               children: [
-                Expanded(flex: 2, child: Text('Ngựa', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                SizedBox(width: 28, child: Text('#', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
+                Expanded(flex: 2, child: Text('Ngựa / Jockey', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
                 Expanded(child: Text('P(Thắng)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
                 Expanded(child: Text('Odds Fair', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
                 Expanded(child: Text('Gợi ý', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
@@ -458,9 +501,10 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
 
   Widget _buildOddsRow(AiOddsSuggestion s) {
     final isUndervalued = s.suggestedOdds > s.fairOdds;
-    final confidenceColor = s.confidence == 'HIGH'
+    final confidence = s.effectiveConfidence;
+    final confidenceColor = confidence == 'HIGH'
         ? Colors.green
-        : s.confidence == 'MEDIUM'
+        : confidence == 'MEDIUM'
             ? Colors.orange
             : Colors.grey;
 
@@ -471,12 +515,52 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
       ),
       child: Row(
         children: [
+          SizedBox(
+            width: 28,
+            child: s.rank != null
+                ? Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: s.rank == 1
+                          ? Colors.amber.withValues(alpha: 0.2)
+                          : s.rank == 2
+                              ? Colors.grey.withValues(alpha: 0.2)
+                              : s.rank == 3
+                                  ? Colors.brown.withValues(alpha: 0.15)
+                                  : AppColors.adminBg,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${s.rank}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           Expanded(
             flex: 2,
-            child: Text(
-              s.horseName ?? 'Entry #${s.entryId}',
-              style: const TextStyle(fontSize: 13),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s.horseName ?? 'Entry #${s.entryId}',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (s.jockeyName != null && s.jockeyName!.isNotEmpty)
+                  Text(
+                    'Jockey: ${s.jockeyName}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
             ),
           ),
           Expanded(
@@ -505,22 +589,26 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
             ),
           ),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isUndervalued
-                    ? Colors.green.withValues(alpha: 0.1)
-                    : Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                isUndervalued ? '↓ Hời' : '↑ Đắt',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isUndervalued ? Colors.green : Colors.red,
+            child: Tooltip(
+              message: 'Độ tin cậy: $confidence',
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isUndervalued
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: confidenceColor, width: 0.5),
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  isUndervalued ? '↓ Hời' : '↑ Đắt',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isUndervalued ? Colors.green : Colors.red,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
@@ -604,7 +692,7 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
         children: [
           _buildRiskOverviewCard(),
           const SizedBox(height: 16),
-          _buildScenarioTable(),
+          _buildHorseTable(),
           const SizedBox(height: 16),
           _buildRecommendationsCard(),
         ],
@@ -620,6 +708,8 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
             : _riskScore!.riskLevel == 'HIGH'
                 ? Colors.red
                 : Colors.purple;
+    final source = _riskScore!.source;
+    final note = _riskScore!.note;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -629,30 +719,60 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _riskScore!.raceName ?? 'Race #${_riskScore!.raceId}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _riskScore!.raceName ?? 'Race #${_riskScore!.raceId}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (source != null && source.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.adminAccent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              source,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.adminAccent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Treasury: ${formatCurrency(_riskScore!.treasury.toInt())}',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Treasury: ${formatCurrency(_riskScore!.treasury.toInt())}',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -670,6 +790,17 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
               ),
             ],
           ),
+          if (note != null && note.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              note,
+              style: const TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -712,14 +843,16 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
                 size: 20,
               ),
               const SizedBox(width: 8),
-              Text(
-                _riskScore!.isHealthyCoverage
-                    ? 'Coverage ratio: ${_riskScore!.coverageRatio.toStringAsFixed(2)}x ✓ An toàn'
-                    : 'Coverage ratio: ${_riskScore!.coverageRatio.toStringAsFixed(2)}x ⚠️ Thiếu ${formatCurrency((_riskScore!.worstCaseLiability - _riskScore!.treasury).toInt())}',
-                style: TextStyle(
-                  color: _riskScore!.isHealthyCoverage ? Colors.green : Colors.red,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+              Expanded(
+                child: Text(
+                  _riskScore!.isHealthyCoverage
+                      ? 'Coverage ratio: ${_riskScore!.coverageRatio.toStringAsFixed(2)}x ✓ An toàn'
+                      : 'Coverage ratio: ${_riskScore!.coverageRatio.toStringAsFixed(2)}x ⚠️ Thiếu ${formatCurrency((_riskScore!.worstCaseLiability - _riskScore!.treasury).toInt())}',
+                  style: TextStyle(
+                    color: _riskScore!.isHealthyCoverage ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],
@@ -761,8 +894,8 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
     );
   }
 
-  Widget _buildScenarioTable() {
-    if (_riskScore!.scenarios.isEmpty) {
+  Widget _buildHorseTable() {
+    if (_riskScore!.horses.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -778,75 +911,167 @@ class _AdminRaceAiScreenState extends State<AdminRaceAiScreen>
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              'Kịch bản rủi ro',
+              'Chi tiết rủi ro theo ngựa',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
           const Divider(height: 1),
           // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             color: AppColors.adminBg,
             child: const Row(
               children: [
-                Expanded(flex: 2, child: Text('Ngựa', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                Expanded(child: Text('Pool', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
-                Expanded(child: Text('Payout', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
-                Expanded(child: Text('P(Thắng)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
+                Expanded(flex: 2, child: Text('Ngựa', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11))),
+                Expanded(child: Text('Odds HT', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11), textAlign: TextAlign.center)),
+                Expanded(child: Text('AI gợi ý', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11), textAlign: TextAlign.center)),
+                Expanded(child: Text('Pool', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11), textAlign: TextAlign.center)),
+                Expanded(child: Text('Liability', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11), textAlign: TextAlign.center)),
               ],
             ),
           ),
           // Rows
-          for (final s in _riskScore!.scenarios)
+          for (final h in _riskScore!.horses) _buildHorseRow(h),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHorseRow(RiskHorse h) {
+    final delta = h.oddsDelta;
+    final isUp = delta > 0.001;
+    final isDown = delta < -0.001;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      h.horseName ?? 'Entry #${h.entryId}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (h.numBettors > 0 || h.totalBet > 0)
+                      Text(
+                        '${h.numBettors} người · ${formatCurrency(h.totalBet.toInt())} · ${(h.poolShare * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  h.currentOdds.toStringAsFixed(2),
+                  style: const TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Tooltip(
+                  message: h.reason ?? 'AI không kèm lý do',
+                  child: Text(
+                    h.suggestedOdds.toStringAsFixed(2),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isUp
+                          ? Colors.red
+                          : isDown
+                              ? Colors.green
+                              : AppColors.adminAccent,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  h.totalBet > 0
+                      ? formatCurrency(h.totalBet.toInt())
+                      : '—',
+                  style: const TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  h.liabilityIfWin > 0
+                      ? formatCurrency(h.liabilityIfWin.toInt())
+                      : '—',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: h.liabilityIfWin > 0 ? Colors.red : AppColors.textMuted,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+          if (h.reason != null && h.reason!.isNotEmpty) ...[
+            const SizedBox(height: 4),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isUp
+                    ? Colors.red.withValues(alpha: 0.08)
+                    : isDown
+                        ? Colors.green.withValues(alpha: 0.08)
+                        : AppColors.adminBg,
+                borderRadius: BorderRadius.circular(4),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          s.horseName ?? 'Entry #${s.entryId}',
-                          style: const TextStyle(fontSize: 13),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (s.betType != null)
-                          Text(
-                            s.betType!,
-                            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
-                          ),
-                      ],
-                    ),
+                  Icon(
+                    isUp
+                        ? Icons.arrow_upward
+                        : isDown
+                            ? Icons.arrow_downward
+                            : Icons.horizontal_rule,
+                    size: 12,
+                    color: isUp
+                        ? Colors.red
+                        : isDown
+                            ? Colors.green
+                            : AppColors.textMuted,
                   ),
-                  Expanded(
+                  const SizedBox(width: 4),
+                  Flexible(
                     child: Text(
-                      formatCurrency(s.poolAmount.toInt()),
-                      style: const TextStyle(fontSize: 12),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      formatCurrency(s.payoutIfWin.toInt()),
-                      style: const TextStyle(fontSize: 12, color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${(s.probability * 100).toStringAsFixed(1)}%',
-                      style: const TextStyle(fontSize: 12),
-                      textAlign: TextAlign.center,
+                      h.reason!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: isUp
+                            ? Colors.red
+                            : isDown
+                                ? Colors.green
+                                : AppColors.textMuted,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
             ),
+          ],
         ],
       ),
     );
