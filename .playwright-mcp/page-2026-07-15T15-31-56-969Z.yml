@@ -1,0 +1,186 @@
+- generic [ref=f2e3]:
+  - complementary [ref=f2e4]:
+    - generic [ref=f2e5]:
+      - generic [ref=f2e6]: GrandStride
+      - generic [ref=f2e7]: Bảng Điều Khiển Admin
+    - button "Đăng ký ngựa đua" [ref=f2e9] [cursor=pointer]
+    - navigation [ref=f2e12]:
+      - link "Tổng Quan" [ref=f2e13] [cursor=pointer]:
+        - /url: /admin
+      - link "Người Dùng" [ref=f2e19] [cursor=pointer]:
+        - /url: /admin/users
+      - link "Danh Sách Ngựa" [ref=f2e27] [cursor=pointer]:
+        - /url: /admin/horses
+      - link "Giải Đấu" [ref=f2e33] [cursor=pointer]:
+        - /url: /admin/tournaments
+      - link "Chặng Đua" [ref=f2e42] [cursor=pointer]:
+        - /url: /admin/races
+      - link "Xử Lý Sai Lệch" [ref=f2e47] [cursor=pointer]:
+        - /url: /admin/discrepancies
+      - link "Vi Phạm Kỷ Luật" [ref=f2e52] [cursor=pointer]:
+        - /url: /admin/violations
+      - link "Trọng Tài" [ref=f2e61] [cursor=pointer]:
+        - /url: /admin/referees
+      - link "Quản Lý Ví Điểm" [ref=f2e66] [cursor=pointer]:
+        - /url: /admin/points
+    - generic [ref=f2e72]:
+      - generic [ref=f2e73]:
+        - img "Avatar quản trị viên" [ref=f2e75]
+        - generic [ref=f2e76]: Quản trị viên
+      - button "Đăng xuất" [ref=f2e78] [cursor=pointer]
+  - generic [ref=f2e83]:
+    - banner [ref=f2e84]:
+      - heading "GrandStride" [level=1] [ref=f2e87]
+      - generic [ref=f2e88]:
+        - textbox "Tìm kiếm hồ sơ..." [ref=f2e93]
+        - generic [ref=f2e94]:
+          - button [ref=f2e95] [cursor=pointer]
+          - button [ref=f2e100] [cursor=pointer]
+        - generic [ref=f2e104]:
+          - generic [ref=f2e105]: Ban Điều Hành
+          - img "Admin Profile" [ref=f2e107]
+    - main [ref=f2e108]:
+      - generic [ref=f2e109]:
+        - generic [ref=f2e110]:
+          - button "Quay lại" [ref=f2e111] [cursor=pointer]
+          - generic [ref=f2e114]:
+            - 'heading "Chi tiết chặng đua #2" [level=1] [ref=f2e115]':
+              - text: Chi tiết chặng đua
+              - generic [ref=f2e116]: "#2"
+            - paragraph [ref=f2e117]: Quản lý thông tin, entries và thống kê của chặng đua.
+        - generic [ref=f2e118]:
+          - generic [ref=f2e119]:
+            - generic [ref=f2e120]: Đăng ký
+            - button "Mở ĐK" [ref=f2e122] [cursor=pointer]
+          - generic [ref=f2e126]:
+            - generic [ref=f2e127]: Thao tác
+            - generic [ref=f2e128]:
+              - button "Sửa" [ref=f2e129] [cursor=pointer]
+              - button "Hủy" [ref=f2e133] [cursor=pointer]
+          - button "Làm mới dữ liệu" [ref=f2e139] [cursor=pointer]
+        - generic [ref=f2e145]:
+          - generic [ref=f2e146]:
+            - generic [ref=f2e147]:
+              - heading "Thông tin chặng đua" [level=2] [ref=f2e148]
+              - generic [ref=f2e149]:
+                - generic [ref=f2e150]:
+                  - 'heading "Chặng 1: Khởi động" [level=2] [ref=f2e151]'
+                  - generic [ref=f2e152]: SCHEDULED
+                - generic [ref=f2e153]:
+                  - generic [ref=f2e159]:
+                    - generic [ref=f2e160]: Địa điểm
+                    - generic [ref=f2e161]: —
+                  - generic [ref=f2e166]:
+                    - generic [ref=f2e167]: Ngày đua
+                    - generic [ref=f2e168]: "-"
+                  - generic [ref=f2e173]:
+                    - generic [ref=f2e174]: Khoảng cách
+                    - generic [ref=f2e175]: —
+                  - generic [ref=f2e184]:
+                    - generic [ref=f2e185]: Giải thưởng
+                    - generic [ref=f2e186]: —
+                  - generic [ref=f2e192]:
+                    - generic [ref=f2e193]: Hạn đăng ký
+                    - generic [ref=f2e194]: 16 thg 7, 2026
+            - generic [ref=f2e195]:
+              - generic [ref=f2e196]:
+                - heading "Đơn đăng ký (Entries) 5 Realtime" [level=2] [ref=f2e197]:
+                  - text: Đơn đăng ký (Entries)
+                  - generic [ref=f2e198]: "5"
+                  - generic "Đang nhận cập nhật realtime" [ref=f2e199]: Realtime
+                - combobox "Lọc theo trạng thái entry" [ref=f2e205]:
+                  - option "Tất cả" [selected]
+                  - option "Chờ duyệt"
+                  - option "Đã duyệt"
+                  - option "Bị từ chối"
+              - table [ref=f2e208]:
+                - rowgroup [ref=f2e209]:
+                  - row [ref=f2e210]:
+                    - columnheader "Gate" [ref=f2e211]
+                    - columnheader "Ngựa" [ref=f2e212]
+                    - columnheader "Kỵ sĩ" [ref=f2e213]
+                    - columnheader "Chủ ngựa" [ref=f2e214]
+                    - columnheader "Trạng thái" [ref=f2e215]
+                    - columnheader "Cập nhật" [ref=f2e216]
+                    - columnheader "Thao tác" [ref=f2e217]
+                - rowgroup [ref=f2e218]:
+                  - row [ref=f2e219]:
+                    - cell "6" [ref=f2e220]
+                    - 'cell "Vautour #18" [ref=f2e222]':
+                      - generic [ref=f2e226]:
+                        - generic [ref=f2e227]: Vautour
+                        - generic [ref=f2e228]: "#18"
+                    - cell "R Walsh" [ref=f2e229]
+                    - cell "David Owner" [ref=f2e230]
+                    - cell "Đã duyệt" [ref=f2e231]
+                    - cell "22:44 11/07/2026" [ref=f2e233]
+                    - cell "—" [ref=f2e234]
+                  - row [ref=f2e235]:
+                    - cell "7" [ref=f2e236]
+                    - 'cell "Cracksman #19" [ref=f2e238]':
+                      - generic [ref=f2e242]:
+                        - generic [ref=f2e243]: Cracksman
+                        - generic [ref=f2e244]: "#19"
+                    - cell "Frankie Dettori" [ref=f2e245]
+                    - cell "David Owner" [ref=f2e246]
+                    - cell "Đã duyệt" [ref=f2e247]
+                    - cell "22:44 11/07/2026" [ref=f2e249]
+                    - cell "—" [ref=f2e250]
+                  - row [ref=f2e251]:
+                    - cell "8" [ref=f2e252]
+                    - 'cell "Sprinter Sacre #20" [ref=f2e254]':
+                      - generic [ref=f2e258]:
+                        - generic [ref=f2e259]: Sprinter Sacre
+                        - generic [ref=f2e260]: "#20"
+                    - cell "Nico de Boinville" [ref=f2e261]
+                    - cell "David Owner" [ref=f2e262]
+                    - cell "Đã duyệt" [ref=f2e263]
+                    - cell "22:44 11/07/2026" [ref=f2e265]
+                    - cell "—" [ref=f2e266]
+                  - row [ref=f2e267]:
+                    - cell "9" [ref=f2e268]
+                    - 'cell "Faugheen #21" [ref=f2e270]':
+                      - generic [ref=f2e274]:
+                        - generic [ref=f2e275]: Faugheen
+                        - generic [ref=f2e276]: "#21"
+                    - cell "Paul Townend" [ref=f2e277]
+                    - cell "David Owner" [ref=f2e278]
+                    - cell "Đã duyệt" [ref=f2e279]
+                    - cell "22:44 11/07/2026" [ref=f2e281]
+                    - cell "—" [ref=f2e282]
+                  - row [ref=f2e283]:
+                    - cell "10" [ref=f2e284]
+                    - 'cell "Ghaiyyath #22" [ref=f2e286]':
+                      - generic [ref=f2e290]:
+                        - generic [ref=f2e291]: Ghaiyyath
+                        - generic [ref=f2e292]: "#22"
+                    - cell "William Buick" [ref=f2e293]
+                    - cell "David Owner" [ref=f2e294]
+                    - cell "Đã duyệt" [ref=f2e295]
+                    - cell "22:44 11/07/2026" [ref=f2e297]
+                    - cell "—" [ref=f2e298]
+          - generic [ref=f2e299]:
+            - generic [ref=f2e300]:
+              - heading "Thống kê" [level=2] [ref=f2e301]
+              - generic [ref=f2e302]: Không có thống kê
+            - generic [ref=f2e304]:
+              - heading "Thao tác nhanh" [level=2] [ref=f2e305]
+              - generic [ref=f2e306]:
+                - button "Gợi ý AI" [active] [ref=f2e307] [cursor=pointer]
+                - button "Chỉnh sửa thông tin" [ref=f2e310] [cursor=pointer]
+                - button "Hủy chặng đua" [ref=f2e314] [cursor=pointer]
+        - dialog [ref=f2e323]:
+          - generic [ref=f2e328]:
+            - heading "Gợi ý AI" [level=2] [ref=f2e329]
+            - paragraph [ref=f2e330]: "Chặng 1: Khởi động"
+          - generic [ref=f2e331]:
+            - button "Gợi ý Odds" [ref=f2e332] [cursor=pointer]
+            - button "Đánh giá rủi ro" [ref=f2e335] [cursor=pointer]
+          - generic [ref=f2e340]:
+            - generic [ref=f2e341]: Margin (tùy chọn, mặc định 0.15)
+            - spinbutton "Margin (tùy chọn, mặc định 0.15)" [ref=f2e342]
+            - button "Lấy gợi ý" [ref=f2e343] [cursor=pointer]
+          - button "Đóng" [ref=f2e345] [cursor=pointer]
+    - contentinfo [ref=f2e319]:
+      - generic [ref=f2e320]: © 2026 GRANDSTRIDE TURF CLUB INC. TẤT CẢ QUYỀN ĐƯỢC BẢO LƯU
+      - generic [ref=f2e321]: PHL-V4.2 // CLOUD INGRESS ACTIVE

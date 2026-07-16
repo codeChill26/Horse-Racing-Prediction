@@ -31,7 +31,7 @@ function useEscapeKey(active, onClose) {
   }, [active, onClose]);
 }
 
-function ModalShell({ children, onClose, busy, labelId, descId, className = "ard-confirm-modal" }) {
+export function ModalShell({ children, onClose, busy, labelId, descId, className = "ard-confirm-modal" }) {
   useEscapeKey(true, () => {
     if (!busy) onClose();
   });

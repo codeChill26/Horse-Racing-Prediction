@@ -62,6 +62,7 @@ function SkeletonRow() {
       <td><div className="ert-skeleton ert-skeleton--md" /></td>
       <td><div className="ert-skeleton ert-skeleton--md" /></td>
       <td><div className="ert-skeleton ert-skeleton--sm" /></td>
+      <td><div className="ert-skeleton ert-skeleton--sm" /></td>
       <td><div className="ert-skeleton ert-skeleton--md" /></td>
       <td><div className="ert-skeleton ert-skeleton--md" /></td>
     </tr>
@@ -139,6 +140,7 @@ export function EntryReviewTable({
                 <th>Ngựa</th>
                 <th>Kỵ sĩ</th>
                 <th>Chủ ngựa</th>
+                <th>Odds</th>
                 <th>Trạng thái</th>
                 <th>Cập nhật</th>
                 <th>Thao tác</th>
@@ -180,6 +182,7 @@ export function EntryReviewTable({
               <th>Ngựa</th>
               <th>Kỵ sĩ</th>
               <th>Chủ ngựa</th>
+              <th>Odds</th>
               <th>Trạng thái</th>
               <th>Cập nhật</th>
               <th>Thao tác</th>
@@ -210,6 +213,13 @@ export function EntryReviewTable({
                   </td>
                   <td>{entry.jockeyName || "—"}</td>
                   <td>{entry.ownerName || "—"}</td>
+                  <td>
+                    {entry.oddsFinal != null ? (
+                      <strong>{entry.oddsFinal}</strong>
+                    ) : (
+                      <span className="ert-muted">—</span>
+                    )}
+                  </td>
                   <td>
                     <span className={STATUS_BADGE[entry.status] || "ert-badge"}>
                       {STATUS_LABEL[entry.status] || entry.status}

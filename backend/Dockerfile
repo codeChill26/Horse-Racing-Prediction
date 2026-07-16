@@ -13,7 +13,10 @@ RUN apt-get update \
  
 RUN npm ci
 
-ENV DATABASE_URL=postgresql://postgres:password@db:5432/postgres
+ARG DATABASE_URL
+ARG DIRECT_URL
+ENV DATABASE_URL=$DATABASE_URL
+ENV DIRECT_URL=$DIRECT_URL
 
 RUN npx prisma generate
 

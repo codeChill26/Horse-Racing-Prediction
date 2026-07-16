@@ -27,6 +27,10 @@ router.get('/:id/ai-odds', authMiddleware, adminOnly, adminRacesController.getAi
 // GET /api/admin/races/:id/risk-score?treasury= - AI risk assessment (Agent 2, advisory only)
 router.get('/:id/risk-score', authMiddleware, adminOnly, adminRacesController.getRiskAssessment);
 
+// PATCH /api/admin/races/:id/odds - Admin áp dụng TOÀN BỘ odds mới cho cả race cùng lúc
+// (vd theo gợi ý AI) - không hỗ trợ sửa từng entry riêng lẻ để tránh lệch tổng margin.
+router.patch('/:id/odds', authMiddleware, adminOnly, adminRacesController.applyOddsSuggestions);
+
 // POST /api/admin/races/:id/bulk-review - Bulk approve/reject entries
 router.post('/:id/bulk-review', authMiddleware, adminOnly, adminRacesController.bulkReviewEntries);
 

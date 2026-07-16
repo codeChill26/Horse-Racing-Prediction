@@ -97,7 +97,7 @@ class AiRiskService {
 
     if (odds.length === 0) {
       throw httpError(
-        'Race has no computed odds yet. Odds are calculated automatically once the registration gate is closed.',
+        'Race has no computed odds yet. Apply AI/admin odds before closing the registration gate.',
         409
       );
     }
