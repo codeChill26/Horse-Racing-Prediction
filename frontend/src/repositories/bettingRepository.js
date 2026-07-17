@@ -85,4 +85,18 @@ export const bettingRepository = {
     const data = await res.json()
     return data?.prediction ?? data
   },
+
+  /**
+   * POST /api/races/:raceId/ai-prediction — trả điểm xem gợi ý % thắng AI cho race.
+   * Trừ điểm MỖI LẦN gọi (không cache) — trả về { predictions: [{horseId, horseName,
+   * rank, winProbability}], pointsCharged, walletBalance }.
+   */
+  async viewAiPrediction(raceId) {
+    const res = await fetch(`/api/races/${raceId}/ai-prediction`, {
+      method: 'POST',
+      headers: authHeaders(),
+    })
+    if (!res.ok) await readError(res, 'Không xem được gợi ý AI')
+    return res.json()
+  },
 }

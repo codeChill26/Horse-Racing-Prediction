@@ -193,13 +193,13 @@ function OddsTab({ raceId }) {
             {impliedSumPct != null && (
               <span
                 className={`aia-apply-msg ${
-                  impliedSumPct >= 100 && impliedSumPct <= 130
+                  impliedSumPct >= 105
                     ? "aia-apply-msg--success"
                     : "aia-apply-msg--error"
                 }`}
               >
-                Tổng xác suất ngầm định hiện tại: {impliedSumPct.toFixed(2)}% (nên trong
-                khoảng 100%–130% tùy margin)
+                Tổng xác suất ngầm định hiện tại: {impliedSumPct.toFixed(2)}% (bắt buộc
+                ≥ 105% — dưới mức này backend sẽ từ chối vì nhà cái chắc chắn lỗ)
               </span>
             )}
             <button

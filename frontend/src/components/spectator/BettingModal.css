@@ -118,6 +118,31 @@
   margin-top: 1px;
 }
 
+.bet-ai-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 163, 255, 0.4);
+  background: rgba(201, 163, 255, 0.12);
+  color: #c9a3ff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bet-ai-btn:hover:not(:disabled) {
+  background: rgba(201, 163, 255, 0.22);
+}
+
+.bet-ai-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .bet-modal__body {
   padding: 1.25rem 1.5rem;
   display: flex;
@@ -307,6 +332,24 @@
   font-size: 0.67rem;
   color: #56d8c8;
   margin-top: 0.15rem;
+}
+
+.bet-horse__ai {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.67rem;
+  color: #c9a3ff;
+  margin-top: 0.2rem;
+}
+
+@keyframes bet-spin-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.bet-spin {
+  animation: bet-spin-rotate 1s linear infinite;
 }
 
 .bet-horse__odds {

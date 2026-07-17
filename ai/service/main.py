@@ -1,18 +1,3 @@
-"""
-BƯỚC 7 — AI SERVICE (FastAPI)
-=============================
-Bọc 2 agent thành API cho backend Node gọi (hoặc test bằng Swagger/Postman).
-
-  POST /predict-odds   -> Agent 1: dự đoán xác suất + odds ban đầu (ML)
-  POST /risk-score     -> Agent 2: đánh giá rủi ro + đề xuất chỉnh odds (rule-based)
-  GET  /health         -> kiểm tra service sống
-
-CHẠY:
-  pip install -r ai/requirements.txt
-  uvicorn ai.service.main:app --reload --port 8000
-Sau đó mở tài liệu tương tác:  http://localhost:8000/docs
-"""
-
 import sys
 from pathlib import Path
 from typing import List, Optional

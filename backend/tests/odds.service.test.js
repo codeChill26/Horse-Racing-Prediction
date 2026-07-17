@@ -38,14 +38,14 @@ describe('Odds service', () => {
         oddsId: 1,
         raceId: 1,
         entryId: 11,
-        oddsFinal: 2.5,
+        oddsFinal: 1.5,
         entry: { horse: { horseId: 101, name: 'Thunder' }, jockey: { fullName: 'Jockey A' } },
       },
       {
         oddsId: 2,
         raceId: 1,
         entryId: 12,
-        oddsFinal: 4.2,
+        oddsFinal: 2.5,
         entry: { horse: { horseId: 102, name: 'Lightning' }, jockey: { fullName: 'Jockey B' } },
       },
     ];
@@ -66,9 +66,11 @@ describe('Odds service', () => {
 
     const oddsService = require('../src/services/odds');
 
+    // Σ(1/odds) = 1/1.5 + 1/2.5 = 106.67% >= 105% (100% + HOUSE_MARGIN), nên qua
+    // được chốt chặn arbitrage trong applyOddsSuggestions.
     const result = await oddsService.applyOddsSuggestions(1, [
-      { entryId: 11, oddsFinal: 2.5 },
-      { entryId: 12, oddsFinal: 4.2 },
+      { entryId: 11, oddsFinal: 1.5 },
+      { entryId: 12, oddsFinal: 2.5 },
     ]);
 
     expect(result).toHaveLength(2);

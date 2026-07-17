@@ -1,23 +1,3 @@
-"""
-BƯỚC 2-3 — TRAIN MODEL (Agent 1: Prediction Engine)
-===================================================
-Thuật toán : Logistic Regression (scikit-learn)
-Đầu vào    : lịch sử đua ngựa 2016-2020 (docs/horseracing_dataset)
-Nhãn       : res_win  (1 = con ngựa này thắng, 0 = không)
-Đầu ra     : ai/models/model.pkl  — gói model + bảng winrate + danh sách feature
-
-Chạy:  python ai/train.py
-
-Luồng xử lý (đọc theo số để hiểu):
-  1) Nạp & gộp dữ liệu nhiều năm
-  2) Chọn feature, ép kiểu số, tách target
-  3) Chia train/test THEO CUỘC ĐUA (tránh 1 đua nằm cả 2 bên -> leakage)
-  4) Feature engineering: winrate của jockey & trainer (tính từ TRAIN)
-  5) Dựng Pipeline (impute -> scale -> logistic) và train
-  6) Đánh giá: AUC + top-1 hit-rate theo từng đua (không dùng accuracy trần)
-  7) Lưu model bằng joblib
-"""
-
 import sys
 import numpy as np
 import pandas as pd

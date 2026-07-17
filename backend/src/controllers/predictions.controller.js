@@ -66,11 +66,23 @@ async function getSystemStats(req, res) {
   }
 }
 
+async function viewAiPrediction(req, res) {
+  try {
+    const raceId = validator.parseRaceId(req.params);
+    const spectatorId = Number(req.user.sub);
+    const result = await predictionsService.viewAiPrediction(spectatorId, raceId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   placeBet,
   cancelPrediction,
   listMyPredictions,
   getPredictionById,
   getBettingStats,
-  getSystemStats
+  getSystemStats,
+  viewAiPrediction,
 };

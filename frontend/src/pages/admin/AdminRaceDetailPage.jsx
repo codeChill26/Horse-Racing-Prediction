@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Edit, XCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Edit, XCircle, Wifi, WifiOff, Sparkles } from "lucide-react";
 import { raceDetailService } from "../../services/raceDetailService";
 import { raceEntryService } from "../../services/raceEntryService";
 import { settlementService } from "../../services/settlementService";

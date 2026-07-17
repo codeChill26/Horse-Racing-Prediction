@@ -1,7 +1,11 @@
 const prisma = require('../config/prisma');
+const aiPredictionService = require('./aiPrediction');
 
 const MIN_BET = 10;
 const MAX_BET_PCT = 0.5;
+// Tính năng trả điểm xem gợi ý AI (spectator) — cố tình KHÔNG rẻ như MIN_BET để
+// tránh lạm dụng (bấm xem lặp lại nhiều lần không giới hạn, mỗi lần đều trừ điểm).
+const AI_PREDICTION_COST = 15;
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -260,6 +264,57 @@ class PredictionsService {
       won: stats.find(s => s.status === 'WON')?._count || 0,
       lost: stats.find(s => s.status === 'LOST')?._count || 0,
       pending: stats.find(s => s.status === 'PENDING')?._count || 0
+    };
+  }
+
+  // Spectator trả điểm để xem gợi ý % thắng từ AI cho 1 race. Gọi AI TRƯỚC khi trừ
+  // điểm — nếu AI service lỗi/timeout thì không tính phí (không phạt spectator vì
+  // lỗi hệ thống). Mỗi lần xem đều trừ điểm mới, không cache/mua 1 lần dùng mãi.
+  async viewAiPrediction(spectatorId, raceId) {
+    const wallet = await prisma.pointWallet.findUnique({
+      where: { userId: spectatorId },
+    });
+    if (!wallet) throw httpError('Wallet not found. Spectator must have a wallet.', 404);
+    if (wallet.isFrozen === 1) throw httpError('Your wallet is frozen. Cannot use this feature.', 403);
+    if (wallet.balance < AI_PREDICTION_COST) {
+      throw httpError(
+        `Không đủ điểm để xem gợi ý AI. Cần ${AI_PREDICTION_COST} điểm, ví hiện có ${wallet.balance}.`,
+        400
+      );
+    }
+
+    // Gọi AI trước — lỗi ở bước này (502/409/404) sẽ throw ra ngoài, KHÔNG trừ điểm.
+    const result = await aiPredictionService.getSpectatorWinPrediction(raceId);
+
+    const { walletBalance } = await prisma.$transaction(async (tx) => {
+      const updatedWallet = await tx.pointWallet.update({
+        where: { walletId: wallet.walletId },
+        data: { balance: { decrement: AI_PREDICTION_COST } },
+      });
+
+      if (updatedWallet.balance < 0) {
+        throw httpError('Insufficient balance', 400);
+      }
+
+      await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.walletId,
+          amount: -AI_PREDICTION_COST,
+          balanceAfter: updatedWallet.balance,
+          referenceType: 'RACE',
+          referenceId: raceId,
+          type: 'AI_PREDICTION_VIEW',
+          description: `Xem gợi ý AI cho race #${raceId}`,
+        },
+      });
+
+      return { walletBalance: updatedWallet.balance };
+    });
+
+    return {
+      ...result,
+      pointsCharged: AI_PREDICTION_COST,
+      walletBalance,
     };
   }
 }
