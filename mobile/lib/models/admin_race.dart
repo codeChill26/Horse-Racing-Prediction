@@ -691,10 +691,17 @@ class AdminRacesListResponse {
 }
 
 /// Response cho GET /api/admin/races/:id/ai-odds
+///
+/// Backend (services/aiPrediction.js#getRaceOddsSuggestion) thực tế trả:
+///   { raceId, raceName, source, note, suggestions: [...] }
+/// Backend KHÔNG trả `generatedAt` / `summary` / `confidence` — các field đó
+/// được giữ optional trong model để tương thích nếu backend sau này bổ sung.
 class AiOddsResponse {
   AiOddsResponse({
     this.raceId,
     this.raceName,
+    this.source,
+    this.note,
     this.generatedAt,
     this.suggestions = const [],
     this.summary,
@@ -714,14 +721,20 @@ class AiOddsResponse {
           ? json['raceId'] as int
           : int.tryParse('${json['raceId']}'),
       raceName: json['raceName']?.toString(),
+      source: json['source']?.toString(),
+      note: json['note']?.toString(),
       generatedAt: _parseDate(json['generatedAt']),
       suggestions: suggestions,
-      summary: AiOddsSummary.fromJson(json['summary']),
+      summary: json['summary'] is Map<String, dynamic>
+          ? AiOddsSummary.fromJson(json['summary'])
+          : null,
     );
   }
 
   final int? raceId;
   final String? raceName;
+  final String? source;
+  final String? note;
   final DateTime? generatedAt;
   final List<AiOddsSuggestion> suggestions;
   final AiOddsSummary? summary;
@@ -730,25 +743,35 @@ class AiOddsResponse {
 class AiOddsSuggestion {
   AiOddsSuggestion({
     this.entryId,
+    this.horseId,
     this.horseName,
+    this.jockeyName,
+    this.rank,
     this.winProbability = 0,
     this.fairOdds = 0,
     this.suggestedOdds = 0,
-    this.confidence = 'MEDIUM',
+    this.confidence,
   });
 
   factory AiOddsSuggestion.fromJson(Map<String, dynamic> json) {
-    String confidence = 'MEDIUM';
-    final c = json['confidence']?.toString().toUpperCase();
-    if (c != null && (c == 'HIGH' || c == 'MEDIUM' || c == 'LOW')) {
-      confidence = c;
+    int? rank;
+    final r = json['rank'];
+    if (r is int) {
+      rank = r;
+    } else if (r != null) {
+      rank = int.tryParse(r.toString());
     }
 
     return AiOddsSuggestion(
       entryId: json['entryId'] is int
           ? json['entryId'] as int
           : int.tryParse('${json['entryId']}'),
+      horseId: json['horseId'] is int
+          ? json['horseId'] as int
+          : int.tryParse('${json['horseId']}'),
       horseName: json['horseName']?.toString() ?? json['horse']?.toString(),
+      jockeyName: json['jockeyName']?.toString(),
+      rank: rank,
       winProbability: json['winProbability'] is num
           ? (json['winProbability'] as num).toDouble()
           : double.tryParse('${json['winProbability']}') ?? 0,
@@ -758,20 +781,32 @@ class AiOddsSuggestion {
       suggestedOdds: json['suggestedOdds'] is num
           ? (json['suggestedOdds'] as num).toDouble()
           : double.tryParse('${json['suggestedOdds']}') ?? 0,
-      confidence: confidence,
+      confidence: json['confidence']?.toString().toUpperCase(),
     );
   }
 
   final int? entryId;
+  final int? horseId;
   final String? horseName;
+  final String? jockeyName;
+  final int? rank;
   final double winProbability;
   final double fairOdds;
   final double suggestedOdds;
-  final String confidence;
+  final String? confidence;
 
   double get impliedOdds => winProbability > 0 ? 1 / winProbability : 0;
   double get oddsGap => suggestedOdds - fairOdds;
   bool get isUndervalued => suggestedOdds > fairOdds;
+
+  /// Xếp loại độ tin cậy cho UI; fallback MEDIUM khi backend không trả confidence.
+  String get effectiveConfidence {
+    final c = confidence;
+    if (c == null) return 'MEDIUM';
+    final upper = c.toUpperCase();
+    if (upper == 'HIGH' || upper == 'LOW' || upper == 'MEDIUM') return upper;
+    return 'MEDIUM';
+  }
 }
 
 class AiOddsSummary {
@@ -818,27 +853,35 @@ class AiOddsSummary {
 }
 
 /// Response cho GET /api/admin/races/:id/risk-score?treasury=...
+///
+/// Backend (services/aiRisk.js#getRaceRiskAssessment) trả:
+///   { raceId, raceName, source, note, riskScore, riskLevel,
+///     totalPool, worstCaseLiability, treasury, horses: [...] }
+/// Backend KHÔNG trả `recommendations` — giữ optional để tương thích nếu sau
+/// này backend bổ sung.
 class RiskScoreResponse {
   RiskScoreResponse({
     this.raceId,
     this.raceName,
+    this.source,
+    this.note,
     this.treasury = 0,
     this.riskScore = 0,
     this.riskLevel = 'LOW',
     this.totalPool = 0,
     this.worstCaseLiability = 0,
-    this.scenarios = const [],
+    this.horses = const [],
     this.recommendations = const [],
   });
 
   factory RiskScoreResponse.fromJson(Map<String, dynamic> json) {
-    final scenariosRaw = json['scenarios'];
-    final scenarios = scenariosRaw is List
-        ? scenariosRaw
+    final horsesRaw = json['horses'] ?? json['scenarios'];
+    final horses = horsesRaw is List
+        ? horsesRaw
             .whereType<Map<String, dynamic>>()
-            .map(RiskScenario.fromJson)
+            .map(RiskHorse.fromJson)
             .toList()
-        : <RiskScenario>[];
+        : <RiskHorse>[];
 
     final recsRaw = json['recommendations'];
     final recommendations = recsRaw is List
@@ -856,6 +899,8 @@ class RiskScoreResponse {
           ? json['raceId'] as int
           : int.tryParse('${json['raceId']}'),
       raceName: json['raceName']?.toString(),
+      source: json['source']?.toString(),
+      note: json['note']?.toString(),
       treasury: json['treasury'] is num
           ? (json['treasury'] as num).toDouble()
           : double.tryParse('${json['treasury']}') ?? 0,
@@ -869,60 +914,89 @@ class RiskScoreResponse {
       worstCaseLiability: json['worstCaseLiability'] is num
           ? (json['worstCaseLiability'] as num).toDouble()
           : double.tryParse('${json['worstCaseLiability']}') ?? 0,
-      scenarios: scenarios,
+      horses: horses,
       recommendations: recommendations,
     );
   }
 
   final int? raceId;
   final String? raceName;
+  final String? source;
+  final String? note;
   final double treasury;
   final double riskScore;
   final String riskLevel;
   final double totalPool;
   final double worstCaseLiability;
-  final List<RiskScenario> scenarios;
+  final List<RiskHorse> horses;
   final List<String> recommendations;
 
-  double get coverageRatio => worstCaseLiability > 0 ? treasury / worstCaseLiability : 999;
+  double get coverageRatio =>
+      worstCaseLiability > 0 ? treasury / worstCaseLiability : 999;
   bool get isHealthyCoverage => coverageRatio >= 1.0;
 }
 
-class RiskScenario {
-  RiskScenario({
+class RiskHorse {
+  RiskHorse({
     this.entryId,
+    this.horseId,
     this.horseName,
-    this.betType,
-    this.poolAmount = 0,
-    this.payoutIfWin = 0,
-    this.probability = 0,
+    this.currentOdds = 0,
+    this.totalBet = 0,
+    this.numBettors = 0,
+    this.poolShare = 0,
+    this.liabilityIfWin = 0,
+    this.suggestedOdds = 0,
+    this.reason,
   });
 
-  factory RiskScenario.fromJson(Map<String, dynamic> json) {
-    return RiskScenario(
+  factory RiskHorse.fromJson(Map<String, dynamic> json) {
+    return RiskHorse(
       entryId: json['entryId'] is int
           ? json['entryId'] as int
           : int.tryParse('${json['entryId']}'),
+      horseId: json['horseId'] is int
+          ? json['horseId'] as int
+          : int.tryParse('${json['horseId']}'),
       horseName: json['horseName']?.toString(),
-      betType: json['betType']?.toString(),
-      poolAmount: json['poolAmount'] is num
-          ? (json['poolAmount'] as num).toDouble()
-          : double.tryParse('${json['poolAmount']}') ?? 0,
-      payoutIfWin: json['payoutIfWin'] is num
-          ? (json['payoutIfWin'] as num).toDouble()
-          : double.tryParse('${json['payoutIfWin']}') ?? 0,
-      probability: json['probability'] is num
-          ? (json['probability'] as num).toDouble()
-          : double.tryParse('${json['probability']}') ?? 0,
+      currentOdds: json['currentOdds'] is num
+          ? (json['currentOdds'] as num).toDouble()
+          : double.tryParse('${json['currentOdds']}') ?? 0,
+      totalBet: json['totalBet'] is num
+          ? (json['totalBet'] as num).toDouble()
+          : double.tryParse('${json['totalBet']}') ?? 0,
+      numBettors: json['numBettors'] is int
+          ? json['numBettors'] as int
+          : int.tryParse('${json['numBettors']}') ?? 0,
+      poolShare: json['poolShare'] is num
+          ? (json['poolShare'] as num).toDouble()
+          : double.tryParse('${json['poolShare']}') ?? 0,
+      liabilityIfWin: json['liabilityIfWin'] is num
+          ? (json['liabilityIfWin'] as num).toDouble()
+          : double.tryParse('${json['liabilityIfWin']}') ?? 0,
+      suggestedOdds: json['suggestedOdds'] is num
+          ? (json['suggestedOdds'] as num).toDouble()
+          : double.tryParse('${json['suggestedOdds']}') ?? 0,
+      reason: json['reason']?.toString(),
     );
   }
 
   final int? entryId;
+  final int? horseId;
   final String? horseName;
-  final String? betType;
-  final double poolAmount;
-  final double payoutIfWin;
-  final double probability;
+  final double currentOdds;
+  final double totalBet;
+  final int numBettors;
+  final double poolShare;
+  final double liabilityIfWin;
+  final double suggestedOdds;
+  final String? reason;
+
+  /// Odds AI đề xuất so với hiện tại: dương = AI muốn tăng, âm = muốn giảm.
+  double get oddsDelta => suggestedOdds - currentOdds;
+
+  /// True khi AI đề xuất điều chỉnh khác odds hiện tại (sai số > 0.001).
+  bool get hasAdjustment => (suggestedOdds - currentOdds).abs() > 0.001;
 }
 
 DateTime? _parseDate(dynamic value) {
