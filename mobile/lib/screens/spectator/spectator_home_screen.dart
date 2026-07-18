@@ -103,11 +103,11 @@ class SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    'assets/images/spectator-hero.jpg',
+                    'assets/images/dua-ngua-duong-bang.jpg',
                     fit: BoxFit.cover,
                   ),
                   Container(
-                    decoration: const BoxDecoration(
+                    decoration: const BoxDecoration(s
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,

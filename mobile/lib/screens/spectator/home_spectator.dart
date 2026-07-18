@@ -9,6 +9,7 @@ import '../../services/tournaments_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format_utils.dart';
 import '../../widgets/login_welcome.dart';
+import '../../widgets/spectator_notification_bell.dart';
 import '../home_router.dart';
 import '../tournaments/public_tournament_detail_screen.dart';
 import '../tournaments/public_tournaments_screen.dart';
@@ -182,6 +183,7 @@ class _HomeSpectatorState extends State<HomeSpectator> {
         elevation: 0,
         title: Text(_titleFor(_index, _walletSubTab)),
         actions: [
+          const SpectatorNotificationBell(),
           if (_index == 2)
             IconButton(
               tooltip: 'Đặt cược',

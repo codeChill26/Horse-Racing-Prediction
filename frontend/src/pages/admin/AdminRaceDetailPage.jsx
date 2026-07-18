@@ -29,6 +29,7 @@ import { RaceInfoCard } from "../../components/admin/race/RaceInfoCard";
 import { EntryReviewTable } from "../../components/admin/race/EntryReviewTable";
 import EntryRejectModal from "../../components/admin/race/EntryRejectModal";
 import { RaceStatisticsCard } from "../../components/admin/race/RaceStatisticsCard";
+import { RefereeResultsCard } from "../../components/admin/race/RefereeResultsCard";
 import { RaceActionBar } from "../../components/admin/race/RaceActionBar";
 import RaceBetsTab from "../../components/admin/race/RaceBetsTab";
 import AdminAssignRefereesModal from "../../components/admin/race/AdminAssignRefereesModal";
@@ -41,6 +42,7 @@ import {
 import AiAdvisoryModal from "../../components/admin/race/AiAdvisoryModal";
 import { useSettlementActions } from "../../hooks/useSettlementActions";
 import "./AdminRaceDetailPage.css";
+import "../../components/admin/race/RefereeResultsCard.css";
 
 // Toast Component
 function Toast({ message, type, onClose }) {
@@ -506,6 +508,8 @@ export default function AdminRaceDetailPage() {
             <h2 className="ard-section__title">Thông tin chặng đua</h2>
             <RaceInfoCard race={race} loading={loading} />
           </section>
+
+          <RefereeResultsCard race={race} loading={loading} />
 
           <section className="ard-section">
             <div className="ard-section__head">

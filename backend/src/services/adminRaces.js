@@ -56,13 +56,32 @@ class AdminRacesService {
             jockey: { select: { userId: true, fullName: true, email: true } }
           }
         },
-        predictions: true
+        predictions: true,
+        officialRaceResult: true,
+        results: true
       }
     });
 
     if (!race) throw httpError('Race not found', 404);
 
+    // Query referee submissions separately
+    const refereeSubmissions = await prisma.refereeSubmission.findMany({
+      where: { raceId: parseInt(raceId) }
+    });
+
+    // Tách kết quả theo refereeId
+    const refereeAResult = refereeSubmissions.find(s => s.refereeId === race.refereeAId);
+    const refereeBResult = refereeSubmissions.find(s => s.refereeId === race.refereeBId);
+
     const approvedEntriesCount = race.entries.filter((e) => e.status === 'APPROVED').length;
+
+    // Map results (finishPosition) theo horseId
+    const finishPositions = {};
+    if (race.results && race.results.length > 0) {
+      for (const r of race.results) {
+        finishPositions[r.horseId] = r.finishPosition;
+      }
+    }
 
     // Định hình cấu trúc mảng Entries chính xác theo đặc tả Frontend mong muốn
     const mappedEntries = race.entries.map((e) => ({
@@ -74,7 +93,8 @@ class AdminRacesService {
       ownerName: e.horse.owner?.fullName || 'N/A',
       gate: e.entryId, // Sử dụng mã định danh làm số cổng xuất phát mặc định
       status: e.status,
-      submittedAt: e.createdAt
+      submittedAt: e.createdAt,
+      finishPosition: finishPositions[e.horseId] || null
     }));
 
     // Tính toán các thông số thống kê dòng tiền
@@ -96,6 +116,24 @@ class AdminRacesService {
       refereeA: race.refereeA,
       refereeB: race.refereeB,
       entries: mappedEntries,
+      officialRaceResult: race.officialRaceResult ? {
+        id: race.officialRaceResult.officialResultId,
+        matchStatus: race.officialRaceResult.matchStatus,
+        finalResults: race.officialRaceResult.finalResults,
+        publishedAt: race.officialRaceResult.updatedAt,
+        resolvedById: race.officialRaceResult.resolvedById,
+        resolveReason: race.officialRaceResult.resolveReason,
+        refereeAResult: refereeAResult ? {
+          id: refereeAResult.submissionId,
+          submittedAt: refereeAResult.submittedAt,
+          finalResults: refereeAResult.rawResults
+        } : null,
+        refereeBResult: refereeBResult ? {
+          id: refereeBResult.submissionId,
+          submittedAt: refereeBResult.submittedAt,
+          finalResults: refereeBResult.rawResults
+        } : null
+      } : null,
       statistics: {
         totalPool,
         totalBets,
