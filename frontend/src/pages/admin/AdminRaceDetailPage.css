@@ -285,6 +285,16 @@
   background: rgba(110, 168, 254, 0.3);
 }
 
+.rab-btn--info {
+  background: rgba(121, 192, 255, 0.12);
+  border-color: rgba(121, 192, 255, 0.4);
+  color: var(--ard-info, #79c0ff);
+}
+
+.rab-btn--info:hover:not(:disabled) {
+  background: rgba(121, 192, 255, 0.22);
+}
+
 /* ============================
    FLOW 8: RaceStatisticsCard settlement section
    ============================ */
@@ -1516,6 +1526,67 @@
 
 .aia-apply-msg--error {
   color: var(--ard-danger);
+}
+
+/* ============================================
+ * Tabs (Flow: Cược & ví của spectators)
+ * ============================================ */
+
+.ard-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
+  border-bottom: 1px solid var(--ard-border);
+  margin-top: 0.5rem;
+}
+
+.ard-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 0.85rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ard-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.ard-tab-btn:hover:not(.ard-tab-btn--active) {
+  color: var(--ard-text);
+}
+
+.ard-tab-btn--active {
+  color: var(--ard-primary);
+  border-bottom-color: var(--ard-primary);
+}
+
+.ard-tab-btn__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: rgba(121, 192, 255, 0.18);
+  color: var(--ard-primary);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.ard-tab-btn__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(244, 180, 76, 0.16);
+  color: #f4b44c;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {

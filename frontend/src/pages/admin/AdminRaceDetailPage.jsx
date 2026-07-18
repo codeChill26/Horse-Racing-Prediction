@@ -19,15 +19,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Edit, XCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Edit, XCircle, Sparkles, ListChecks, ScrollText, Wallet } from "lucide-react";
 import { raceDetailService } from "../../services/raceDetailService";
 import { raceEntryService } from "../../services/raceEntryService";
 import { settlementService } from "../../services/settlementService";
+import { adminRaceRefereeService } from "../../services/adminRaceRefereeService";
+import { adminRaceConflictService } from "../../services/adminRaceConflictService";
 import { RaceInfoCard } from "../../components/admin/race/RaceInfoCard";
 import { EntryReviewTable } from "../../components/admin/race/EntryReviewTable";
 import EntryRejectModal from "../../components/admin/race/EntryRejectModal";
 import { RaceStatisticsCard } from "../../components/admin/race/RaceStatisticsCard";
 import { RaceActionBar } from "../../components/admin/race/RaceActionBar";
+import RaceBetsTab from "../../components/admin/race/RaceBetsTab";
+import AdminAssignRefereesModal from "../../components/admin/race/AdminAssignRefereesModal";
+import AdminResolveConflictModal from "../../components/admin/race/AdminResolveConflictModal";
 import {
   ConfirmModal,
   CancelReasonModal,
@@ -69,12 +74,17 @@ export default function AdminRaceDetailPage() {
   const [rejectEntryModal, setRejectEntryModal] = useState(null);
   const [rollbackModal, setRollbackModal] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [assignRefereesModalOpen, setAssignRefereesModalOpen] = useState(false);
+  const [resolveConflictModalOpen, setResolveConflictModalOpen] = useState(false);
   const [entryBusyId, setEntryBusyId] = useState(null);
   const [entryError, setEntryError] = useState("");
   const [approveConfirmModal, setApproveConfirmModal] = useState(null);
 
   // Filter entries theo status
   const [entryStatusFilter, setEntryStatusFilter] = useState("ALL");
+
+  // Tab navigation: overview (default) | entries | bets
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -214,6 +224,43 @@ export default function AdminRaceDetailPage() {
     showToast("Chức năng đang phát triển", "info");
   };
 
+  // === Flow 4: Phân công trọng tài (mobile parity) ===
+  const openAssignRefereesModal = () => {
+    if (!adminRaceRefereeService.canAssignReferees(race)) {
+      showToast("Chỉ phân công trọng tài khi race ở trạng thái SCHEDULED.", "error");
+      return;
+    }
+    setAssignRefereesModalOpen(true);
+  };
+
+  const handleAssignRefereesConfirm = (updatedRace) => {
+    setAssignRefereesModalOpen(false);
+    if (updatedRace) onRaceUpdated(updatedRace);
+    showToast("Đã phân công 2 trọng tài.", "success");
+  };
+
+  // === Flow 4: Xử lý tranh chấp kết quả (mobile parity) ===
+  const openResolveConflictModal = () => {
+    if (!adminRaceConflictService.canResolveConflict(race)) {
+      showToast("Chỉ xử lý tranh chấp khi race ở trạng thái PAUSED.", "error");
+      return;
+    }
+    setResolveConflictModalOpen(true);
+  };
+
+  const handleResolveConflictConfirm = (updatedRace) => {
+    setResolveConflictModalOpen(false);
+    // resolve-conflict → race FINISHED. Merge state để UI bám theo
+    // (action bar ẩn Publish/Unpublish, settlement panel hiện lên).
+    if (updatedRace) {
+      onRaceUpdated({ ...updatedRace, status: "FINISHED" });
+    } else {
+      onRaceUpdated({ status: "FINISHED" });
+    }
+    showToast("Đã ghi đè kết quả · race chuyển sang FINISHED.", "success");
+    loadData();
+  };
+
   // === Flow 8: Publish (settle bets) ===
   const askPublish = () => {
     setConfirmModal({
@@ -333,6 +380,7 @@ export default function AdminRaceDetailPage() {
   const canUnpublish = settlementService.canUnpublish(race);
   const raceStatus = String(race?.status || "").toUpperCase();
   const isRaceCancellable = raceStatus !== "CANCELLED" && raceStatus !== "FINISHED";
+  const isRegistrationOpen = Boolean(race?.registrationOpen);
 
   return (
     <div className="ard-page">
@@ -378,12 +426,81 @@ export default function AdminRaceDetailPage() {
         onCloseRegistration={closeRegistrationConfirm}
         onPublish={canPublish ? askPublish : undefined}
         onUnpublish={canUnpublish ? askRollback : undefined}
+        onAssignReferees={
+          adminRaceRefereeService.canAssignReferees(race)
+            ? openAssignRefereesModal
+            : undefined
+        }
+        onResolveConflict={
+          adminRaceConflictService.canResolveConflict(race)
+            ? openResolveConflictModal
+            : undefined
+        }
         onRefresh={loadData}
         loading={loading}
         busy={busy || publishBusy || rollbackBusy}
       />
 
-      <div className="ard-content">
+      <nav className="ard-tabs" role="tablist" aria-label="Tabs chi tiết chặng đua">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "overview"}
+          className={
+            activeTab === "overview"
+              ? "ard-tab-btn ard-tab-btn--active"
+              : "ard-tab-btn"
+          }
+          onClick={() => setActiveTab("overview")}
+        >
+          <ScrollText size={14} aria-hidden="true" />
+          Tổng quan
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "entries"}
+          className={
+            activeTab === "entries"
+              ? "ard-tab-btn ard-tab-btn--active"
+              : "ard-tab-btn"
+          }
+          onClick={() => setActiveTab("entries")}
+        >
+          <ListChecks size={14} aria-hidden="true" />
+          Đơn đăng ký
+          {!loading && entries.length > 0 && (
+            <span className="ard-tab-btn__count">{entries.length}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "bets"}
+          className={
+            activeTab === "bets"
+              ? "ard-tab-btn ard-tab-btn--active"
+              : "ard-tab-btn"
+          }
+          onClick={() => setActiveTab("bets")}
+          title={
+            isRegistrationOpen
+              ? "Đóng cổng đăng ký trước khi xem cược & ví"
+              : undefined
+          }
+        >
+          <Wallet size={14} aria-hidden="true" />
+          Cược & ví
+          {isRegistrationOpen && (
+            <span className="ard-tab-btn__badge">Đã khóa</span>
+          )}
+        </button>
+      </nav>
+
+      {activeTab === "bets" ? (
+        <RaceBetsTab raceId={raceId} registrationOpen={isRegistrationOpen} />
+      ) : (
+        <div className="ard-content">
         <div className="ard-content__main">
           <section className="ard-section">
             <h2 className="ard-section__title">Thông tin chặng đua</h2>
@@ -466,7 +583,8 @@ export default function AdminRaceDetailPage() {
             </div>
           </section>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Confirm Modal (registration open/close + publish) */}
       {confirmModal && (
@@ -522,6 +640,26 @@ export default function AdminRaceDetailPage() {
       {/* AI Advisory Modal — gợi ý odds + đánh giá rủi ro */}
       {aiModalOpen && (
         <AiAdvisoryModal race={race} onClose={() => setAiModalOpen(false)} />
+      )}
+
+      {/* FLOW 4: Phân công trọng tài (mobile parity) */}
+      {assignRefereesModalOpen && race && (
+        <AdminAssignRefereesModal
+          key={`assign-${race.raceId ?? "x"}-${race.refereeAId ?? 0}-${race.refereeBId ?? 0}`}
+          race={race}
+          onConfirm={handleAssignRefereesConfirm}
+          onClose={() => setAssignRefereesModalOpen(false)}
+        />
+      )}
+
+      {/* FLOW 4: Xử lý tranh chấp kết quả (mobile parity) */}
+      {resolveConflictModalOpen && race && (
+        <AdminResolveConflictModal
+          key={`conflict-${race.raceId ?? "x"}`}
+          race={race}
+          onConfirm={handleResolveConflictConfirm}
+          onClose={() => setResolveConflictModalOpen(false)}
+        />
       )}
 
       {/* Confirm Modal: approve entry */}

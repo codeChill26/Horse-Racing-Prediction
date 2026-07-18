@@ -281,7 +281,12 @@ KHÁN GIẢ (SPECTATOR)                                    HỆ THỐNG
 ```
 
 ### GIAI ĐOẠN 6: Trọng tài bắt đầu Race
-
+1. SCHEDULED → IN_PROGRESS — Referee bấm Start
+2. IN_PROGRESS → FINISHED — Auto (khi 2 TT submit khớp)
+3. IN_PROGRESS → PAUSED — Auto (khi 2 TT submit lệch)
+4. SCHEDULED/IN_PROGRESS → CANCELLED — Cancel Tournament (cascade)
+5. PAUSED → FINISHED — Admin Resolve Conflict
+6. FINISHED → PENDING_RESULT — Admin Rollback (Unpublish)
 ```
 TRỌNG TÀI (A hoặc B)                                    HỆ THỐNG
   │                                                          │

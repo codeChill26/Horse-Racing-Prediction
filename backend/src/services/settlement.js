@@ -53,13 +53,15 @@ class SettlementService {
 
       let actualTotalPayout = 0;
       const walletIncrements = {};
+      // Track all spectators who bet — needed for sending notifications to both winners AND losers
+      const spectatorBetDetails = {}; // { [spectatorId]: { betAmount, won, payout } }
       const predictionUpdates = [];
 
       // 3. Quét danh sách vé cược & Đối chiếu Thắng / Thua (Settlement Engine)
       for (const pred of race.predictions) {
         let isWon = false;
         let payout = 0;
-        
+
         const type = pred.betType;
         const pick1 = pred.entryId1;
         const pick2 = pred.entryId2;
@@ -71,25 +73,25 @@ class SettlementService {
             isWon = true;
             payout = Math.floor(stake * odds);
           }
-        } 
+        }
         else if (type === 'PLACE') {
           if (pick1 === entry1 || pick1 === entry2) {
             isWon = true;
             payout = Math.floor(stake * odds * 0.7);
           }
-        } 
+        }
         else if (type === 'SHOW') {
           if ([entry1, entry2, entry3].includes(pick1)) {
             isWon = true;
             payout = Math.floor(stake * odds * 0.5);
           }
-        } 
+        }
         else if (type === 'QUINELLA') {
           if ([entry1, entry2].includes(pick1) && [entry1, entry2].includes(pick2)) {
             isWon = true;
             payout = Math.floor(stake * odds * 1.5);
           }
-        } 
+        }
         else if (type === 'EXACTA') {
           if (pick1 === entry1 && pick2 === entry2) {
             isWon = true;
@@ -111,6 +113,20 @@ class SettlementService {
             predictionId: pred.predictionId,
             data: { status: 'LOST', payout: 0, settledAt: new Date() }
           });
+        }
+
+        // Track per-spectator details for notification payload
+        if (!spectatorBetDetails[pred.spectatorId]) {
+          spectatorBetDetails[pred.spectatorId] = {
+            totalBetAmount: 0,
+            won: false,
+            totalPayout: 0,
+          };
+        }
+        spectatorBetDetails[pred.spectatorId].totalBetAmount += stake;
+        if (isWon) {
+          spectatorBetDetails[pred.spectatorId].won = true;
+          spectatorBetDetails[pred.spectatorId].totalPayout += payout;
         }
       }
 
@@ -223,6 +239,8 @@ class SettlementService {
         actualTotalPayout: actualTotalPayout,
         treasureBalanceChange: treasureBalanceChange,
         walletIncrements: walletIncrements,
+        // Per-spectator breakdown for notifications (wins AND losses)
+        spectatorBetDetails: spectatorBetDetails,
         publishedAt: publishedAt
       };
     });
@@ -260,10 +278,19 @@ class SettlementService {
       const walletDecrements = {};
 
       // 2. Lọc danh sách vé cược thắng để chuẩn bị đòi lại tiền
+      // Track ALL spectators (winners + losers) for notifications
+      const spectatorBetDetails = {};
       for (const pred of race.predictions) {
+        if (!spectatorBetDetails[pred.spectatorId]) {
+          spectatorBetDetails[pred.spectatorId] = { totalBetAmount: 0, won: false, recallPayout: 0 };
+        }
+        spectatorBetDetails[pred.spectatorId].totalBetAmount += pred.betAmount;
+
         if (pred.status === 'WON') {
           const payoutAmount = pred.payout || 0;
           totalPayoutToRecall += payoutAmount;
+          spectatorBetDetails[pred.spectatorId].won = true;
+          spectatorBetDetails[pred.spectatorId].recallPayout = payoutAmount;
 
           if (!walletDecrements[pred.spectatorId]) walletDecrements[pred.spectatorId] = 0;
           walletDecrements[pred.spectatorId] += payoutAmount;
@@ -366,7 +393,9 @@ class SettlementService {
         raceId: raceId,
         status: updatedRace.status,
         recalledTotalPayout: totalPayoutToRecall,
-        walletDecrements: walletDecrements
+        walletDecrements: walletDecrements,
+        // Per-spectator breakdown for notifications (wins AND losses)
+        spectatorBetDetails: spectatorBetDetails,
       };
     });
   }

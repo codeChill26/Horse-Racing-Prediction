@@ -18,13 +18,27 @@ class SpectatorWalletScreen extends StatefulWidget {
   final VoidCallback onOpenTransactions;
 
   @override
-  State<SpectatorWalletScreen> createState() => _SpectatorWalletScreenState();
+  State<SpectatorWalletScreen> createState() => SpectatorWalletScreenState();
 }
 
-class _SpectatorWalletScreenState extends State<SpectatorWalletScreen> {
+class SpectatorWalletScreenState extends State<SpectatorWalletScreen> {
   WalletInfo? _wallet;
   bool _loading = true;
   String? _error;
+
+  /// Gọi từ parent (vd _SpectatorWalletTab) khi cần reload số dư (vd sau khi
+  /// đặt cược). Không đổi `_loading` để tránh flash spinner; chỉ silent refresh.
+  Future<void> refresh() async {
+    try {
+      final wallet = await widget.api.getMyWallet();
+      if (!mounted) return;
+      setState(() {
+        _wallet = wallet;
+      });
+    } catch (_) {
+      // Im lặng — pull-to-refresh hoặc retry sẽ hiển thị lỗi rõ ràng hơn.
+    }
+  }
 
   @override
   void initState() {

@@ -11,16 +11,31 @@ class SpectatorTransactionsScreen extends StatefulWidget {
   final SpectatorApi api;
 
   @override
-  State<SpectatorTransactionsScreen> createState() => _SpectatorTransactionsScreenState();
+  State<SpectatorTransactionsScreen> createState() =>
+      SpectatorTransactionsScreenState();
 }
 
-class _SpectatorTransactionsScreenState extends State<SpectatorTransactionsScreen> {
+class SpectatorTransactionsScreenState extends State<SpectatorTransactionsScreen> {
   TransactionPage _page = TransactionPage.fromJson(null);
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
 
   static const int _pageSize = 20;
+
+  /// Gọi từ parent khi cần reload lịch sử (vd sau khi đặt cược).
+  /// Silent: không flip `_loading`, chỉ ghi đè trang đầu.
+  Future<void> refresh() async {
+    try {
+      final next = await widget.api.getMyTransactions(page: 1, limit: _pageSize);
+      if (!mounted) return;
+      setState(() {
+        _page = next;
+      });
+    } catch (_) {
+      // Im lặng.
+    }
+  }
 
   @override
   void initState() {

@@ -1,4 +1,16 @@
 // backend/app.js
+
+// Fix: prisma trả về BigInt cho cột BIGINT (WalletTransaction.referenceId).
+// Express res.json() gọi JSON.stringify mà BigInt không có toJSON mặc định →
+// throw "Do not know how to serialize a BigInt", phá response của admin &
+// spectator wallet transactions. Ta đăng ký global ngay tại entry để áp dụng
+// cho MỌI response kể cả các module require sau này.
+BigInt.prototype.toJSON = function () {
+  // Trả về string để giữ nguyên độ chính xác (không mất precision khi >2^53).
+  // Mobile/frontend dùng num.tryParse / int.tryParse đều đọc được.
+  return this.toString();
+};
+
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -22,6 +34,7 @@ var horsesRouter = require('./src/routes/horses');
 var raceEntriesRouter = require('./src/routes/raceEntries');
 var invitationsRouter = require('./src/routes/invitations');
 var ownerEntriesRouter = require('./src/routes/owner/entries');
+var ownerNotificationsRouter = require('./src/routes/owner/notifications');
 var publicRacesRouter = require('./src/routes/races');
 var predictionsRouter = require('./src/routes/predictions');
 var walletRouter = require('./src/routes/wallet');
@@ -80,6 +93,7 @@ app.use('/api/jockey', jockeyRouter);
 
 // Phân hệ dành riêng cho CHỦ NGỰA (HORSE OWNER MODULE)
 app.use('/api/owner/entries', ownerEntriesRouter);
+app.use('/api/horse-owner', ownerNotificationsRouter);
 
 // Các hệ thống API công khai (Public APIs)
 app.use('/api/tournaments', tournamentsRouter);

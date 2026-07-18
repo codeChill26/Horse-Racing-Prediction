@@ -27,15 +27,22 @@ class SpectatorHomeScreen extends StatefulWidget {
   final VoidCallback? onOpenMyBets;
 
   @override
-  State<SpectatorHomeScreen> createState() => _SpectatorHomeScreenState();
+  State<SpectatorHomeScreen> createState() => SpectatorHomeScreenState();
 }
 
-class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
+class SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
   final _profileService = ProfileService();
   final _tournamentsKey = GlobalKey<TournamentsHomeSectionState>();
   UserProfile? _profile;
   bool _loading = true;
   String? _error;
+
+  /// Gọi từ parent (vd _HomeSpectatorState) khi cần reload số dư (vd sau khi đặt
+  /// cược thành công — backend đã trừ tiền trong transaction nhưng profile cached
+  /// trong state vẫn giữ số dư cũ).
+  Future<void> refresh() async {
+    await _loadProfile();
+  }
 
   @override
   void initState() {

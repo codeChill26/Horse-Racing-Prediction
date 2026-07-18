@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/realtime/socket_service.dart';
 import '../services/token_storage.dart';
 import 'login_screen.dart';
 import 'role_home_screen.dart';
@@ -45,6 +46,8 @@ class HomeRouter {
         builder: (_) => screenForRole(role: role, email: email),
       ),
     );
+    // Kết nối socket sau khi khôi phục phiên.
+    SocketService.instance.connect();
   }
 
   static Future<void> openAfterLogin(
@@ -63,6 +66,8 @@ class HomeRouter {
         ),
       ),
     );
+    // Kết nối socket sau khi đăng nhập thành công.
+    SocketService.instance.connect();
   }
 
   static Future<void> openLogin(BuildContext context) async {

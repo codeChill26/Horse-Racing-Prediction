@@ -89,3 +89,63 @@ export function getStatusColorClass(status) {
       return "bg-surface-container text-on-surface-variant border border-outline-variant";
   }
 }
+
+// Map PredictionStatus enum sang tiếng Việt
+export function mapPredictionStatus(status) {
+  const mapping = {
+    PENDING: "Đang chờ",
+    WON: "Thắng",
+    PARTIAL_WON: "Thắng một phần",
+    LOST: "Thua",
+    REFUNDED: "Đã hoàn tiền",
+  };
+  return mapping[status] || status || "—";
+}
+
+// Map BetType enum sang tiếng Việt
+export function mapBetType(betType) {
+  const mapping = {
+    WIN: "WIN (Thắng)",
+    PLACE: "PLACE (Top 2)",
+    SHOW: "SHOW (Top 3)",
+    QUINELLA: "QUINELLA (Top 1-2)",
+    EXACTA: "EXACTA (Đúng thứ tự)",
+  };
+  return mapping[betType] || betType || "—";
+}
+
+// Map WalletTransaction.type sang tiếng Việt
+export function mapWalletTxType(type) {
+  const mapping = {
+    BET_PLACED: "Đặt cược",
+    BET_REFUND: "Hoàn cược",
+    BET_WIN: "Thắng cược",
+    BET_WIN_REVERSAL: "Hoàn tiền thắng",
+    WEEKLY_BONUS: "Thưởng tuần",
+    ADMIN_ADJUSTMENT: "Admin điều chỉnh",
+    DEPOSIT: "Nạp điểm",
+    INITIAL_BONUS: "Thưởng ban đầu",
+    HOUSE_MARGIN: "Phí sàn",
+    TREASURE_IN: "Quỹ dự phòng +",
+    TREASURE_OUT: "Quỹ dự phòng -",
+  };
+  return mapping[type] || type || "—";
+}
+
+// Format datetime dạng "HH:mm dd/MM/yyyy"
+export function formatDateTime(dateString) {
+  if (!dateString) return "-";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  } catch {
+    return dateString;
+  }
+}

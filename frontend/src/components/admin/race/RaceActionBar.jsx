@@ -11,12 +11,24 @@
  *   - Open / Close registration gate (Flow 2)
  *   - Refresh
  *   - Publish / Unpublish (Flow 8) — Result Publication
+ *   - Phân công trọng tài (Flow 4) — chỉ khi SCHEDULED
+ *   - Xử lý tranh chấp (Flow 4) — chỉ khi PAUSED
  *
  * Status guard cho Publish/Unpublish được nhận qua prop `canPublish` / `canUnpublish`
  * (client-side) — service sẽ double-check ở backend.
  */
 
-import { Edit, XCircle, Lock, Unlock, RefreshCw, CheckCircle2, Undo2 } from "lucide-react";
+import {
+  Edit,
+  XCircle,
+  Lock,
+  Unlock,
+  RefreshCw,
+  CheckCircle2,
+  Undo2,
+  ShieldCheck,
+  Gavel,
+} from "lucide-react";
 
 function RaceActionBarSkeleton() {
   return (
@@ -43,6 +55,8 @@ export function RaceActionBar({
   onCloseRegistration,
   onPublish,
   onUnpublish,
+  onAssignReferees,
+  onResolveConflict,
   onRefresh,
   loading = false,
   busy = false,
@@ -57,6 +71,7 @@ export function RaceActionBar({
   const isScheduled = status === "SCHEDULED";
   const isOngoing = status === "ONGOING";
   const isPendingResult = status === "PENDING_RESULT";
+  const isPaused = status === "PAUSED";
   const isFinished = status === "FINISHED";
   const isCancelled = status === "CANCELLED";
   const canModify = isScheduled || isOngoing;
@@ -66,6 +81,12 @@ export function RaceActionBar({
   // Service sẽ validate lại — đây chỉ là UI affordance.
   const showPublish   = isPendingResult; // PENDING_RESULT → FINISHED
   const showUnpublish = isFinished;      // FINISHED     → PENDING_RESULT
+
+  // Flow 4 (mobile parity):
+  // - Assign referees: chỉ khi SCHEDULED (BE throw 409 nếu khác).
+  // - Resolve conflict: chỉ khi PAUSED (2 referee submit lệch).
+  const showAssignReferees = Boolean(onAssignReferees) && isScheduled;
+  const showResolveConflict = Boolean(onResolveConflict) && isPaused;
 
   return (
     <div className="rab-bar">
@@ -124,6 +145,32 @@ export function RaceActionBar({
             >
               <XCircle size={16} />
               Hủy
+            </button>
+          )}
+
+          {showAssignReferees && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--info"
+              onClick={onAssignReferees}
+              disabled={busy}
+              title="Phân công 2 trọng tài (chỉ khi SCHEDULED)"
+            >
+              <ShieldCheck size={16} />
+              Phân công TT
+            </button>
+          )}
+
+          {showResolveConflict && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--danger"
+              onClick={onResolveConflict}
+              disabled={busy}
+              title="Xử lý tranh chấp khi 2 trọng tài nộp lệch (chỉ khi PAUSED)"
+            >
+              <Gavel size={16} />
+              Xử lý tranh chấp
             </button>
           )}
 

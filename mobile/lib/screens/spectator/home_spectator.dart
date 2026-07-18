@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/race_summary.dart';
@@ -36,6 +38,11 @@ class HomeSpectator extends StatefulWidget {
 class _HomeSpectatorState extends State<HomeSpectator> {
   final _api = SpectatorApi();
   final _tournamentsService = TournamentsService();
+
+  // GlobalKey để shell có thể yêu cầu các sub-screen reload (vd sau khi đặt
+  // cược thành công → cần refresh wallet + profile để hiển thị số dư mới).
+  final _homeKey = GlobalKey<SpectatorHomeScreenState>();
+  final _walletTabKey = GlobalKey<_SpectatorWalletTabState>();
 
   int _index = 0;
   int _walletSubTab = 0;
@@ -122,6 +129,13 @@ class _HomeSpectatorState extends State<HomeSpectator> {
 
     if (!mounted) return;
     if (result?.success == true) {
+      // Backend đã trừ tiền trong transaction — gọi refresh để 3 nơi hiển thị
+      // (Trang chủ, sub-tab Ví, sub-tab Giao dịch) cùng thấy số dư + lịch sử
+      // giao dịch mới. Chạy song song, không chờ nhau để UI nhanh.
+      unawaited(Future.wait([
+        _homeKey.currentState?.refresh() ?? Future.value(),
+        _walletTabKey.currentState?.refreshAll() ?? Future.value(),
+      ]));
       _goToWallet(subTab: 1);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -138,6 +152,7 @@ class _HomeSpectatorState extends State<HomeSpectator> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       SpectatorHomeScreen(
+        key: _homeKey,
         onLogout: _logout,
         onOpenTournaments: _goToTournaments,
         onOpenPlaceBet: () => _openPlaceBet(null),
@@ -152,6 +167,7 @@ class _HomeSpectatorState extends State<HomeSpectator> {
         ),
       ),
       _SpectatorWalletTab(
+        key: _walletTabKey,
         api: _api,
         initialSubTab: _walletSubTab,
         onSubTabChanged: (i) => setState(() => _walletSubTab = i),
@@ -258,8 +274,14 @@ class _HomeSpectatorState extends State<HomeSpectator> {
 
 /// Tab "Ví" — gồm 1 thẻ điều khiển nhỏ (Ví / Cược của tôi / Giao dịch) + body.
 /// Dùng TabBar + TabBarView để chuyển sub-tab nhanh mà không mất trạng thái.
-class _SpectatorWalletTab extends StatelessWidget {
+///
+/// Expose [refreshWallet] / [refreshTransactions] để shell có thể yêu cầu các
+/// sub-screen reload dữ liệu (vd: sau khi đặt cược thành công cần refresh số dư
+/// ví + lịch sử giao dịch, vì backend đã trừ tiền trong transaction nhưng UI đang
+/// cache state cũ).
+class _SpectatorWalletTab extends StatefulWidget {
   const _SpectatorWalletTab({
+    super.key,
     required this.api,
     required this.initialSubTab,
     required this.onSubTabChanged,
@@ -274,16 +296,35 @@ class _SpectatorWalletTab extends StatelessWidget {
   final Future<void> Function(int? raceId) onOpenPlaceBet;
 
   @override
+  State<_SpectatorWalletTab> createState() => _SpectatorWalletTabState();
+}
+
+class _SpectatorWalletTabState extends State<_SpectatorWalletTab> {
+  final _walletKey = GlobalKey<SpectatorWalletScreenState>();
+  final _transactionsKey = GlobalKey<SpectatorTransactionsScreenState>();
+  final _predictionsKey = GlobalKey<SpectatorPredictionsScreenState>();
+
+  /// Refresh cả 3 sub-tab — dùng sau khi đặt cược / hủy cược để cân đối
+  /// ví + cược + lịch sử giao dịch. An toàn khi gọi khi widget chưa mount.
+  Future<void> refreshAll() async {
+    await Future.wait([
+      _walletKey.currentState?.refresh() ?? Future.value(),
+      _predictionsKey.currentState?.refresh() ?? Future.value(),
+      _transactionsKey.currentState?.refresh() ?? Future.value(),
+    ]);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
-      initialIndex: initialSubTab.clamp(0, 2),
+      initialIndex: widget.initialSubTab.clamp(0, 2),
       child: Column(
         children: [
           Material(
             color: Colors.white,
             child: TabBar(
-              onTap: onSubTabChanged,
+              onTap: widget.onSubTabChanged,
               labelColor: AppColors.green,
               unselectedLabelColor: AppColors.textMuted,
               indicatorColor: AppColors.green,
@@ -300,16 +341,21 @@ class _SpectatorWalletTab extends StatelessWidget {
             child: TabBarView(
               children: [
                 SpectatorWalletScreen(
-                  api: api,
-                  onOpenTransactions: () => onSubTabChanged(2),
+                  key: _walletKey,
+                  api: widget.api,
+                  onOpenTransactions: () => widget.onSubTabChanged(2),
                 ),
                 SpectatorPredictionsScreen(
-                  api: api,
+                  key: _predictionsKey,
+                  api: widget.api,
                   onOpenPlaceBet: (int? raceId) {
-                    onOpenPlaceBet(raceId);
+                    widget.onOpenPlaceBet(raceId);
                   },
                 ),
-                SpectatorTransactionsScreen(api: api),
+                SpectatorTransactionsScreen(
+                  key: _transactionsKey,
+                  api: widget.api,
+                ),
               ],
             ),
           ),

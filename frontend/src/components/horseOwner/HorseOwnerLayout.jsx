@@ -1,7 +1,11 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { LogOut, LayoutDashboard, UserCircle2, PawPrint, Send, CalendarDays, Trophy } from 'lucide-react'
 import { logoutUser } from '../../api/auth'
 import { clearAuthTokens, getAccessToken, getRefreshToken } from '../../utils/token'
+import { useHorseOwnerSocket, horseOwnerNotificationCenter } from '../../hooks/useHorseOwnerNotifications'
+import { horseOwnerNotificationService } from '../../services/horseOwnerNotificationService'
+import HorseOwnerNotificationBell from './HorseOwnerNotificationBell'
 import './HorseOwnerLayout.css'
 
 const NAV_ITEMS = [
@@ -15,6 +19,26 @@ const NAV_ITEMS = [
 
 export default function HorseOwnerLayout() {
   const navigate = useNavigate()
+  const token = getAccessToken()
+
+  // Connect Socket.IO and load initial notifications.
+  useHorseOwnerSocket({ token })
+
+  // Load notification list on mount.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const list = await horseOwnerNotificationService.getList()
+        if (!cancelled) horseOwnerNotificationCenter.setFromApi(list)
+      } catch (e) {
+        console.warn('[HorseOwnerLayout] load notifications failed:', e)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const onLogout = async () => {
     try {
@@ -24,6 +48,7 @@ export default function HorseOwnerLayout() {
     } catch {
       /* clear local anyway */
     }
+    horseOwnerNotificationCenter.reset()
     clearAuthTokens()
     navigate('/login', { replace: true })
   }
@@ -73,6 +98,10 @@ export default function HorseOwnerLayout() {
       </aside>
 
       <div className="owner-shell-content">
+        <div className="owner-topbar">
+          <div className="owner-topbar__title">Khu vực Chủ ngựa</div>
+          <HorseOwnerNotificationBell />
+        </div>
         <Outlet />
       </div>
     </div>

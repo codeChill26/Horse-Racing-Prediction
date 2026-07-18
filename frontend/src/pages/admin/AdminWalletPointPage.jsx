@@ -136,7 +136,10 @@ export default function AdminWalletPointPage() {
         (t) =>
           String(t.transactionId ?? t.id ?? "").toLowerCase().includes(q) ||
           (t.type ?? "").toLowerCase().includes(q) ||
-          (t.description ?? "").toLowerCase().includes(q)
+          (t.description ?? "").toLowerCase().includes(q) ||
+          (t.pointWallet?.user?.fullName ?? "").toLowerCase().includes(q) ||
+          (t.pointWallet?.user?.email ?? "").toLowerCase().includes(q) ||
+          String(t.pointWallet?.userId ?? "").toLowerCase().includes(q)
       );
     }
     return list;
@@ -264,7 +267,7 @@ export default function AdminWalletPointPage() {
             placeholder={
               tab === "wallets"
                 ? "Tìm theo tên, email, ID..."
-                : "Tìm theo mã GD, mô tả..."
+                : "Tìm theo mã GD, tên/email người dùng, mô tả..."
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -410,9 +413,9 @@ export default function AdminWalletPointPage() {
                 <thead>
                   <tr>
                     <th>Mã GD</th>
+                    <th>Người dùng</th>
                     <th>Loại</th>
                     <th>Số điểm</th>
-                    <th>Số dư sau GD</th>
                     <th>Mô tả</th>
                     <th>Thời gian</th>
                   </tr>
@@ -424,6 +427,16 @@ export default function AdminWalletPointPage() {
                         <span className="awp-code">
                           #{t.transactionId ?? t.id ?? idx}
                         </span>
+                      </td>
+                      <td>
+                        <div className="awp-name">
+                          {t.pointWallet?.user?.fullName ?? "—"}
+                        </div>
+                        <div className="awp-meta">
+                          {t.pointWallet?.user?.email
+                            ? `${t.pointWallet.user.email} • #${t.pointWallet?.userId ?? "—"}`
+                            : `#${t.pointWallet?.userId ?? "—"}`}
+                        </div>
                       </td>
                       <td>
                         <span className={txTypeClass(t.type)}>
@@ -442,7 +455,6 @@ export default function AdminWalletPointPage() {
                           {formatPoints(Math.abs(t.amount ?? 0))}
                         </span>
                       </td>
-                      <td>{formatPoints(t.balanceAfter ?? 0)}</td>
                       <td>
                         <div className="awp-desc">
                           {t.description || "—"}

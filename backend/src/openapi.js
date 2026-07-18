@@ -1,4 +1,4 @@
-﻿// backend/src/openapi.js
+// backend/src/openapi.js
 
 module.exports = {
   openapi: '3.0.3',
@@ -2335,6 +2335,105 @@ module.exports = {
           '400': { description: 'Invalid request data' },
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}/predictions': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Admin xem danh sách predictions (đặt cược) của spectators cho 1 race',
+        description:
+          'Trả về toàn bộ prediction kèm thông tin spectator và entries. ' +
+          'Dùng cho admin giám sát lượt cược sau khi đóng cổng đăng ký.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                example: {
+                  race: { raceId: 1, name: 'Race 1', status: 'SCHEDULED', scheduledAt: '2026-07-18T10:00:00.000Z' },
+                  predictions: [
+                    {
+                      predictionId: 100,
+                      spectatorId: 7,
+                      spectatorName: 'Nguyen Van A',
+                      spectatorEmail: 'a@example.com',
+                      betType: 'WIN',
+                      entryId1: 5,
+                      entry1Name: 'Thunderbolt',
+                      entryId2: null,
+                      entry2Name: null,
+                      betAmount: 200,
+                      lockedOdds: 2.5,
+                      status: 'PENDING',
+                      payout: 0,
+                      createdAt: '2026-07-18T09:55:00.000Z',
+                      settledAt: null,
+                    },
+                  ],
+                  totalBetAmount: 1200,
+                  totalBettors: 8,
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
+        },
+      },
+    },
+
+    '/api/admin/races/{id}/wallet-activity': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Admin xem lịch sử ví của các spectators đã đặt cược cho 1 race',
+        description:
+          'Gồm các WalletTransaction có referenceType=PREDICTION cho race này ' +
+          'hoặc type ∈ {BET_PLACED, BET_REFUND, BET_WIN, BET_WIN_REVERSAL} từ thời điểm race được tạo. ' +
+          'Nhóm theo spectatorId để FE render accordion.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                example: {
+                  race: { raceId: 1, name: 'Race 1', status: 'SCHEDULED', scheduledAt: '2026-07-18T10:00:00.000Z' },
+                  spectators: [
+                    {
+                      spectatorId: 7,
+                      fullName: 'Nguyen Van A',
+                      email: 'a@example.com',
+                      transactions: [
+                        {
+                          transactionId: 555,
+                          amount: -200,
+                          balanceAfter: 800,
+                          type: 'BET_PLACED',
+                          referenceType: 'PREDICTION',
+                          referenceId: 100,
+                          description: 'Placed WIN bet of 200 points on race #1',
+                          createdAt: '2026-07-18T09:55:00.000Z',
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Race not found' },
         },
       },
     },

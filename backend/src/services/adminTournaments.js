@@ -1,6 +1,7 @@
 // backend/src/services/adminTournaments.js
 
 const prisma = require('../config/prisma');
+const { emitToUser } = require('../socket/emitter');
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -130,11 +131,33 @@ class AdminTournamentsService {
       });
     }
 
-    return prisma.tournament.update({
+    const updated = await prisma.tournament.update({
       where: { tournamentId },
       data: { status: nextStatus, cancelReason: null },
       select: adminTournamentSelect(),
     });
+
+    // === Auto-notify horse owners khi chuyển sang OPEN ===
+    // Đây là điểm vào duy nhất để broadcast "giải đấu đã mở đăng ký"
+    // đến các chủ ngựa. Trước đây việc này nằm ở form tạo giải (manual),
+    // dẫn đến nhiều trường hợp admin tạo xong rồi mở OPEN sau → horse owners
+    // không nhận được thông báo.
+    if (existing.status === 'DRAFT' && nextStatus === 'OPEN') {
+      try {
+        const defaultMessage =
+          `Giải đấu "${updated.name}" đang mở đăng ký. ` +
+          `Hãy đăng ký ngựa của bạn ngay!`;
+        await this.notifyHorseOwners(tournamentId, { message: defaultMessage });
+      } catch (notifyErr) {
+        // Không fail transaction đổi status vì lý do notify — chỉ log
+        console.warn(
+          `[adminTournaments] auto-notify horse owners failed for tournament ${tournamentId}:`,
+          notifyErr.message,
+        );
+      }
+    }
+
+    return updated;
   }
 
   async deleteTournament(tournamentId, { reason } = {}) {
@@ -184,14 +207,15 @@ class AdminTournamentsService {
 
     if (!tournament) throw httpError('Tournament not found', 404);
 
-    // Find the Horse Owner role
+    // Find the Horse Owner role. `seed.js` inserts role with code 'HORSE_OWNER',
+    // so we query by that canonical code rather than the display name.
     const horseOwnerRole = await prisma.role.findUnique({
-      where: { code: 'Horse Owner' },
+      where: { code: 'HORSE_OWNER' },
       select: { roleId: true },
     });
 
     if (!horseOwnerRole) {
-      throw httpError("Role 'Horse Owner' not found in system", 500);
+      throw httpError("Role 'HORSE_OWNER' not found in system", 500);
     }
 
     // Fetch all active Horse Owners
@@ -214,6 +238,9 @@ class AdminTournamentsService {
       status: tournament.status,
     };
 
+    // Capture the insert moment so we can query back only the rows we just wrote.
+    const insertedAt = new Date();
+
     const result = await prisma.notification.createMany({
       data: owners.map((o) => ({
         userId: o.userId,
@@ -223,6 +250,36 @@ class AdminTournamentsService {
         payload,
       })),
     });
+
+    // Emit realtime socket events to each owner so the bell lights up immediately.
+    const created = await prisma.notification.findMany({
+      where: {
+        userId: { in: owners.map((o) => o.userId) },
+        type: 'TOURNAMENT_OPEN',
+        createdAt: { gte: insertedAt },
+      },
+      select: {
+        notificationId: true,
+        userId: true,
+        type: true,
+        title: true,
+        message: true,
+        payload: true,
+        read: true,
+        createdAt: true,
+      },
+    });
+    for (const notif of created) {
+      emitToUser(notif.userId, 'notification:new', {
+        id: notif.notificationId,
+        type: notif.type,
+        title: notif.title,
+        message: notif.message,
+        payload: notif.payload,
+        isRead: notif.read,
+        createdAt: notif.createdAt,
+      });
+    }
 
     return {
       notified: result.count,
