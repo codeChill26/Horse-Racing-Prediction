@@ -734,7 +734,8 @@ export default function AdminRaceStagePage() {
                           )}
 
                           {/* FLOW 8: nút publish / rollback inline */}
-                          {r.status === "PENDING_RESULT" && (
+                          {/* Publish: PENDING_RESULT HOẶC FINISHED nhưng chưa settle (chưa có publishedAt) */}
+                          {(r.status === "PENDING_RESULT" || (r.status === "FINISHED" && !r.publishedAt)) && (
                             <button
                               type="button"
                               className="ars-icon-btn ars-icon-btn--primary"
@@ -745,7 +746,8 @@ export default function AdminRaceStagePage() {
                               <CheckCircle2 size={14} />
                             </button>
                           )}
-                          {r.status === "FINISHED" && (
+                          {/* Rollback: chỉ khi FINISHED và đã settle (có publishedAt) */}
+                          {r.status === "FINISHED" && r.publishedAt && (
                             <button
                               type="button"
                               className="ars-icon-btn ars-icon-btn--warn"
@@ -818,6 +820,63 @@ export default function AdminRaceStagePage() {
               <DetailRow label="Ngày công bố" value={formatDate(detail.publishedAt)} />
               <DetailRow label="Ngày tạo" value={formatDate(detail.createdAt)} />
             </div>
+            {/* Footer cho race FINISHED: hiện nút Publish hoặc Rollback */}
+            {detail.status === "FINISHED" && (
+              <div className="ars-modal__footer">
+                {!detail.publishedAt ? (
+                  <button
+                    type="button"
+                    className="ars-btn ars-btn--primary"
+                    onClick={async () => {
+                      setBusyId(detail.raceId);
+                      try {
+                        await raceService.publishRaceResult(detail.raceId);
+                        toastify?.success?.(`Đã publish kết quả và settle cược cho "${detail.name}"`);
+                        setDetail(null);
+                        await loadData();
+                      } catch (e) {
+                        toastify?.error?.(e.message || "Publish thất bại");
+                      } finally {
+                        setBusyId(null);
+                      }
+                    }}
+                    disabled={busyId === detail.raceId}
+                  >
+                    <CheckCircle2 size={14} />
+                    Publish kết quả & Settle cược
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ars-btn ars-btn--warn"
+                    onClick={async () => {
+                      setBusyId(detail.raceId);
+                      try {
+                        await raceService.unpublishRaceResult(detail.raceId);
+                        toastify?.success?.(`Đã rollback settlement cho "${detail.name}"`);
+                        setDetail(null);
+                        await loadData();
+                      } catch (e) {
+                        toastify?.error?.(e.message || "Rollback thất bại");
+                      } finally {
+                        setBusyId(null);
+                      }
+                    }}
+                    disabled={busyId === detail.raceId}
+                  >
+                    <Undo2 size={14} />
+                    Rollback Settlement
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="ars-btn ars-btn--ghost"
+                  onClick={() => setDetail(null)}
+                >
+                  Đóng
+                </button>
+              </div>
+            )}
             {detail.status !== "FINISHED" && detail.status !== "CANCELLED" && (
               <div className="ars-modal__footer">
                 {detail.registrationOpen || detail.isRegistrationOpen ? (

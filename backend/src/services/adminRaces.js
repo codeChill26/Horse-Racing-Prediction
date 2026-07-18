@@ -20,6 +20,7 @@ function adminRaceSelect() {
     registrationOpen: true,
     registrationOpenedAt: true,
     registrationClosedAt: true,
+    publishedAt: true,
     createdAt: true,
     updatedAt: true,
     _count: { select: { entries: true, predictions: true } },

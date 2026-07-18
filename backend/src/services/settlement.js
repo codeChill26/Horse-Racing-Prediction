@@ -20,8 +20,11 @@ class SettlementService {
       });
 
       if (!race) throw new Error(`Trận đấu mang ID ${raceId} không tồn tại.`);
-      if (race.status !== 'PENDING_RESULT') {
-        throw new Error(`Trận đấu phải ở trạng thái PENDING_RESULT để thực hiện luồng này. Hiện tại: ${race.status}`);
+      // Cho phép publish khi:
+      // 1. PENDING_RESULT - luồng bình thường (referee đã submit, admin publish)
+      // 2. FINISHED nhưng chưa settle (publishedAt = null) - fix data cũ hoặc edge case
+      if (race.status !== 'PENDING_RESULT' && !(race.status === 'FINISHED' && !race.publishedAt)) {
+        throw new Error(`Trận đấu phải ở trạng thái PENDING_RESULT hoặc FINISHED (chưa settle). Hiện tại: ${race.status}`);
       }
       if (!race.officialRaceResult) {
         throw new Error('Chưa tìm thấy dữ liệu đối chiếu kết quả trọng tài (OfficialRaceResult).');

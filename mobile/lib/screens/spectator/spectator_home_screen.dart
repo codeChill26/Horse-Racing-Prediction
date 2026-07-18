@@ -11,13 +11,11 @@ import '../../widgets/tournaments_home_section.dart';
 class SpectatorHomeScreen extends StatefulWidget {
   const SpectatorHomeScreen({
     super.key,
-    required this.onLogout,
     required this.onOpenTournaments,
     this.onOpenPlaceBet,
     this.onOpenMyBets,
   });
 
-  final VoidCallback onLogout;
   final VoidCallback onOpenTournaments;
 
   /// Mở màn đặt cược nhanh từ trang chủ (không truyền raceId).
@@ -123,13 +121,6 @@ class SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                 ],
               ),
             ),
-            actions: [
-              IconButton(
-                tooltip: 'Đăng xuất',
-                onPressed: widget.onLogout,
-                icon: const Icon(Icons.logout_rounded),
-              ),
-            ],
           ),
           SliverToBoxAdapter(
             child: Padding(

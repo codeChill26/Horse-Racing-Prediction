@@ -153,7 +153,6 @@ class _HomeSpectatorState extends State<HomeSpectator> {
     final pages = <Widget>[
       SpectatorHomeScreen(
         key: _homeKey,
-        onLogout: _logout,
         onOpenTournaments: _goToTournaments,
         onOpenPlaceBet: () => _openPlaceBet(null),
         onOpenMyBets: () => _goToWallet(subTab: 1),
