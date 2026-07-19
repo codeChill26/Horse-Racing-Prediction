@@ -27,7 +27,7 @@ YEARS = [2016, 2017, 2018, 2019, 2020]
 RAW_FEATURES = ["OR", "RPR", "age", "weightLb", "saddle", "runners"]
 
 # Feature tự tính (feature engineering) — thêm ở bước 4.
-ENGINEERED_FEATURES = ["jockey_winrate", "trainer_winrate"]
+ENGINEERED_FEATURES = ["jockey_winrate"]
 
 FEATURE_COLS = RAW_FEATURES + ENGINEERED_FEATURES
 TARGET = "res_win"
@@ -43,16 +43,23 @@ SMOOTHING_K = 20
 # ---------------------------------------------------------------------------
 def load_data():
     frames = []
+
     for year in YEARS:
         path = DATA_DIR / f"horses_{year}.csv"
         df = pd.read_csv(path, low_memory=False)
+
+        # Thêm cột năm
+        df["year"] = year
+
         frames.append(df)
         print(f"  + horses_{year}.csv: {len(df):,} dòng")
+
+    # Gộp tất cả dataframe
     data = pd.concat(frames, ignore_index=True)
+
     print(f"  = Tổng: {len(data):,} lượt ngựa, {data['rid'].nunique():,} cuộc đua")
+
     return data
-
-
 # ---------------------------------------------------------------------------
 # 2) CHUẨN BỊ: ép kiểu số cho các cột feature thô + target sạch
 # ---------------------------------------------------------------------------
@@ -72,20 +79,14 @@ def prepare(data):
 # ---------------------------------------------------------------------------
 # 3) CHIA TRAIN/TEST THEO CUỘC ĐUA
 # ---------------------------------------------------------------------------
-def split_by_race(data, test_ratio=0.2, seed=42):
-    rids = data["rid"].unique()
-    rng = np.random.default_rng(seed)
-    rng.shuffle(rids)
-    n_test = int(len(rids) * test_ratio)
-    test_rids = set(rids[:n_test])
+def split_by_year(data):
+    train_df = data[data["year"] < 2020].copy()
+    test_df = data[data["year"] == 2020].copy()
 
-    is_test = data["rid"].isin(test_rids)
-    train_df = data[~is_test].copy()
-    test_df = data[is_test].copy()
     print(f"  Train: {len(train_df):,} lượt / {train_df['rid'].nunique():,} đua")
     print(f"  Test : {len(test_df):,} lượt / {test_df['rid'].nunique():,} đua")
-    return train_df, test_df
 
+    return train_df, test_df
 
 # ---------------------------------------------------------------------------
 # 4) FEATURE ENGINEERING: winrate jockey & trainer (TÍNH TỪ TRAIN)
@@ -127,17 +128,14 @@ def main():
     print("\n2) CHUẨN BỊ / ÉP KIỂU")
     data = prepare(data)
 
-    print("\n3) CHIA TRAIN/TEST THEO ĐUA")
-    train_df, test_df = split_by_race(data)
+    print("\n3) CHIA TRAIN/TEST THEO NĂM")
+    train_df, test_df = split_by_year(data)
 
-    print("\n4) TÍNH WINRATE JOCKEY & TRAINER (từ train)")
+    print("\n4) TÍNH WINRATE JOCKEY")
     jockey_tbl, jockey_global = build_winrate_table(train_df, "jockeyName")
-    trainer_tbl, trainer_global = build_winrate_table(train_df, "trainerName")
     for df in (train_df, test_df):
         apply_winrate(df, jockey_tbl, jockey_global, "jockeyName", "jockey_winrate")
-        apply_winrate(df, trainer_tbl, trainer_global, "trainerName", "trainer_winrate")
-    print(f"  jockey_winrate trung bình: {jockey_global:.3f} | "
-          f"trainer_winrate trung bình: {trainer_global:.3f}")
+    print(f"  jockey_winrate trung bình: {jockey_global:.3f}")
 
     X_train, y_train = train_df[FEATURE_COLS], train_df[TARGET]
     X_test, y_test = test_df[FEATURE_COLS], test_df[TARGET]
@@ -179,11 +177,9 @@ def main():
         "raw_features": RAW_FEATURES,
         "jockey_winrate": jockey_tbl,
         "jockey_global": jockey_global,
-        "trainer_winrate": trainer_tbl,
-        "trainer_global": trainer_global,
     }
     joblib.dump(bundle, MODEL_DIR / "model.pkl")
-    print("  Đã lưu. Xong bước train!")
+    print("Đã lưu. Xong bước train!")
 
 
 if __name__ == "__main__":
