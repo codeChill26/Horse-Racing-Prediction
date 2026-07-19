@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, Wifi, WifiOff, CheckCircle2, Undo2, ExternalLink } from "lucide-react";
+import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, CheckCircle2, Undo2, ExternalLink } from "lucide-react";
 import { raceService } from "../../services/raceService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceDetailService } from "../../services/raceDetailService";
