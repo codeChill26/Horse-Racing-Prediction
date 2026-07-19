@@ -310,7 +310,7 @@ export default function BettingModal({
 
         <div className="bet-modal__notice">
           <AlertCircle size={14} />
-          <span>Odds hiển thị là tỷ lệ tại thời điểm bạn bấm "Xác nhận". Sau đó không thay đổi dù Admin điều chỉnh.</span>
+          <span>Odds hiển thị chỉ là <strong>tạm tính</strong>. Odds có thể thay đổi theo lượng cược dồn vào từng cửa (cửa càng nhiều người cược càng có thể bị hạ). Tiền thưởng cuối cùng được tính theo <strong>odds cuối cùng</strong> khi chốt sổ, nên số thực nhận có thể khác odds lúc bạn đặt.</span>
         </div>
 
         <div className="bet-modal__notice">

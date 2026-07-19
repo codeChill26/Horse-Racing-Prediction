@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Edit, XCircle, Wifi, WifiOff, Sparkles } from "lucide-react";
+import { ArrowLeft, AlertTriangle, XCircle, Sparkles, SlidersHorizontal } from "lucide-react";
 import { raceDetailService } from "../../services/raceDetailService";
 import { raceEntryService } from "../../services/raceEntryService";
 import { settlementService } from "../../services/settlementService";
@@ -34,6 +34,7 @@ import {
   RollbackReasonModal,
 } from "../../components/admin/race/AdminRaceDetailModals";
 import AiAdvisoryModal from "../../components/admin/race/AiAdvisoryModal";
+import ManualOddsModal from "../../components/admin/race/ManualOddsModal";
 import { useSettlementActions } from "../../hooks/useSettlementActions";
 import "./AdminRaceDetailPage.css";
 
@@ -69,6 +70,7 @@ export default function AdminRaceDetailPage() {
   const [rejectEntryModal, setRejectEntryModal] = useState(null);
   const [rollbackModal, setRollbackModal] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [oddsModalOpen, setOddsModalOpen] = useState(false);
   const [entryBusyId, setEntryBusyId] = useState(null);
   const [entryError, setEntryError] = useState("");
   const [approveConfirmModal, setApproveConfirmModal] = useState(null);
@@ -446,11 +448,11 @@ export default function AdminRaceDetailPage() {
               <button
                 type="button"
                 className="ard-quick-btn"
-                onClick={handleEdit}
-                disabled={busy}
+                onClick={() => setOddsModalOpen(true)}
+                disabled={busy || loading}
               >
-                <Edit size={16} />
-                Chỉnh sửa thông tin
+                <SlidersHorizontal size={16} />
+                Chỉnh odds
               </button>
               {isRaceCancellable && (
                 <button
@@ -522,6 +524,15 @@ export default function AdminRaceDetailPage() {
       {/* AI Advisory Modal — gợi ý odds + đánh giá rủi ro */}
       {aiModalOpen && (
         <AiAdvisoryModal race={race} onClose={() => setAiModalOpen(false)} />
+      )}
+
+      {/* Manual Odds Modal — chỉnh odds thủ công (độc lập AI) */}
+      {oddsModalOpen && (
+        <ManualOddsModal
+          race={race}
+          onClose={() => setOddsModalOpen(false)}
+          onSaved={loadData}
+        />
       )}
 
       {/* Confirm Modal: approve entry */}
