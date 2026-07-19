@@ -44,7 +44,7 @@
 /* Stats Grid */
 .adp-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -76,7 +76,99 @@
 .adp-stat__value--warn { color: var(--adp-warn); }
 .adp-stat__value--err { color: var(--adp-danger); }
 
-/* Buttons */
+/* ================================================
+   Tabs
+   ================================================ */
+.adp-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--adp-border);
+  padding-bottom: 0;
+}
+
+.adp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border: none;
+  background: transparent;
+  color: var(--adp-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+  border-radius: var(--adp-radius-sm) var(--adp-radius-sm) 0 0;
+}
+
+.adp-tab:hover {
+  color: var(--adp-text);
+  background: rgba(255,255,255,0.04);
+}
+
+.adp-tab--active {
+  color: var(--adp-primary);
+  border-bottom-color: var(--adp-primary);
+  background: rgba(141, 214, 166, 0.06);
+}
+
+.adp-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  color: var(--adp-muted);
+}
+
+.adp-tab--active .adp-tab__count {
+  background: rgba(141, 214, 166, 0.18);
+  color: var(--adp-primary);
+}
+
+/* ================================================
+   Table extra cells
+   ================================================ */
+.adp-idx-cell {
+  color: var(--adp-muted);
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  text-align: center;
+}
+
+.adp-referee-name {
+  font-size: 0.85rem;
+  color: var(--adp-text);
+  white-space: nowrap;
+}
+
+.adp-reason-cell {
+  max-width: 220px;
+}
+
+.adp-reason-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.8rem;
+  color: var(--adp-muted);
+  line-height: 1.4;
+}
+
+.adp-muted {
+  color: var(--adp-muted);
+  font-size: 0.8rem;
+}
+
 .adp-btn {
   display: inline-flex;
   align-items: center;
@@ -735,19 +827,37 @@
     display: none;
   }
 
-  .adp-table th:nth-child(4),
-  .adp-table td:nth-child(4) {
+  /* Ẩn các cột không quan trọng trên tablet */
+  .adp-table th:nth-child(6),
+  .adp-table td:nth-child(6),
+  .adp-table th:nth-child(7),
+  .adp-table td:nth-child(7),
+  .adp-table th:nth-child(8),
+  .adp-table td:nth-child(8) {
     display: none;
+  }
+
+  .adp-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
   }
 }
 
 @media (max-width: 480px) {
   .adp-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .adp-page__header {
     flex-direction: column;
+  }
+
+  /* Ẩn thêm cột trên mobile */
+  .adp-table th:nth-child(4),
+  .adp-table td:nth-child(4),
+  .adp-table th:nth-child(5),
+  .adp-table td:nth-child(5) {
+    display: none;
   }
 }
 

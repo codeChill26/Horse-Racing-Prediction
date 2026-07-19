@@ -13,7 +13,6 @@ import {
   X,
   Eye,
   AlertCircle,
-  Users,
   FileText,
 } from "lucide-react";
 import { Skeleton } from "../../components/ui/Skeleton";
@@ -42,17 +41,17 @@ function LoadingSkeleton() {
   );
 }
 
-function ConflictTable({ deviations, loading, onView, onResolve }) {
+// ============================================================
+// DEVIATION TABLE — hiển thị đầy đủ thông tin từ database
+// ============================================================
+function DeviationTable({ deviations, loading, onView, onResolve }) {
   const formatDate = (iso) => {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
     });
   };
 
@@ -61,9 +60,9 @@ function ConflictTable({ deviations, loading, onView, onResolve }) {
   if (!deviations || deviations.length === 0) {
     return (
       <div className="adp-empty">
-        <CheckCircle2 size={64} className="adp-empty__icon" />
-        <h3>Không có xung đột nào</h3>
-        <p>Tất cả kết quả trọng tài đã khớp hoặc đã được xử lý.</p>
+        <CheckCircle2 size={56} className="adp-empty__icon" />
+        <h3>Không có dữ liệu</h3>
+        <p>Không có xung đột nào trong danh mục này.</p>
       </div>
     );
   }
@@ -73,44 +72,52 @@ function ConflictTable({ deviations, loading, onView, onResolve }) {
       <table className="adp-table">
         <thead>
           <tr>
-            <th>Race</th>
-            <th>Trạng thái</th>
+            <th style={{ width: 36 }}>#</th>
+            <th>Chặng đua</th>
+            <th>Trạng thái kết quả</th>
+            <th>Trọng tài A</th>
+            <th>Trọng tài B</th>
+            <th>Lý do phân xử</th>
             <th>Ngày tạo</th>
-            <th>Trọng tài</th>
-            <th>Thao tác</th>
+            <th>Cập nhật</th>
+            <th style={{ width: 120 }}>Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          {deviations.map((dev) => {
+          {deviations.map((dev, idx) => {
             const config = MATCH_STATUS_CONFIG[dev.matchStatus] || {
-              variant: "muted",
-              label: dev.matchStatus || "—",
-              icon: AlertCircle,
+              variant: "muted", label: dev.matchStatus || "—", icon: AlertCircle,
             };
             const StatusIcon = config.icon;
             return (
               <tr key={dev.id || dev.officialResultId}>
+                <td className="adp-idx-cell">{idx + 1}</td>
                 <td>
                   <div className="adp-race-cell">
-                    <span className="adp-race-cell__id">#{dev.raceId}</span>
+                    <span className="adp-race-cell__id">Race #{dev.raceId}</span>
                     <span className="adp-race-cell__name">{dev.raceName || "—"}</span>
                   </div>
                 </td>
                 <td>
                   <span className={`adp-status-badge adp-status-badge--${config.variant}`}>
-                    <StatusIcon size={14} />
+                    <StatusIcon size={13} />
                     {config.label}
                   </span>
                 </td>
-                <td className="adp-date-cell">{formatDate(dev.createdAt)}</td>
-                <td className="adp-referee-cell">
-                  <div className="adp-referee">
-                    <Users size={14} />
-                    <span>{dev.reporterA?.fullName || "—"}</span>
-                    <span className="adp-referee__sep">vs</span>
-                    <span>{dev.reporterB?.fullName || "—"}</span>
-                  </div>
+                <td className="adp-referee-name">
+                  {dev.reporterA?.fullName || dev.race?.refereeA?.fullName || <span className="adp-muted">—</span>}
                 </td>
+                <td className="adp-referee-name">
+                  {dev.reporterB?.fullName || dev.race?.refereeB?.fullName || <span className="adp-muted">—</span>}
+                </td>
+                <td className="adp-reason-cell">
+                  {dev.resolveReason
+                    ? <span className="adp-reason-text" title={dev.resolveReason}>{dev.resolveReason}</span>
+                    : <span className="adp-muted">—</span>
+                  }
+                </td>
+                <td className="adp-date-cell">{formatDate(dev.createdAt)}</td>
+                <td className="adp-date-cell">{formatDate(dev.updatedAt)}</td>
                 <td>
                   <div className="adp-actions">
                     <button
@@ -119,7 +126,7 @@ function ConflictTable({ deviations, loading, onView, onResolve }) {
                       title="Xem chi tiết"
                     >
                       <Eye size={14} />
-                      Chi tiết
+                      Xem
                     </button>
                     {dev.matchStatus === "CONFLICTED" && (
                       <button
@@ -673,11 +680,22 @@ function ConflictDetailModal({ isOpen, onClose, deviation, onSubmit, submitting 
   );
 }
 
+// ============================================================
+// TABS CONFIG
+// ============================================================
+const TABS = [
+  { key: "all",          label: "Tất cả",        filter: null },
+  { key: "conflicted",   label: "Chờ phân xử", filter: ["CONFLICTED", "PENDING"] },
+  { key: "auto_matched", label: "Khớp tự động",   filter: ["AUTO_MATCHED"] },
+  { key: "resolved",     label: "Đã xử lý",       filter: ["RESOLVED"] },
+];
+
 export default function AdminDeviationPage() {
   const toast = useToast();
   const [deviations, setDeviations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
   const [selectedDeviation, setSelectedDeviation] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -686,7 +704,7 @@ export default function AdminDeviationPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await deviationRepository.getAll({ status: "CONFLICTED" });
+      const data = await deviationRepository.getAll({});
       setDeviations(Array.isArray(data) ? data : []);
     } catch (e) {
       const msg = e.message || "Không tải được danh sách xung đột";
@@ -697,22 +715,15 @@ export default function AdminDeviationPage() {
     }
   }, [toast]);
 
-  useEffect(() => {
-    loadDeviations();
-  }, [loadDeviations]);
+  useEffect(() => { loadDeviations(); }, [loadDeviations]);
 
   const handleView = async (dev) => {
     try {
       const devId = dev.id || dev.officialResultId;
-      console.log('[Page] handleView called with devId:', devId);
       const detail = await deviationRepository.getById(devId);
-      console.log('[Page] handleView got detail:', !!detail);
-      console.log('[Page] detail.entries:', detail?.entries?.length);
-      console.log('[Page] detail.race.entries:', detail?.race?.entries?.length);
       setSelectedDeviation(detail);
       setShowModal(true);
     } catch (e) {
-      console.error('[Page] handleView error:', e);
       toast?.error?.(e.message || "Không tải được chi tiết");
     }
   };
@@ -720,13 +731,10 @@ export default function AdminDeviationPage() {
   const handleResolve = async (dev) => {
     try {
       const devId = dev.id || dev.officialResultId;
-      console.log('[Page] handleResolve called with devId:', devId);
       const detail = await deviationRepository.getById(devId);
-      console.log('[Page] handleResolve got detail:', !!detail);
       setSelectedDeviation(detail);
       setShowModal(true);
     } catch (e) {
-      console.error('[Page] handleResolve error:', e);
       toast?.error?.(e.message || "Không tải được chi tiết");
     }
   };
@@ -739,10 +747,12 @@ export default function AdminDeviationPage() {
         selectedDeviation.id || selectedDeviation.officialResultId,
         payload
       );
-      toast?.success?.("Phân xử thành công! Race đã kết thúc.");
+      toast?.success?.("Đã phân xử thành công! Race đã kết thúc và chuyển sang FINISHED.");
       setShowModal(false);
       setSelectedDeviation(null);
       loadDeviations();
+    } catch (err) {
+      toast?.error?.(err.message || "Có lỗi xảy ra khi phân xử");
     } finally {
       setSubmitting(false);
     }
@@ -754,22 +764,34 @@ export default function AdminDeviationPage() {
     setSubmitting(false);
   };
 
+  // Stats
   const stats = useMemo(() => {
-    return {
-      total: deviations.length,
-      conflicted: deviations.filter((d) => d.matchStatus === "CONFLICTED").length,
-      resolved: deviations.filter((d) => d.matchStatus === "RESOLVED").length,
-    };
+    const conflicted = deviations.filter((d) => ["CONFLICTED", "PENDING"].includes(d.matchStatus)).length;
+    const resolved   = deviations.filter((d) => d.matchStatus === "RESOLVED").length;
+    const autoMatch  = deviations.filter((d) => d.matchStatus === "AUTO_MATCHED").length;
+    return { total: deviations.length, conflicted, resolved, autoMatched: autoMatch };
   }, [deviations]);
+
+  // Filtered data per tab
+  const tabData = useMemo(() => {
+    const tab = TABS.find((t) => t.key === activeTab);
+    if (!tab || !tab.filter) return deviations;
+    return deviations.filter((d) => tab.filter.includes(d.matchStatus));
+  }, [deviations, activeTab]);
+
+  // Tab count badge
+  const tabCount = (filterArr) => {
+    if (!filterArr) return deviations.length;
+    return deviations.filter((d) => filterArr.includes(d.matchStatus)).length;
+  };
 
   return (
     <div className="adp-page">
+      {/* Header */}
       <header className="adp-page__header">
         <div>
           <h1 className="adp-page__title">Xử lý xung đột kết quả</h1>
-          <p className="adp-page__desc">
-            Theo dõi và phân xử các xung đột kết quả giữa 2 trọng tài
-          </p>
+          <p className="adp-page__desc">Theo dõi và phân xử các xung đột kết quả giữa 2 trọ ng tài</p>
         </div>
         <button
           className="adp-btn adp-btn--refresh"
@@ -781,10 +803,11 @@ export default function AdminDeviationPage() {
         </button>
       </header>
 
+      {/* Stats */}
       <div className="adp-stats">
         <div className="adp-stat">
           <div className="adp-stat__value">{stats.total}</div>
-          <div className="adp-stat__label">Tổng xung đột</div>
+          <div className="adp-stat__label">Tổng cộng</div>
         </div>
         <div className="adp-stat">
           <div className="adp-stat__value adp-stat__value--warn">{stats.conflicted}</div>
@@ -792,10 +815,15 @@ export default function AdminDeviationPage() {
         </div>
         <div className="adp-stat">
           <div className="adp-stat__value adp-stat__value--ok">{stats.resolved}</div>
-          <div className="adp-stat__label">Đã xử lý</div>
+          <div className="adp-stat__label">Đã xử lý (Admin)</div>
+        </div>
+        <div className="adp-stat">
+          <div className="adp-stat__value adp-stat__value--ok">{stats.autoMatched}</div>
+          <div className="adp-stat__label">Khớp tự động</div>
         </div>
       </div>
 
+      {/* Error */}
       {error && (
         <div className="adp-alert adp-alert--error" role="alert">
           <AlertTriangle size={18} />
@@ -803,15 +831,31 @@ export default function AdminDeviationPage() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="adp-tabs">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            className={`adp-tab ${activeTab === tab.key ? "adp-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+            <span className="adp-tab__count">{tabCount(tab.filter)}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
       <div className="adp-content">
-        <ConflictTable
-          deviations={deviations}
+        <DeviationTable
+          deviations={tabData}
           loading={loading}
           onView={handleView}
           onResolve={handleResolve}
         />
       </div>
 
+      {/* Modal */}
       <ConflictDetailModal
         isOpen={showModal}
         onClose={handleCloseModal}

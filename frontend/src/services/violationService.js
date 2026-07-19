@@ -212,4 +212,28 @@ export const violationService = {
     const list = await violationRepository.getMine();
     return Array.isArray(list) ? list : [];
   },
+
+  /**
+   * POST /api/admin/violations/direct-penalty
+   */
+  async directPenalty(payload = {}) {
+    const { raceId, entryId, type, severity, penalty, note } = payload;
+    if (!raceId || !entryId) throw new Error("Thiếu chặng đua hoặc ngựa vi phạm");
+    if (!penalty) throw new Error("Vui lòng chọn hình phạt");
+    
+    // allow type and severity to be auto generated if not passed, but if passed validate it
+    const trimmedNote = note ? String(note).trim() : "";
+    if (trimmedNote.length > 2000) {
+      throw new Error("Mô tả vi phạm tối đa 2000 ký tự");
+    }
+
+    return violationRepository.directPenalty({
+      raceId: Number(raceId),
+      entryId: Number(entryId),
+      type,
+      severity,
+      penalty,
+      note: trimmedNote,
+    });
+  }
 };

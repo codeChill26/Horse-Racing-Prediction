@@ -4,29 +4,14 @@
  */
 
 import { adminWalletRepository } from "../repositories/adminWalletRepository";
-import { userRepository } from "../repositories/userRepository";
 
 export const adminWalletService = {
   /**
-   * Lấy danh sách ví theo danh sách người dùng (admin).
-   * Khi backend có API /api/admin/wallets để list tất cả ví,
-   * nên thay bằng adminWalletRepository.listAll().
-   * Hiện tại: tổng hợp từ userRepository + thông tin ví trong user object.
+   * Lấy danh sách tất cả ví kèm số dư thực tế từ backend.
+   * Gọi GET /api/admin/wallets (đã include balance, isFrozen, user info).
    */
   async getAllWallets() {
-    const users = await userRepository.getAll();
-    return users.map((u) => ({
-      userId: u.userId,
-      fullName: u.fullName,
-      email: u.email,
-      role: u.role?.code,
-      isActive: u.isActive,
-      wallet: u.wallet ?? {
-        balance: 0,
-        isFrozen: 0,
-        updatedAt: u.updatedAt,
-      },
-    }));
+    return adminWalletRepository.listAll();
   },
 
   async getTransactions() {

@@ -5,7 +5,7 @@ const MIN_BET = 10;
 const MAX_BET_PCT = 0.5;
 // Tính năng trả điểm xem gợi ý AI (spectator) — cố tình KHÔNG rẻ như MIN_BET để
 // tránh lạm dụng (bấm xem lặp lại nhiều lần không giới hạn, mỗi lần đều trừ điểm).
-const AI_PREDICTION_COST = 15;
+const AI_PREDICTION_COST = 50;
 
 function httpError(message, status = 400) {
   const err = new Error(message);

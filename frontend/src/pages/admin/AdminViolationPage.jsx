@@ -20,6 +20,7 @@ import { ViolationFilter } from "../../components/admin/violation/ViolationFilte
 import { ViolationTable } from "../../components/admin/violation/ViolationTable";
 import { ViolationDetailModal } from "../../components/admin/violation/ViolationDetailModal";
 import { ViolationActionModal } from "../../components/admin/violation/ViolationActionModal";
+import DirectPenaltyModal from "../../components/admin/violation/DirectPenaltyModal";
 import "./AdminViolationPage.css";
 
 export default function AdminViolationPage() {
@@ -40,6 +41,7 @@ export default function AdminViolationPage() {
   // Modals
   const [detail, setDetail] = useState(null);
   const [actionModal, setActionModal] = useState(null); // { violation, actionType }
+  const [isDirectPenaltyModalOpen, setIsDirectPenaltyModalOpen] = useState(false);
 
   const loadViolations = useCallback(async () => {
     setLoading(true);
@@ -225,20 +227,29 @@ export default function AdminViolationPage() {
             Theo dõi, điều tra và ra quyết định xử lý các vi phạm trong thi đấu.
           </p>
         </div>
-        <button
-          type="button"
-          className="avp-page__refresh"
-          onClick={loadViolations}
-          disabled={loading}
-          aria-label="Làm mới danh sách vi phạm"
-        >
-          <RefreshCcw
-            size={16}
-            className={loading ? "avp-page__refresh-icon--spin" : ""}
-            aria-hidden="true"
-          />
-          {loading ? "Đang tải…" : "Làm mới"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="px-4 py-2 bg-[var(--color-error)] hover:bg-red-500 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+            onClick={() => setIsDirectPenaltyModalOpen(true)}
+          >
+            Xử phạt ngựa
+          </button>
+          <button
+            type="button"
+            className="avp-page__refresh"
+            onClick={loadViolations}
+            disabled={loading}
+            aria-label="Làm mới danh sách vi phạm"
+          >
+            <RefreshCcw
+              size={16}
+              className={loading ? "avp-page__refresh-icon--spin" : ""}
+              aria-hidden="true"
+            />
+            {loading ? "Đang tải…" : "Làm mới"}
+          </button>
+        </div>
       </header>
 
       {/* Stats */}
@@ -376,6 +387,15 @@ export default function AdminViolationPage() {
           onClose={closeActionModal}
         />
       )}
+      
+      <DirectPenaltyModal
+        isOpen={isDirectPenaltyModalOpen}
+        onClose={() => setIsDirectPenaltyModalOpen(false)}
+        onSuccess={() => {
+          showToast.success("Xử phạt ngựa thành công");
+          loadViolations();
+        }}
+      />
     </div>
   );
 }

@@ -574,17 +574,69 @@ class AdminUsersService {
     let violationId = id.startsWith('VIO-') ? parseInt(id.replace('VIO-', ''), 10) : parseInt(id, 10);
     
     const result = await prisma.$transaction(async (tx) => {
+      const existingViolation = await tx.violation.findUnique({
+        where: { violationId },
+        include: { race: true }
+      });
+      if (!existingViolation) {
+        throw Object.assign(new Error('Violation not found'), { status: 404 });
+      }
+
+      // Validate race status: Cannot resolve if already published
+      if (existingViolation.race) {
+        if (existingViolation.race.status === 'FINISHED' || existingViolation.race.publishedAt !== null) {
+          throw Object.assign(new Error('Không thể xử lý vi phạm vì chặng đua đã công bố kết quả'), { status: 400 });
+        }
+      }
+
       const violation = await tx.violation.update({
         where: { violationId },
         data: { status: 'RESOLVED', penalty: penalty, resolutionNote: note }
       });
 
-      // Nếu phạt Loại (DQ) thì cập nhật RaceEntry thành DQ
+      // Nếu phạt Loại (DQ) thì cập nhật RaceEntry thành DQ và hoàn tiền
       if (penalty === 'DQ' && violation.entryId) {
         await tx.raceEntry.update({
           where: { entryId: violation.entryId },
           data: { status: 'DQ', rejectionReason: `Truất quyền thi đấu: ${note}` } 
         });
+
+        // Tìm các cược bị ảnh hưởng
+        const affectedBets = await tx.prediction.findMany({
+          where: {
+            raceId: violation.raceId,
+            status: 'PENDING',
+            OR: [
+              { entryId1: violation.entryId },
+              { entryId2: violation.entryId }
+            ]
+          }
+        });
+
+        // Hoàn tiền cho từng vé cược
+        for (const bet of affectedBets) {
+          await tx.prediction.update({
+            where: { predictionId: bet.predictionId },
+            data: { status: 'REFUNDED', payout: bet.betAmount, settledAt: new Date() }
+          });
+
+          const wallet = await tx.pointWallet.update({
+            where: { userId: bet.spectatorId },
+            data: { balance: { increment: bet.betAmount } }
+          });
+
+          await tx.walletTransaction.create({
+            data: {
+              walletId: wallet.walletId,
+              amount: bet.betAmount,
+              balanceAfter: wallet.balance,
+              referenceType: 'BET_REFUND',
+              referenceId: bet.predictionId.toString(),
+              type: 'BET_REFUND',
+              description: `Hoàn tiền cược (Mã vé #${bet.predictionId}) do ngựa bị truất quyền thi đấu`
+            }
+          });
+        }
       }
       return violation;
     });
@@ -640,6 +692,165 @@ class AdminUsersService {
         updatedAt: violation.updatedAt
       }
     };
+  }
+
+  /**
+   * CRITICAL: Xử phạt trực tiếp (Create & Resolve)
+   */
+  async directPenaltyViolation(raceId, entryId, type, severity, penalty, note, adminId) {
+    if (!raceId || !entryId || !penalty) {
+      throw Object.assign(new Error('raceId, entryId and penalty are required'), { status: 400 });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Fetch race to check if published
+      const race = await tx.race.findUnique({ where: { raceId } });
+      if (!race) throw Object.assign(new Error('Race not found'), { status: 404 });
+      if (race.status === 'FINISHED' || race.publishedAt !== null) {
+        throw Object.assign(new Error('Không thể xử phạt vì chặng đua đã công bố kết quả'), { status: 400 });
+      }
+
+      // 2. Fetch entry to get horseId (needed for BAN_FROM_TOURNAMENT)
+      const entry = await tx.raceEntry.findUnique({
+        where: { entryId },
+        include: { horse: { select: { horseId: true } } }
+      });
+      if (!entry) throw Object.assign(new Error('Race entry not found'), { status: 404 });
+
+      const autoType = type || (penalty === 'DQ' ? 'Lỗi nghiêm trọng trên đường đua' : penalty === 'WARNING' ? 'Lỗi nhẹ' : 'Lỗi đặc biệt nghiêm trọng');
+      const autoSeverity = severity || (penalty === 'WARNING' ? 'MINOR' : 'SEVERE');
+      
+      // 3. Create RESOLVED violation
+      const violation = await tx.violation.create({
+        data: {
+          raceId,
+          entryId,
+          type: autoType,
+          severity: autoSeverity,
+          description: note || 'Xử phạt trực tiếp từ Admin',
+          status: 'RESOLVED',
+          penalty,
+          resolutionNote: note || 'Xử phạt trực tiếp từ Admin',
+        }
+      });
+
+      // 4. Handle Penalty Logic
+      if (penalty === 'DQ' || penalty === 'BAN_FROM_TOURNAMENT') {
+        // DQ this entry in current race
+        await tx.raceEntry.update({
+          where: { entryId: violation.entryId },
+          data: { status: 'DQ', rejectionReason: `Xử phạt: ${note}` } 
+        });
+
+        // Refund bets for THIS race
+        const affectedBets = await tx.prediction.findMany({
+          where: {
+            raceId: violation.raceId,
+            status: 'PENDING',
+            OR: [
+              { entryId1: violation.entryId },
+              { entryId2: violation.entryId }
+            ]
+          }
+        });
+
+        for (const bet of affectedBets) {
+          await tx.prediction.update({
+            where: { predictionId: bet.predictionId },
+            data: { status: 'REFUNDED', payout: bet.betAmount, settledAt: new Date() }
+          });
+          const wallet = await tx.pointWallet.update({
+            where: { userId: bet.spectatorId },
+            data: { balance: { increment: bet.betAmount } }
+          });
+          await tx.walletTransaction.create({
+            data: {
+              walletId: wallet.walletId,
+              amount: bet.betAmount,
+              balanceAfter: wallet.balance,
+              referenceType: 'BET_REFUND',
+              referenceId: bet.predictionId.toString(),
+              type: 'BET_REFUND',
+              description: `Hoàn tiền cược (Mã vé #${bet.predictionId}) do ngựa bị phạt`
+            }
+          });
+        }
+
+        // If BAN_FROM_TOURNAMENT, DQ this horse from all future races in the same tournament
+        if (penalty === 'BAN_FROM_TOURNAMENT') {
+          const futureEntries = await tx.raceEntry.findMany({
+            where: {
+              horseId: entry.horse.horseId,
+              entryId: { not: entryId }, // Exclude current entry as it's already DQ
+              race: {
+                tournamentId: race.tournamentId,
+                status: { in: ['SCHEDULED', 'IN_PROGRESS', 'PENDING_RESULT'] }
+              }
+            }
+          });
+
+          for (const futureEntry of futureEntries) {
+            await tx.raceEntry.update({
+              where: { entryId: futureEntry.entryId },
+              data: { status: 'DQ', rejectionReason: `Bị loại khỏi giải đấu: ${note}` }
+            });
+
+            // Refund bets for those future races
+            const futureBets = await tx.prediction.findMany({
+              where: {
+                raceId: futureEntry.raceId,
+                status: 'PENDING',
+                OR: [
+                  { entryId1: futureEntry.entryId },
+                  { entryId2: futureEntry.entryId }
+                ]
+              }
+            });
+
+            for (const bet of futureBets) {
+               await tx.prediction.update({
+                  where: { predictionId: bet.predictionId },
+                  data: { status: 'REFUNDED', payout: bet.betAmount, settledAt: new Date() }
+               });
+               const w = await tx.pointWallet.update({
+                 where: { userId: bet.spectatorId },
+                 data: { balance: { increment: bet.betAmount } }
+               });
+               await tx.walletTransaction.create({
+                 data: {
+                   walletId: w.walletId,
+                   amount: bet.betAmount,
+                   balanceAfter: w.balance,
+                   referenceType: 'BET_REFUND',
+                   referenceId: bet.predictionId.toString(),
+                   type: 'BET_REFUND',
+                   description: `Hoàn tiền cược do ngựa bị loại khỏi giải đấu`
+                 }
+               });
+            }
+          }
+        }
+      }
+
+      return violation;
+    });
+
+    const payload = {
+      violation: {
+        violationId: `VIO-${String(result.violationId).padStart(3, '0')}`,
+        status: result.status,
+        penalty: result.penalty,
+        penaltyType: result.penalty,
+        resolutionNote: result.resolutionNote,
+        resolvedAt: result.updatedAt
+      },
+      effects: { entryStatusChanged: penalty === 'DQ' || penalty === 'BAN_FROM_TOURNAMENT' ? 'DQ' : null }
+    };
+
+    socketEmitter.emitToAdmin('violation:resolved', payload);
+    if (result.raceId) socketEmitter.emitToRace(result.raceId, 'violation:resolved', payload);
+
+    return payload;
   }
 }
 

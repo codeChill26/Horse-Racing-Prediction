@@ -110,6 +110,38 @@ class WalletService {
     });
   }
 
+  async listAllWallets() {
+    const wallets = await prisma.pointWallet.findMany({
+      orderBy: { balance: 'desc' },
+      include: {
+        user: {
+          select: {
+            userId: true,
+            fullName: true,
+            email: true,
+            isActive: true,
+            role: { select: { code: true } },
+          },
+        },
+      },
+    });
+
+    return wallets.map(w => ({
+      walletId: w.walletId,
+      userId: w.userId,
+      fullName: w.user?.fullName ?? null,
+      email: w.user?.email ?? null,
+      role: w.user?.role?.code ?? null,
+      isActive: w.user?.isActive ?? true,
+      wallet: {
+        walletId: w.walletId,
+        balance: w.balance,
+        isFrozen: w.isFrozen,
+        updatedAt: w.updatedAt,
+      },
+    }));
+  }
+
   async getAdminTransactionHistory(userId, { page = 1, limit = 20 } = {}) {
     const where = userId ? { wallet: { userId } } : {};
 

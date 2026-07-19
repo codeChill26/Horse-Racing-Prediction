@@ -48,12 +48,14 @@ function mapDeviationResponse(v = {}) {
   const entries = raceData.entries || [];
 
   // Map entries với horse name và jockey name
+  // Backend trả về entries đã flatten: { entryId, horseId, horseName, jockeyId, jockeyName, ... }
+  // Không còn sub-object e.horse hay e.jockey
   const entriesMap = (entries || []).map(e => ({
     entryId: e.entryId,
-    horseId: e.horse?.horseId,
-    horseName: e.horse?.name || `Horse #${e.horse?.horseId || e.entryId}`,
-    jockeyName: e.jockey?.fullName || null,
-    jockeyId: e.jockey?.userId || null,
+    horseId: e.horseId ?? e.horse?.horseId,
+    horseName: e.horseName || e.horse?.name || `Entry #${e.entryId}`,
+    jockeyName: e.jockeyName || e.jockey?.fullName || null,
+    jockeyId: e.jockeyId ?? e.jockey?.userId ?? null,
   }));
 
   // Parse rawResults để lấy rank/status cho mỗi entry
@@ -85,7 +87,7 @@ function mapDeviationResponse(v = {}) {
   return {
     id: v.officialResultId || v.id,
     raceId: v.raceId ?? raceData.raceId,
-    raceName: raceData.name || "—",
+    raceName: v.raceName || raceData.name || "—",
     matchStatus: v.matchStatus,
     status: v.matchStatus === 'CONFLICTED' ? 'PENDING' : v.matchStatus === 'RESOLVED' ? 'RESOLVED' : 'PENDING',
     finalResults: v.finalResults,
@@ -95,15 +97,15 @@ function mapDeviationResponse(v = {}) {
     raceLegs: v.raceLegs || [],
     race: {
       raceId: raceData.raceId,
-      name: raceData.name,
+      name: raceData.name || v.raceName,
       refereeA: refereeAData,
       refereeB: refereeBData,
       refereeSubmissions: mappedSubmissions,
       entries: entriesMap,
     },
     entries: entriesMap,
-    reporterA: refereeAData ? { fullName: refereeAData.fullName, userId: refereeAData.userId } : null,
-    reporterB: refereeBData ? { fullName: refereeBData.fullName, userId: refereeBData.userId } : null,
+    reporterA: v.reporterA || (refereeAData ? { fullName: refereeAData.fullName, userId: refereeAData.userId } : null),
+    reporterB: v.reporterB || (refereeBData ? { fullName: refereeBData.fullName, userId: refereeBData.userId } : null),
   };
 }
 
@@ -113,14 +115,16 @@ export const deviationRepository = {
    */
   async getAll(filters = {}) {
     const params = new URLSearchParams();
-    params.set('status', filters.status || 'CONFLICTED');
+    // Nếu không có status filter, không set để lấy tất cả
+    if (filters.status) params.set('status', filters.status);
     params.set('page', filters.page || '1');
-    params.set('pageSize', filters.pageSize || '50');
+    params.set('pageSize', filters.pageSize || '100');
 
     const res = await fetch(`/api/admin/deviations?${params}`, { headers: authHeaders() });
     if (!res.ok) await readError(res, "Không tải được danh sách sai lệch");
 
     const data = await res.json();
+    // Backend trả về { total, page, pageSize, deviations }
     const deviations = Array.isArray(data.deviations) ? data.deviations : [];
     return deviations.map(mapDeviationResponse);
   },

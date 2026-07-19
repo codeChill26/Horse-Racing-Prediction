@@ -1773,6 +1773,51 @@ module.exports = {
       },
     },
 
+    '/api/races/{raceId}/ai-prediction': {
+      post: {
+        tags: ['Races'],
+        summary: 'AI win-probability prediction for spectators (paid — 15 điểm)',
+        description:
+          'Spectator TRẢ PHÍ 15 điểm để xem gợi ý % thắng của từng ngựa (Agent 1). ' +
+          'Là POST (không phải GET) vì mỗi lần gọi TRỪ 15 điểm ví + ghi WalletTransaction — ' +
+          'có side effect, không idempotent (GET có thể bị trình duyệt/proxy cache/prefetch ' +
+          'gây trừ điểm oan). CHỈ trả winProbability — KHÔNG lộ fairOdds/suggestedOdds (đó là ' +
+          'công cụ định giá của Admin). Gọi AI TRƯỚC khi trừ điểm: nếu AI lỗi (502/409/404) ' +
+          'thì KHÔNG trừ điểm.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'raceId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Win probability của từng ngựa (đã trừ 15 điểm)',
+            content: {
+              'application/json': {
+                example: {
+                  raceId: 1,
+                  raceName: 'Race 1',
+                  source: 'AI_PREDICTION_ENGINE',
+                  note: 'Gợi ý tham khảo từ AI, không đảm bảo kết quả thực tế.',
+                  predictions: [
+                    { horseId: 12, horseName: 'Thunderbolt', rank: 1, winProbability: 34.5 },
+                    { horseId: 18, horseName: 'Silver Arrow', rank: 2, winProbability: 21.0 },
+                  ],
+                  pointsCharged: 15,
+                  walletBalance: 985,
+                },
+              },
+            },
+          },
+          '400': { description: 'Invalid race id / Không đủ điểm để xem (cần 15 điểm)' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — cần role SPECTATOR, hoặc ví đang bị đóng băng' },
+          '404': { description: 'Race not found / Wallet not found' },
+          '409': { description: 'Race chưa có entry APPROVED để dự đoán' },
+          '502': { description: 'AI service không kết nối được' },
+        },
+      },
+    },
+
     // ---- Race Entries (Horse Owner registration + Admin review) ----
 
     '/api/races/{raceId}/entries': {
@@ -2213,6 +2258,80 @@ module.exports = {
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
           '404': { description: 'Race not found' },
+        },
+      },
+    },
+
+    '/api/admin/house-revenue': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Xem tổng tiền nhà cái thu về (house revenue + treasury)',
+        description:
+          'Trả về HOUSE_REVENUE (tổng phí vận hành 10% tích lũy qua các lần settle — lãi ' +
+          'nhà cái) và TREASURE_POOL (quỹ dự phòng). Nguồn: SystemSetting. Chỉ đọc, không ' +
+          'gắn với race cụ thể. Đây là "tài khoản hệ thống" — nhà cái không có PointWallet riêng.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Tổng tiền nhà cái',
+            content: {
+              'application/json': {
+                example: {
+                  houseRevenue: 15000,
+                  treasurePool: 3200,
+                  totalHouseFunds: 18200,
+                  updatedAt: {
+                    houseRevenue: '2026-07-20T10:00:00.000Z',
+                    treasurePool: '2026-07-20T10:00:00.000Z',
+                  },
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — cần role ADMIN' },
+        },
+      },
+    },
+
+    '/api/admin/house-revenue/transactions': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Sổ cái cộng/trừ của nhà cái (chi tiết theo từng trận)',
+        description:
+          'Liệt kê các giao dịch hệ thống (walletId=null): HOUSE_MARGIN (+10% mỗi trận), ' +
+          'TREASURE_IN (+ nạp quỹ dự phòng), TREASURE_OUT (- quỹ bù lỗ). Sắp theo thời gian ' +
+          'giảm dần, có phân trang.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'limit', in: 'query', required: false,
+            schema: { type: 'integer', default: 50 }, description: '1–200',
+          },
+          {
+            name: 'offset', in: 'query', required: false,
+            schema: { type: 'integer', default: 0 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Danh sách giao dịch hệ thống',
+            content: {
+              'application/json': {
+                example: {
+                  total: 2,
+                  limit: 50,
+                  offset: 0,
+                  transactions: [
+                    { transactionId: 12, amount: 1500, type: 'HOUSE_MARGIN', raceId: 7, description: 'Trích 10% phí vận hành sàn từ trận đua số 7', createdAt: '2026-07-20T10:00:00.000Z' },
+                    { transactionId: 13, amount: -300, type: 'TREASURE_OUT', raceId: 7, description: 'Trích xuất quỹ dự phòng bù lỗ thâm hụt chi trả thưởng trận 7.', createdAt: '2026-07-20T10:00:00.000Z' },
+                  ],
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — cần role ADMIN' },
         },
       },
     },

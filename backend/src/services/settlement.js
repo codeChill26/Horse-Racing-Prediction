@@ -502,6 +502,81 @@ class SettlementService {
   }
 
   /**
+   * Xem tổng tiền nhà cái thu về (chỉ đọc, idempotent). Nguồn là SystemSetting:
+   *   - HOUSE_REVENUE: tổng phí vận hành 10% tích lũy qua các lần settle (lãi nhà cái).
+   *   - TREASURE_POOL: quỹ dự phòng (thặng dư nạp vào / bù lỗ khi chi trả thưởng vượt netPool).
+   * value là Decimal -> ép về Number cho JSON. Chưa có key nào (chưa settle trận nào) -> 0.
+   */
+  async getHouseRevenue() {
+    const rows = await prisma.systemSetting.findMany({
+      where: { key: { in: ['HOUSE_REVENUE', 'TREASURE_POOL'] } },
+      select: { key: true, value: true, updatedAt: true },
+    });
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r]));
+    const num = (r) => (r ? Number(r.value) : 0);
+
+    const houseRevenue = num(byKey.HOUSE_REVENUE);
+    const treasurePool = num(byKey.TREASURE_POOL);
+
+    return {
+      houseRevenue, // tổng lãi 10% tích lũy
+      treasurePool, // quỹ dự phòng
+      totalHouseFunds: houseRevenue + treasurePool,
+      updatedAt: {
+        houseRevenue: byKey.HOUSE_REVENUE?.updatedAt ?? null,
+        treasurePool: byKey.TREASURE_POOL?.updatedAt ?? null,
+      },
+    };
+  }
+
+  /**
+   * Sổ cái hệ thống của nhà cái (chỉ đọc, có phân trang). Liệt kê các WalletTransaction
+   * KHÔNG gắn ví người dùng (walletId = null) thuộc 3 loại cộng/trừ của nhà cái:
+   *   - HOUSE_MARGIN (+): 10% phí mỗi trận
+   *   - TREASURE_IN  (+): thặng dư nạp quỹ dự phòng
+   *   - TREASURE_OUT (-): quỹ bù lỗ khi chi trả thưởng vượt netPool
+   * referenceId (BigInt) là raceId -> ép Number cho JSON gọn.
+   */
+  async getHouseRevenueTransactions({ limit = 50, offset = 0 } = {}) {
+    const where = {
+      walletId: null,
+      type: { in: ['HOUSE_MARGIN', 'TREASURE_IN', 'TREASURE_OUT'] },
+    };
+
+    const [rows, total] = await Promise.all([
+      prisma.walletTransaction.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          transactionId: true,
+          amount: true,
+          type: true,
+          referenceId: true,
+          description: true,
+          createdAt: true,
+        },
+      }),
+      prisma.walletTransaction.count({ where }),
+    ]);
+
+    return {
+      total,
+      limit,
+      offset,
+      transactions: rows.map((r) => ({
+        transactionId: r.transactionId,
+        amount: r.amount, // Int, có thể âm (TREASURE_OUT)
+        type: r.type,
+        raceId: r.referenceId != null ? Number(r.referenceId) : null,
+        description: r.description,
+        createdAt: r.createdAt,
+      })),
+    };
+  }
+
+  /**
    * Preview breakdown — tính toán trước kết quả settle (WON/LOST/payout) cho từng
    * spectator dựa trên finalResults + predictions hiện tại, KHÔNG ghi DB.
    * Dùng để admin xác nhận trước khi bấm "Gửi kết quả cược".
