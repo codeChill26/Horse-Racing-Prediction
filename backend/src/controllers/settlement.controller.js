@@ -20,6 +20,37 @@ class SettlementController {
   }
 
   /**
+   * GET /api/admin/house-revenue
+   * Xem tổng tiền nhà cái thu về (HOUSE_REVENUE) + quỹ dự phòng (TREASURE_POOL).
+   * Chỉ đọc, không gắn với race cụ thể.
+   */
+  async getHouseRevenue(req, res) {
+    try {
+      const data = await settlementService.getHouseRevenue();
+      return res.status(200).json(data);
+    } catch (error) {
+      const status = error.status || 500;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * GET /api/admin/house-revenue/transactions?limit=&offset=
+   * Sổ cái hệ thống nhà cái (HOUSE_MARGIN / TREASURE_IN / TREASURE_OUT).
+   */
+  async getHouseRevenueTransactions(req, res) {
+    try {
+      const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const data = await settlementService.getHouseRevenueTransactions({ limit, offset });
+      return res.status(200).json(data);
+    } catch (error) {
+      const status = error.status || 500;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
    * GET /api/admin/settlement/:raceId/preview-publish
    * Trả về breakdown per-spectator (won/lost/payout) DỰ KIẾN
    * trước khi admin xác nhận publish.

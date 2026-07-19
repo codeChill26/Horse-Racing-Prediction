@@ -39,6 +39,7 @@ var publicRacesRouter = require('./src/routes/races');
 var predictionsRouter = require('./src/routes/predictions');
 var walletRouter = require('./src/routes/wallet');
 var adminWalletsRouter = require('./src/routes/admin/wallets');
+var adminHouseRevenueRouter = require('./src/routes/admin/houseRevenue');
 var refereeRouter = require('./src/routes/referee');
 var adminViolationsRouter = require('./src/routes/admin/violations');
 var adminDeviationsRouter = require('./src/routes/admin/deviations');
@@ -74,6 +75,7 @@ app.use('/api/admin/users', adminUsersRouter);
 app.use('/api/admin/tournaments', adminTournamentsRouter);
 app.use('/api/admin/horses', adminHorsesRouter);
 app.use('/api/admin/wallets', adminWalletsRouter);
+app.use('/api/admin/house-revenue', adminHouseRevenueRouter);
 app.use('/api/admin/deviations', adminDeviationsRouter);
 
 // Gắn kết luồng quyết toán dòng tiền (Publish & Unpublish) lên TRƯỚC để tránh nuốt tham số
