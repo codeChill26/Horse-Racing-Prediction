@@ -24,6 +24,15 @@ function authHeaders() {
 }
 
 export const adminWalletRepository = {
+  // Lấy danh sách tất cả ví kèm số dư thực tế (từ backend)
+  // GET /api/admin/wallets
+  async listAll() {
+    const res = await fetch(`/api/admin/wallets`, { headers: authHeaders() });
+    if (!res.ok) await readError(res, "Không tải được danh sách ví");
+    const data = await res.json();
+    return Array.isArray(data?.wallets) ? data.wallets : [];
+  },
+
   // Lấy tổng hợp giao dịch toàn hệ thống (Admin)
   // GET /api/admin/wallets/transactions
   async getTransactions() {

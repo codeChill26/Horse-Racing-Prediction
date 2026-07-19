@@ -329,7 +329,8 @@ class AdminRefereeService {
 
   async listDeviations({ page = 1, pageSize = 10, status } = {}) {
     const skip = (page - 1) * pageSize;
-    const where = status ? { matchStatus: status } : { matchStatus: 'CONFLICTED' };
+    // Khi không có status filter → trả tất cả (CONFLICTED, RESOLVED, AUTO_MATCHED, PENDING)
+    const where = status ? { matchStatus: status } : {};
 
     const [total, deviations] = await prisma.$transaction([
       prisma.officialRaceResult.count({ where }),
@@ -341,6 +342,7 @@ class AdminRefereeService {
             select: {
               name: true,
               raceId: true,
+              status: true,
               refereeA: { select: { userId: true, fullName: true } },
               refereeB: { select: { userId: true, fullName: true } },
               refereeSubmissions: true,
@@ -351,7 +353,18 @@ class AdminRefereeService {
       })
     ]);
 
-    return { total, page: parseInt(page), pageSize: parseInt(pageSize), deviations };
+    // Enrich deviations với race name và referee names để FE hiển thị bảng đầy đủ
+    const enriched = deviations.map(d => ({
+      ...d,
+      raceName: d.race?.name,
+      raceStatus: d.race?.status,
+      refereeAName: d.race?.refereeA?.fullName || null,
+      refereeBName: d.race?.refereeB?.fullName || null,
+      reporterA: d.race?.refereeA ? { fullName: d.race.refereeA.fullName, userId: d.race.refereeA.userId } : null,
+      reporterB: d.race?.refereeB ? { fullName: d.race.refereeB.fullName, userId: d.race.refereeB.userId } : null,
+    }));
+
+    return { total, page: parseInt(page), pageSize: parseInt(pageSize), deviations: enriched };
   }
 
   async getDeviationDetail(resultId) {

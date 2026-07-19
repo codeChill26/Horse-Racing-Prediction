@@ -184,6 +184,17 @@ async function dismissViolation(req, res) {
   }
 }
 
+async function directPenaltyViolation(req, res) {
+  try {
+    const { raceId, entryId, type, severity, penalty, note } = req.body;
+    const adminId = Number(req.user.sub);
+    const result = await adminUsersService.directPenaltyViolation(raceId, entryId, type, severity, penalty, note, adminId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   listUsers,
   getUserById,
@@ -198,5 +209,6 @@ module.exports = {
   getViolationById,
   startReviewViolation,
   resolveViolation,
-  dismissViolation
+  dismissViolation,
+  directPenaltyViolation
 };

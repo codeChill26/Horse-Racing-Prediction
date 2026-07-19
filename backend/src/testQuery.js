@@ -1,0 +1,1 @@
+const prisma = require('./config/prisma'); async function test() { const data = await prisma.officialRaceResult.findMany(); console.log(data.length, 'records'); console.log(data); } test().finally(() => prisma['']());

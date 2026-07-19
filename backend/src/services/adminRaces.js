@@ -407,7 +407,7 @@ class AdminRacesService {
     }
 
     let races;
-    if (pageSize === -1) {
+    if (Number(pageSize) === -1) {
       // Lấy tất cả không phân trang (cho AdminRaceStagePage)
       const allRaces = await prisma.race.findMany({
         where,

@@ -401,6 +401,44 @@ export const violationRepository = {
   },
 
   /**
+   * POST /api/admin/violations/direct-penalty
+   * Admin xử phạt trực tiếp (tạo và resolve luôn)
+   */
+  async directPenalty(payload = {}) {
+    return withFallback(
+      async () => {
+        const res = await fetch(`/api/admin/violations/direct-penalty`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) await readError(res, "Xử phạt trực tiếp thất bại");
+        const data = await res.json();
+        return mapViolationResponse(data?.violation ?? data);
+      },
+      async () => {
+        if (!payload.raceId || !payload.entryId || !payload.penalty) {
+          throw new Error("Thiếu dữ liệu bắt buộc để xử phạt");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return {
+          id: `VIO-MOCK-${Date.now()}`,
+          status: "RESOLVED",
+          recordedAt: new Date().toISOString(),
+          raceId: payload.raceId,
+          severity: payload.severity || "SEVERE",
+          type: payload.type || "Lỗi vi phạm",
+          description: payload.note || "",
+          penaltyType: payload.penalty,
+          resolutionNote: payload.note,
+          history: [],
+        };
+      },
+      "directPenalty"
+    );
+  },
+
+  /**
    * POST /api/referee/violations
    * Referee tạo mới (chưa có UI; skeleton sẵn).
    * @param {{ raceId: number, entryId: number, type: string,
