@@ -11,13 +11,11 @@ import '../../widgets/tournaments_home_section.dart';
 class SpectatorHomeScreen extends StatefulWidget {
   const SpectatorHomeScreen({
     super.key,
-    required this.onLogout,
     required this.onOpenTournaments,
     this.onOpenPlaceBet,
     this.onOpenMyBets,
   });
 
-  final VoidCallback onLogout;
   final VoidCallback onOpenTournaments;
 
   /// Mở màn đặt cược nhanh từ trang chủ (không truyền raceId).
@@ -27,15 +25,22 @@ class SpectatorHomeScreen extends StatefulWidget {
   final VoidCallback? onOpenMyBets;
 
   @override
-  State<SpectatorHomeScreen> createState() => _SpectatorHomeScreenState();
+  State<SpectatorHomeScreen> createState() => SpectatorHomeScreenState();
 }
 
-class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
+class SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
   final _profileService = ProfileService();
   final _tournamentsKey = GlobalKey<TournamentsHomeSectionState>();
   UserProfile? _profile;
   bool _loading = true;
   String? _error;
+
+  /// Gọi từ parent (vd _HomeSpectatorState) khi cần reload số dư (vd sau khi đặt
+  /// cược thành công — backend đã trừ tiền trong transaction nhưng profile cached
+  /// trong state vẫn giữ số dư cũ).
+  Future<void> refresh() async {
+    await _loadProfile();
+  }
 
   @override
   void initState() {
@@ -98,7 +103,7 @@ class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    'assets/images/spectator-hero.jpg',
+                    'assets/images/dua-ngua-duong-bang.jpg',
                     fit: BoxFit.cover,
                   ),
                   Container(
@@ -116,13 +121,6 @@ class _SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                 ],
               ),
             ),
-            actions: [
-              IconButton(
-                tooltip: 'Đăng xuất',
-                onPressed: widget.onLogout,
-                icon: const Icon(Icons.logout_rounded),
-              ),
-            ],
           ),
           SliverToBoxAdapter(
             child: Padding(

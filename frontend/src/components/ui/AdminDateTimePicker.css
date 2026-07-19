@@ -1,0 +1,322 @@
+/* === AdminDateTimePicker — themed for the gold/green admin modal === */
+
+.adm-dtp {
+  position: relative;
+  width: 100%;
+  font-family: inherit;
+}
+
+.adm-dtp__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  color: #dae3ee;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.adm-dtp__trigger:hover:not(:disabled) {
+  border-color: #8dd6a6;
+}
+
+.adm-dtp__trigger:focus-visible {
+  outline: none;
+  border-color: #8dd6a6;
+  box-shadow: 0 0 0 3px rgba(141, 214, 166, 0.2);
+}
+
+.adm-dtp__trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-dtp__trigger.has-value {
+  border-color: rgba(141, 214, 166, 0.45);
+}
+
+.adm-dtp__icon {
+  flex-shrink: 0;
+  color: #8dd6a6;
+}
+
+.adm-dtp__text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adm-dtp__placeholder {
+  color: #6e7681;
+}
+
+.adm-dtp__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(248, 81, 73, 0.15);
+  color: #ff7b72;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.adm-dtp__clear:hover {
+  background: rgba(248, 81, 73, 0.3);
+}
+
+.adm-dtp__popover {
+  position: absolute;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  padding: 0.85rem;
+  min-width: 320px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  animation: adm-dtp-rise 0.16s ease-out;
+}
+
+.adm-dtp__popover[data-placement="top"] {
+  animation: adm-dtp-fall 0.16s ease-out;
+}
+
+@keyframes adm-dtp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes adm-dtp-fall {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.adm-dtp__calendar {
+  flex-shrink: 0;
+}
+
+/* DayPicker overrides */
+.adm-dtp__calendar .rdp-root {
+  --rdp-accent-color: #8dd6a6;
+  --rdp-accent-background-color: rgba(141, 214, 166, 0.15);
+  --rdp-background-color: #1c2128;
+  --rdp-day_button-border-radius: 8px;
+  color: #dae3ee;
+  font-size: 0.78rem;
+  --rdp-day-height: 34px;
+  --rdp-day-width: 34px;
+}
+
+.adm-dtp__calendar .rdp-months {
+  margin: 0;
+}
+
+.adm-dtp__calendar .rdp-month_caption {
+  color: #e6c364;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+.adm-dtp__calendar .rdp-weekday {
+  color: #8b949e;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.adm-dtp__calendar .rdp-day_button {
+  color: #dae3ee;
+  font-weight: 500;
+}
+
+.adm-dtp__calendar .rdp-day_button:hover:not([disabled]) {
+  background: rgba(141, 214, 166, 0.12);
+}
+
+.adm-dtp__calendar .adm-dp__selected .rdp-day_button,
+.adm-dtp__calendar .rdp-day_selected .rdp-day_button {
+  background: #8dd6a6 !important;
+  color: #0d1117 !important;
+  font-weight: 700;
+}
+
+.adm-dtp__calendar .adm-dp__today .rdp-day_button {
+  border: 1px solid #e6c364;
+}
+
+.adm-dtp__calendar .rdp-day_disabled .rdp-day_button {
+  color: #484f58;
+  text-decoration: line-through;
+}
+
+.adm-dtp__calendar .rdp-nav {
+  gap: 0.25rem;
+}
+
+.adm-dtp__calendar .rdp-button_previous,
+.adm-dtp__calendar .rdp-button_next {
+  color: #8dd6a6;
+  background: transparent;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.adm-dtp__calendar .rdp-button_previous:hover,
+.adm-dtp__calendar .rdp-button_next:hover {
+  background: rgba(141, 214, 166, 0.12);
+}
+
+/* Time column */
+.adm-dtp__time {
+  width: 100%;
+  border-top: 1px solid #30363d;
+  padding-top: 0.6rem;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.adm-dtp__time-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8dd6a6;
+}
+
+.adm-dtp__time-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.adm-dtp__time-sep {
+  color: #8b949e;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.adm-dtp__select {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  color: #dae3ee;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 60px;
+  text-align: center;
+}
+
+.adm-dtp__select:focus {
+  outline: none;
+  border-color: #8dd6a6;
+}
+
+.adm-dtp__time-preview {
+  margin-top: 0.25rem;
+  padding: 0.45rem 0.5rem;
+  background: rgba(230, 195, 100, 0.08);
+  border: 1px solid rgba(230, 195, 100, 0.25);
+  border-radius: 8px;
+  color: #e6c364;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.adm-dtp__footer {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 0.4rem;
+}
+
+.adm-dtp__btn {
+  flex: 1;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.adm-dtp__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-dtp__btn--ghost {
+  background: transparent;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+.adm-dtp__btn--ghost:hover {
+  color: #dae3ee;
+  border-color: #484f58;
+}
+
+.adm-dtp__btn--primary {
+  background: linear-gradient(135deg, #8dd6a6, #6cc28c);
+  color: #0d1117;
+  border-color: transparent;
+}
+
+.adm-dtp__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* Responsive: on very narrow screens keep stacked layout but a bit tighter */
+@media (max-width: 520px) {
+  .adm-dtp__popover {
+    min-width: 280px;
+    max-height: 70vh;
+  }
+}

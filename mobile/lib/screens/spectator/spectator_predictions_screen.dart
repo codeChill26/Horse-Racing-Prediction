@@ -18,14 +18,29 @@ class SpectatorPredictionsScreen extends StatefulWidget {
   final ValueChanged<int?> onOpenPlaceBet;
 
   @override
-  State<SpectatorPredictionsScreen> createState() => _SpectatorPredictionsScreenState();
+  State<SpectatorPredictionsScreen> createState() =>
+      SpectatorPredictionsScreenState();
 }
 
-class _SpectatorPredictionsScreenState extends State<SpectatorPredictionsScreen> {
+class SpectatorPredictionsScreenState extends State<SpectatorPredictionsScreen> {
   List<Prediction> _items = const [];
   bool _loading = true;
   String? _error;
   int? _cancellingId;
+
+  /// Gọi từ parent khi cần reload danh sách cược (vd sau khi đặt cược thành công
+  /// hoặc sau khi hủy cược). Silent: không flip _loading.
+  Future<void> refresh() async {
+    try {
+      final list = await widget.api.listMyPredictions();
+      if (!mounted) return;
+      setState(() {
+        _items = list;
+      });
+    } catch (_) {
+      // Bỏ qua — UI sẽ hiển thị state cũ cho đến khi user kéo refresh.
+    }
+  }
 
   @override
   void initState() {

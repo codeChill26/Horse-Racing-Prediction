@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import 'realtime/notification_center.dart';
+import 'realtime/socket_service.dart';
 import 'token_storage.dart';
 
 class LoginResult {
@@ -93,6 +95,9 @@ class AuthService {
         /* vẫn xóa token local */
       }
     }
+    // Ngắt socket + reset notification trước khi xóa token.
+    SocketService.instance.disconnect();
+    NotificationCenter.instance.reset();
     await TokenStorage.clear();
   }
 }

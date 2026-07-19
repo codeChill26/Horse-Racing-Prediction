@@ -43,6 +43,12 @@ router.delete('/:id', authMiddleware, adminOnly, adminRacesController.deleteRace
 // PUT /api/admin/races/:id/registration-gate
 router.put('/:id/registration-gate', authMiddleware, adminOnly, raceEntriesController.setRegistrationGate);
 
+// GET /api/admin/races/:id/predictions — list all spectators' bets for a race (admin)
+router.get('/:id/predictions', authMiddleware, adminOnly, adminRacesController.listRacePredictions);
+
+// GET /api/admin/races/:id/wallet-activity — wallet transactions of bettors for a race (admin)
+router.get('/:id/wallet-activity', authMiddleware, adminOnly, adminRacesController.listRaceWalletActivity);
+
 router.post('/:id/assign-referees', authMiddleware, adminOnly, adminRefereeController.assignReferees);
 router.get('/:id/review-conflict', authMiddleware, adminOnly, adminRefereeController.reviewConflict);
 router.post('/:id/resolve-conflict', authMiddleware, adminOnly, adminRefereeController.resolveConflict);

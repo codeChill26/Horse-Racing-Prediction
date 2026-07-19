@@ -403,13 +403,6 @@ export default function RaceCreateFormModal({
                   </div>
                 </div>
               )}
-
-              {tournamentEntries.length === 0 && (
-                <div className="rcfm-modal__alert rcfm-modal__alert--info" role="alert">
-                  <AlertTriangle size={14} />
-                  <span>Giải đấu chưa có ngựa đăng ký. Vui lòng chờ chủ ngựa đăng ký trước.</span>
-                </div>
-              )}
             </>
           )}
 

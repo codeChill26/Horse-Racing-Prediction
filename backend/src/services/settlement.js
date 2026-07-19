@@ -20,8 +20,11 @@ class SettlementService {
       });
 
       if (!race) throw new Error(`Trận đấu mang ID ${raceId} không tồn tại.`);
-      if (race.status !== 'PENDING_RESULT') {
-        throw new Error(`Trận đấu phải ở trạng thái PENDING_RESULT để thực hiện luồng này. Hiện tại: ${race.status}`);
+      // Cho phép publish khi:
+      // 1. PENDING_RESULT - luồng bình thường (referee đã submit, admin publish)
+      // 2. FINISHED nhưng chưa settle (publishedAt = null) - fix data cũ hoặc edge case
+      if (race.status !== 'PENDING_RESULT' && !(race.status === 'FINISHED' && !race.publishedAt)) {
+        throw new Error(`Trận đấu phải ở trạng thái PENDING_RESULT hoặc FINISHED (chưa settle). Hiện tại: ${race.status}`);
       }
       if (!race.officialRaceResult) {
         throw new Error('Chưa tìm thấy dữ liệu đối chiếu kết quả trọng tài (OfficialRaceResult).');
@@ -53,13 +56,22 @@ class SettlementService {
 
       let actualTotalPayout = 0;
       const walletIncrements = {};
+      // Track all spectators who bet — needed for sending notifications to both winners AND losers
+      const spectatorBetDetails = {}; // { [spectatorId]: { betAmount, won, payout } }
       const predictionUpdates = [];
 
       // 3. Quét danh sách vé cược & Đối chiếu Thắng / Thua (Settlement Engine)
+      // Mô hình trả thưởng: GROSS (cộng cả stake gốc + lãi vào ví).
+      //   - Stake đã bị trừ vào ví spectator ngay khi đặt cược (BET_PLACED).
+      //   - Khi thắng: payout_gross = stake × odds
+      //     → wallet cộng `payout_gross` (gồm 1.000 gốc + lãi)
+      //     → Prediction.payout lưu `payout_gross` (admin xem tổng gross).
+      //   - Ví dụ: đặt 1.000 × odd 1,93 → gross 1.930
+      //     → ví cộng +1.930 (1.000 gốc + 930 lãi), Prediction.payout = 1.930.
       for (const pred of race.predictions) {
         let isWon = false;
-        let payout = 0;
-        
+        let payoutGross = 0; // gross = stake × odds × multiplier(theo BetType)
+
         const type = pred.betType;
         const pick1 = pred.entryId1;
         const pick2 = pred.entryId2;
@@ -69,48 +81,62 @@ class SettlementService {
         if (type === 'WIN') {
           if (pick1 === entry1) {
             isWon = true;
-            payout = Math.floor(stake * odds);
+            payoutGross = Math.floor(stake * odds);
           }
-        } 
+        }
         else if (type === 'PLACE') {
           if (pick1 === entry1 || pick1 === entry2) {
             isWon = true;
-            payout = Math.floor(stake * odds * 0.7);
+            payoutGross = Math.floor(stake * odds * 0.7);
           }
-        } 
+        }
         else if (type === 'SHOW') {
           if ([entry1, entry2, entry3].includes(pick1)) {
             isWon = true;
-            payout = Math.floor(stake * odds * 0.5);
+            payoutGross = Math.floor(stake * odds * 0.5);
           }
-        } 
+        }
         else if (type === 'QUINELLA') {
           if ([entry1, entry2].includes(pick1) && [entry1, entry2].includes(pick2)) {
             isWon = true;
-            payout = Math.floor(stake * odds * 1.5);
+            payoutGross = Math.floor(stake * odds * 1.5);
           }
-        } 
+        }
         else if (type === 'EXACTA') {
           if (pick1 === entry1 && pick2 === entry2) {
             isWon = true;
-            payout = Math.floor(stake * odds * 2.0);
+            payoutGross = Math.floor(stake * odds * 2.0);
           }
         }
 
         if (isWon) {
-          actualTotalPayout += payout;
+          actualTotalPayout += payoutGross;             // cân đối dòng tiền vẫn dùng gross
           predictionUpdates.push({
             predictionId: pred.predictionId,
-            data: { status: 'WON', payout: payout, settledAt: new Date() }
+            data: { status: 'WON', payout: payoutGross, settledAt: new Date() }
           });
 
           if (!walletIncrements[pred.spectatorId]) walletIncrements[pred.spectatorId] = 0;
-          walletIncrements[pred.spectatorId] += payout;
+          walletIncrements[pred.spectatorId] += payoutGross; // GROSS: cộng cả stake + lãi
         } else {
           predictionUpdates.push({
             predictionId: pred.predictionId,
             data: { status: 'LOST', payout: 0, settledAt: new Date() }
           });
+        }
+
+        // Track per-spectator details for notification payload
+        if (!spectatorBetDetails[pred.spectatorId]) {
+          spectatorBetDetails[pred.spectatorId] = {
+            totalBetAmount: 0,
+            won: false,
+            totalPayout: 0,
+          };
+        }
+        spectatorBetDetails[pred.spectatorId].totalBetAmount += stake;
+        if (isWon) {
+          spectatorBetDetails[pred.spectatorId].won = true;
+          spectatorBetDetails[pred.spectatorId].totalPayout += payoutGross;
         }
       }
 
@@ -223,6 +249,8 @@ class SettlementService {
         actualTotalPayout: actualTotalPayout,
         treasureBalanceChange: treasureBalanceChange,
         walletIncrements: walletIncrements,
+        // Per-spectator breakdown for notifications (wins AND losses)
+        spectatorBetDetails: spectatorBetDetails,
         publishedAt: publishedAt
       };
     });
@@ -260,10 +288,19 @@ class SettlementService {
       const walletDecrements = {};
 
       // 2. Lọc danh sách vé cược thắng để chuẩn bị đòi lại tiền
+      // Track ALL spectators (winners + losers) for notifications
+      const spectatorBetDetails = {};
       for (const pred of race.predictions) {
+        if (!spectatorBetDetails[pred.spectatorId]) {
+          spectatorBetDetails[pred.spectatorId] = { totalBetAmount: 0, won: false, recallPayout: 0 };
+        }
+        spectatorBetDetails[pred.spectatorId].totalBetAmount += pred.betAmount;
+
         if (pred.status === 'WON') {
           const payoutAmount = pred.payout || 0;
           totalPayoutToRecall += payoutAmount;
+          spectatorBetDetails[pred.spectatorId].won = true;
+          spectatorBetDetails[pred.spectatorId].recallPayout = payoutAmount;
 
           if (!walletDecrements[pred.spectatorId]) walletDecrements[pred.spectatorId] = 0;
           walletDecrements[pred.spectatorId] += payoutAmount;
@@ -366,7 +403,9 @@ class SettlementService {
         raceId: raceId,
         status: updatedRace.status,
         recalledTotalPayout: totalPayoutToRecall,
-        walletDecrements: walletDecrements
+        walletDecrements: walletDecrements,
+        // Per-spectator breakdown for notifications (wins AND losses)
+        spectatorBetDetails: spectatorBetDetails,
       };
     });
   }
@@ -425,6 +464,163 @@ class SettlementService {
       refundedCount,
       partialWonCount,
       publishedAt: race.publishedAt,
+    };
+  }
+
+  /**
+   * Preview breakdown — tính toán trước kết quả settle (WON/LOST/payout) cho từng
+   * spectator dựa trên finalResults + predictions hiện tại, KHÔNG ghi DB.
+   * Dùng để admin xác nhận trước khi bấm "Gửi kết quả cược".
+   *
+   * Trả về:
+   *   - totalPool, houseMargin, netPool, treasureBalanceChange
+   *   - spectatorBreakdown: [{ spectatorId, fullName, totalBetAmount,
+   *                           won, payout, balanceAfter (current) }]
+   *   - spectatorCount, winnerCount, loserCount
+   *
+   * Throws 404 nếu race không tồn tại / chưa FINISHED / không có OfficialRaceResult.
+   */
+  async previewPublish(raceId) {
+    if (!Number.isInteger(raceId) || raceId <= 0) {
+      throw Object.assign(new Error('Invalid raceId'), { status: 400 });
+    }
+
+    const race = await prisma.race.findUnique({
+      where: { raceId },
+      include: {
+        officialRaceResult: true,
+        predictions: { where: { status: 'PENDING' } },
+        tournament: { select: { tournamentId: true, name: true } },
+      },
+    });
+
+    if (!race) throw Object.assign(new Error('Race not found'), { status: 404 });
+    if (!race.officialRaceResult) {
+      throw Object.assign(new Error('Chưa có kết quả chính thức (OfficialRaceResult).'), { status: 409 });
+    }
+    if (race.publishedAt) {
+      throw Object.assign(new Error('Race đã được publish trước đó.'), { status: 409 });
+    }
+    if (race.status !== 'FINISHED' && race.status !== 'PENDING_RESULT') {
+      throw Object.assign(new Error(`Race chưa ở trạng thái có thể settle (hiện tại: ${race.status}).`), { status: 409 });
+    }
+
+    const finalResultsArray = race.officialRaceResult.finalResults;
+    if (!Array.isArray(finalResultsArray) || finalResultsArray.length === 0) {
+      throw Object.assign(new Error('finalResults rỗng.'), { status: 409 });
+    }
+
+    const rank1 = finalResultsArray.find((r) => r.rank === 1 || r.finishPosition === 1);
+    const rank2 = finalResultsArray.find((r) => r.rank === 2 || r.finishPosition === 2);
+    const rank3 = finalResultsArray.find((r) => r.rank === 3 || r.finishPosition === 3);
+    if (!rank1 || !rank2 || !rank3) {
+      throw Object.assign(new Error('finalResults thiếu Top 3.'), { status: 409 });
+    }
+    const entry1 = rank1.entryId;
+    const entry2 = rank2.entryId;
+    const entry3 = rank3.entryId;
+
+    const allPredictions = await prisma.prediction.findMany({
+      where: { raceId },
+      include: {
+        spectator: { select: { userId: true, fullName: true, email: true } },
+      },
+    });
+
+    const spectatorMap = new Map();
+    let totalPool = 0;
+    let totalPayout = 0;
+
+    for (const pred of allPredictions) {
+      totalPool += pred.betAmount;
+      let isWon = false;
+      let payout = 0;
+      const type = pred.betType;
+      const pick1 = pred.entryId1;
+      const pick2 = pred.entryId2;
+      const stake = pred.betAmount;
+      const odds = Number(pred.lockedOdds);
+
+      if (type === 'WIN') {
+        if (pick1 === entry1) { isWon = true; payout = Math.floor(stake * odds); }
+      } else if (type === 'PLACE') {
+        if (pick1 === entry1 || pick1 === entry2) { isWon = true; payout = Math.floor(stake * odds * 0.7); }
+      } else if (type === 'SHOW') {
+        if ([entry1, entry2, entry3].includes(pick1)) { isWon = true; payout = Math.floor(stake * odds * 0.5); }
+      } else if (type === 'QUINELLA') {
+        if ([entry1, entry2].includes(pick1) && [entry1, entry2].includes(pick2)) { isWon = true; payout = Math.floor(stake * odds * 1.5); }
+      } else if (type === 'EXACTA') {
+        if (pick1 === entry1 && pick2 === entry2) { isWon = true; payout = Math.floor(stake * odds * 2.0); }
+      }
+
+      // Mô hình GROSS: payout = tổng trả thưởng (gồm stake + lãi) → cộng vào ví.
+      if (isWon) totalPayout += payout;
+
+      const sid = pred.spectatorId;
+      if (!spectatorMap.has(sid)) {
+        spectatorMap.set(sid, {
+          spectatorId: sid,
+          fullName: pred.spectator?.fullName || `User #${sid}`,
+          email: pred.spectator?.email || null,
+          totalBetAmount: 0,
+          won: false,
+          payout: 0,        // gross — số sẽ cộng vào ví
+          betCount: 0,
+          wonBetCount: 0,
+        });
+      }
+      const entry = spectatorMap.get(sid);
+      entry.totalBetAmount += stake;
+      entry.betCount += 1;
+      if (isWon) {
+        entry.won = true;
+        entry.payout += payout;
+        entry.wonBetCount += 1;
+      }
+    }
+
+    const spectatorIds = Array.from(spectatorMap.keys());
+    const wallets = spectatorIds.length > 0
+      ? await prisma.pointWallet.findMany({
+          where: { userId: { in: spectatorIds } },
+          select: { userId: true, balance: true },
+        })
+      : [];
+    const balanceMap = new Map(wallets.map((w) => [w.userId, w.balance]));
+
+    const spectatorBreakdown = Array.from(spectatorMap.values())
+      .map((s) => ({
+        ...s,
+        currentBalance: balanceMap.get(s.spectatorId) ?? 0,
+        // Ví cộng GROSS (stake + lãi). Prediction.payout cũng lưu gross.
+        balanceAfter: (balanceMap.get(s.spectatorId) ?? 0) + s.payout,
+      }))
+      .sort((a, b) => b.totalBetAmount - a.totalBetAmount);
+
+    const houseMargin = Math.floor(totalPool * 0.10);
+    const netPool = totalPool - houseMargin;
+    const treasureBalanceChange = netPool - totalPayout;
+    const winnerCount = spectatorBreakdown.filter((s) => s.won).length;
+
+    return {
+      raceId: race.raceId,
+      raceName: race.name,
+      tournamentName: race.tournament?.name || null,
+      raceStatus: race.status,
+      totalPool,
+      houseMargin,
+      netPool,
+      totalPayout,
+      treasureBalanceChange,
+      spectatorCount: spectatorBreakdown.length,
+      winnerCount,
+      loserCount: spectatorBreakdown.length - winnerCount,
+      topThree: {
+        rank1: { entryId: entry1, horseName: rank1.horseName || null },
+        rank2: { entryId: entry2, horseName: rank2.horseName || null },
+        rank3: { entryId: entry3, horseName: rank3.horseName || null },
+      },
+      spectatorBreakdown,
     };
   }
 }

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/wallet_transaction.dart';
+import '../../services/realtime/notification_center.dart';
 import '../../services/spectator_api.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format_utils.dart';
@@ -11,21 +14,67 @@ class SpectatorTransactionsScreen extends StatefulWidget {
   final SpectatorApi api;
 
   @override
-  State<SpectatorTransactionsScreen> createState() => _SpectatorTransactionsScreenState();
+  State<SpectatorTransactionsScreen> createState() =>
+      SpectatorTransactionsScreenState();
 }
 
-class _SpectatorTransactionsScreenState extends State<SpectatorTransactionsScreen> {
+class SpectatorTransactionsScreenState extends State<SpectatorTransactionsScreen> {
   TransactionPage _page = TransactionPage.fromJson(null);
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
 
+  /// ID của race vừa được settle (lấy từ socket WALLET_UPDATED gần nhất).
+  /// Dùng để highlight row tương ứng trong lịch sử (nếu match).
+  int? _highlightedRaceId;
+
+  /// Track transaction đầu tiên đã có sẵn (để biết row mới là row[0] sau refresh).
+  int? _baselineFirstTransactionId;
+
   static const int _pageSize = 20;
+
+  StreamSubscription<List<dynamic>>? _notifSub;
+
+  /// Gọi từ parent khi cần reload lịch sử (vd sau khi đặt cược).
+  /// Silent: không flip `_loading`, chỉ ghi đè trang đầu.
+  Future<void> refresh() async {
+    try {
+      final next = await widget.api.getMyTransactions(page: 1, limit: _pageSize);
+      if (!mounted) return;
+      setState(() {
+        _page = next;
+      });
+    } catch (_) {
+      // Im lặng.
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _load(reset: true);
+    // Auto-refresh khi nhận WALLET_UPDATED (settlement vừa chạy).
+    _notifSub = NotificationCenter.instance.stream.listen((notifications) {
+      if (!mounted) return;
+      final latest = notifications.firstOrNull;
+      if (latest == null || latest.isRead) return;
+      final innerType = latest.type;
+      // Chỉ refresh khi có cập nhật ví (thắng/thua/thu hồi).
+      if (innerType == 'BET_WON' || innerType == 'BET_LOST' || innerType == 'BET_WIN_REVERSAL') {
+        final raceIdRaw = latest.data?['raceId'];
+        final raceId = raceIdRaw is num ? raceIdRaw.toInt() : null;
+        setState(() {
+          _highlightedRaceId = raceId;
+        });
+        refresh();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notifSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -45,6 +94,10 @@ class _SpectatorTransactionsScreenState extends State<SpectatorTransactionsScree
       if (!mounted) return;
       setState(() {
         if (reset) {
+          // Snapshot transactionId đầu tiên để biết dòng nào "vừa thêm".
+          _baselineFirstTransactionId = next.transactions.isNotEmpty
+              ? next.transactions.first.transactionId
+              : null;
           _page = next;
         } else {
           _page = TransactionPage(
@@ -131,16 +184,38 @@ class _SpectatorTransactionsScreenState extends State<SpectatorTransactionsScree
             onPress: () => _load(),
           );
         }
-        return _TransactionTile(item: items[index]);
+        final tx = items[index];
+        // Highlight row mới (id > baseline) hoặc row liên quan race vừa settle.
+        final isNewlyAdded = _baselineFirstTransactionId != null &&
+            tx.transactionId != null &&
+            tx.transactionId! > _baselineFirstTransactionId!;
+        final isRaceHighlight = _highlightedRaceId != null &&
+            tx.referenceType == 'Race' &&
+            tx.referenceId == _highlightedRaceId.toString();
+        return _TransactionTile(
+          item: tx,
+          isHighlighted: isNewlyAdded || isRaceHighlight,
+          highlightLabel: isRaceHighlight
+              ? 'Vừa settle'
+              : isNewlyAdded
+                  ? 'Mới'
+                  : null,
+        );
       },
     );
   }
 }
 
 class _TransactionTile extends StatelessWidget {
-  const _TransactionTile({required this.item});
+  const _TransactionTile({
+    required this.item,
+    this.isHighlighted = false,
+    this.highlightLabel,
+  });
 
   final WalletTransaction item;
+  final bool isHighlighted;
+  final String? highlightLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -149,12 +224,16 @@ class _TransactionTile extends StatelessWidget {
     final sign = isCredit ? '+' : '';
     final iconData = _iconFor(item.type);
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 320),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isHighlighted ? const Color(0xFFF0FDF4) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: isHighlighted ? AppColors.green : AppColors.border,
+          width: isHighlighted ? 1.5 : 1,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,7 +242,7 @@ class _TransactionTile extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
@@ -177,13 +256,42 @@ class _TransactionTile extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        item.typeLabel,
-                        style: const TextStyle(
-                          color: AppColors.heading,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              item.typeLabel,
+                              style: const TextStyle(
+                                color: AppColors.heading,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (highlightLabel != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.green,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                highlightLabel!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     Text(

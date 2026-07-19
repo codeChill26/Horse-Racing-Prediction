@@ -1,0 +1,222 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * AdminAssignRefereesModal — style dùng chung biến CSS của AdminRaceDetailPage.
+ */
+
+.ard-assign-modal {
+  width: min(560px, 100%);
+  background: var(--ard-card, #161b22);
+  border-radius: var(--ard-radius, 14px);
+  border: 1px solid var(--ard-border, #30363d);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.ard-assign-modal__bar {
+  height: 4px;
+  background: linear-gradient(90deg, var(--ard-info, #79c0ff), var(--ard-primary, #8dd6a6));
+}
+
+.ard-assign-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--ard-border, #30363d);
+}
+
+.ard-assign-modal__icon {
+  color: var(--ard-info, #79c0ff);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.ard-assign-modal__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ard-text, #dae3ee);
+}
+
+.ard-assign-modal__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ard-muted, #8b949e);
+}
+
+.ard-assign-modal__body {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ard-assign-modal__counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--ard-radius-sm, 8px);
+  background: rgba(137, 214, 166, 0.08);
+  border: 1px solid rgba(137, 214, 166, 0.25);
+  color: var(--ard-text, #dae3ee);
+  font-size: 0.85rem;
+  align-self: flex-start;
+}
+
+.ard-assign-modal__counter strong {
+  color: var(--ard-primary, #8dd6a6);
+  margin: 0 0.15rem;
+}
+
+.ard-assign-modal__counter-ok {
+  color: var(--ard-primary, #8dd6a6);
+  font-weight: 600;
+}
+
+.ard-assign-modal__loading,
+.ard-assign-modal__empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--ard-muted, #8b949e);
+  font-size: 0.9rem;
+}
+
+.ard-assign-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ard-assign-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--ard-card-hover, #1c2129);
+  border: 1px solid var(--ard-border, #30363d);
+  border-radius: var(--ard-radius-sm, 8px);
+  cursor: pointer;
+  color: var(--ard-text, #dae3ee);
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.ard-assign-item:hover:not(:disabled) {
+  border-color: var(--ard-muted, #8b949e);
+  transform: translateY(-1px);
+}
+
+.ard-assign-item--selected {
+  border-color: var(--ard-primary, #8dd6a6);
+  background: rgba(137, 214, 166, 0.08);
+  box-shadow: 0 0 0 1px rgba(137, 214, 166, 0.2);
+}
+
+.ard-assign-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ard-assign-item__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(121, 192, 255, 0.12);
+  color: var(--ard-info, #79c0ff);
+  flex-shrink: 0;
+}
+
+.ard-assign-item__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ard-assign-item__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ard-text, #dae3ee);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.ard-assign-item__badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(230, 195, 100, 0.15);
+  color: var(--ard-warn, #e6c364);
+  border: 1px solid rgba(230, 195, 100, 0.3);
+}
+
+.ard-assign-item__email {
+  font-size: 0.75rem;
+  color: var(--ard-muted, #8b949e);
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ard-assign-item__check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--ard-muted, #8b949e);
+  border: 1px solid var(--ard-border, #30363d);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.ard-assign-item__check--on {
+  background: var(--ard-primary, #8dd6a6);
+  border-color: var(--ard-primary, #8dd6a6);
+  color: #0b1410;
+  font-weight: 700;
+}
+
+.ard-assign-modal__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  border-radius: var(--ard-radius-sm, 8px);
+  color: var(--ard-danger, #f85149);
+  font-size: 0.8rem;
+}
+
+.ard-assign-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--ard-border, #30363d);
+  background: rgba(0, 0, 0, 0.15);
+}

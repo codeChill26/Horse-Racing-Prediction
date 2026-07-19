@@ -11,6 +11,18 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
+      // Proxy Socket.IO WebSocket + polling so the horse-owner notification bell works in dev.
+      '/socket.io': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        ws: true,
+      },
+      // Proxy /notifications namespace (Socket.IO) for spectator + horse-owner real-time.
+      '/notifications': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
   optimizeDeps: {

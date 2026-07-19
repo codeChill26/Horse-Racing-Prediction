@@ -12,6 +12,7 @@
  *  - GET  /api/referee/me/profile                → getProfile
  *  - POST /api/referee/races/:id/start           → startRace
  *  - POST /api/referee/races/:id/submit          → submitRaceResult
+ *  - POST /api/referee/violations                → reportViolation
  *
  * NOTE:
  * - Backend dùng status ENUM in hoa (SCHEDULED / IN_PROGRESS / PENDING_RESULT /
@@ -227,5 +228,37 @@ export const refereeNotificationRepository = {
       response,
       reason: reason || undefined,
     });
+  },
+};
+
+/**
+ * Violation Repository
+ * - POST /api/referee/violations
+ *
+ * BE xem thêm: backend/src/services/referee.js (`reportViolation`).
+ * Body: { raceId, entryId?, type, severity, description }
+ * Response: { violation: { violationId, raceId, entryId, type, severity,
+ *           description, status, createdAt } }
+ * Sau khi tạo, server phát socket `violation:created` cho admin.
+ */
+export const refereeViolationRepository = {
+  async reportViolation(payload) {
+    if (!payload || typeof payload !== "object") {
+      throw new Error("Thiếu dữ liệu báo cáo vi phạm");
+    }
+    if (!payload.raceId) throw new Error("Thiếu mã trận đấu");
+    if (!payload.type) throw new Error("Thiếu loại vi phạm");
+    if (!payload.severity) throw new Error("Thiếu mức độ nghiêm trọng");
+    if (!payload.description || !String(payload.description).trim()) {
+      throw new Error("Thiếu mô tả vi phạm");
+    }
+    const data = await postJson("/api/referee/violations", {
+      raceId: payload.raceId,
+      entryId: payload.entryId ?? null,
+      type: payload.type,
+      severity: payload.severity,
+      description: String(payload.description).trim(),
+    });
+    return data?.violation ?? data;
   },
 };

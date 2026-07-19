@@ -76,21 +76,10 @@ class _RefereeRaceDetailScreenState extends State<RefereeRaceDetailScreen> {
       horses: _race!.legs.expand((e) => e.horses).toList(),
     );
     if (result == null) return;
-    setState(() => _busy = true);
-    try {
-      final data = await _service.submitResult(widget.raceId, result);
-      if (!mounted) return;
-      final msg = data['message'] ?? 'Đã nộp kết quả.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      await _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    if (!mounted) return;
+    final msg = result['message']?.toString() ?? 'Đã nộp kết quả.';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    await _load();
   }
 
   @override

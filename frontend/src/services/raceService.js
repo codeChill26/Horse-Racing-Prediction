@@ -217,6 +217,24 @@ export const raceService = {
     async adjudicateViolation(caseId, approveFlag) {
         const verdict = approveFlag ? "approve" : "reject";
         return await raceRepository.handleViolation(caseId, verdict);
+    },
+
+    /**
+     * FLOW 8: Publish kết quả race và settle tất cả cược.
+     * Race phải ở trạng thái PENDING_RESULT và có OfficialRaceResult.
+     */
+    async publishRaceResult(raceId) {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        return await raceRepository.publishRaceResult(raceId);
+    },
+
+    /**
+     * FLOW 8: Rollback kết quả race (thu hồi tiền thưởng).
+     * Race phải ở trạng thái FINISHED và đã được publish.
+     */
+    async unpublishRaceResult(raceId) {
+        if (!raceId) throw new Error("Thiếu mã chặng đua");
+        return await raceRepository.unpublishRaceResult(raceId);
     }
 };
 

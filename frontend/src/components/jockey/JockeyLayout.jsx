@@ -8,6 +8,8 @@ import {
   LogOut,
   Trophy,
 } from "lucide-react";
+import { logoutUser } from "../../api/auth";
+import { clearAuthTokens, getAccessToken, getRefreshToken } from "../../utils/token";
 import "./JockeyLayout.css";
 
 const NAV_ITEMS = [
@@ -21,7 +23,14 @@ const NAV_ITEMS = [
 export default function JockeyLayout() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const accessToken = getAccessToken();
+      const refreshToken = getRefreshToken();
+      if (accessToken) await logoutUser({ accessToken, refreshToken });
+    } catch {
+      /* clear local anyway */
+    }
     clearAuthTokens();
     navigate("/login");
   };
@@ -68,9 +77,4 @@ export default function JockeyLayout() {
       </div>
     </div>
   );
-}
-
-function clearAuthTokens() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
 }

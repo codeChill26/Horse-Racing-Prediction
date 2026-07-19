@@ -14,11 +14,14 @@
     "test:e2e:flow8": "playwright test e2e/flow8-publish-rollback.spec.js"
   },
   "dependencies": {
+    "date-fns": "^4.4.0",
     "lucide-react": "^0.469.0",
     "react": "^19.2.6",
+    "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.16.0",
-    "recharts": "^2.15.3"
+    "recharts": "^2.15.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

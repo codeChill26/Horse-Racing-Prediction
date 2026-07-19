@@ -20,6 +20,7 @@ function adminRaceSelect() {
     registrationOpen: true,
     registrationOpenedAt: true,
     registrationClosedAt: true,
+    publishedAt: true,
     createdAt: true,
     updatedAt: true,
     _count: { select: { entries: true, predictions: true } },
@@ -55,13 +56,53 @@ class AdminRacesService {
             jockey: { select: { userId: true, fullName: true, email: true } }
           }
         },
-        predictions: true
+        predictions: true,
+        officialRaceResult: true,
+        results: true
       }
     });
 
     if (!race) throw httpError('Race not found', 404);
 
+    // Query referee submissions separately
+    const refereeSubmissions = await prisma.refereeSubmission.findMany({
+      where: { raceId: parseInt(raceId) }
+    });
+
+    // Tách kết quả theo refereeId
+    const refereeAResult = refereeSubmissions.find(s => s.refereeId === race.refereeAId);
+    const refereeBResult = refereeSubmissions.find(s => s.refereeId === race.refereeBId);
+
     const approvedEntriesCount = race.entries.filter((e) => e.status === 'APPROVED').length;
+
+    // Map results (finishPosition) theo horseId. Hai nguồn dữ liệu cùng tồn tại:
+    //  - race.results (bảng RaceResult — schema mới, do flow Auto-finish ghi)
+    //  - race.officialRaceResult.finalResults (bảng OfficialRaceResult —
+    //    JSON finalResults, có thể có khi race cũ set FINISHED trước khi flow
+    //    RaceResult được implement, hoặc admin publish manual).
+    // Fallback: nếu race.results rỗng nhưng có officialRaceResult.finalResults
+    // → map ngược entryId → horseId qua raceEntries để suy ra finishPosition.
+    // Trước đây thiếu fallback này làm race FINISHED cũ hiển thị "Kết quả đang
+    // được cập nhật..." trong admin UI dù DB đã có kết quả chính thức.
+    const finishPositions = {};
+    if (race.results && race.results.length > 0) {
+      for (const r of race.results) {
+        finishPositions[r.horseId] = r.finishPosition;
+      }
+    } else if (
+      race.officialRaceResult &&
+      Array.isArray(race.officialRaceResult.finalResults) &&
+      race.officialRaceResult.finalResults.length > 0
+    ) {
+      const entryToHorse = Object.fromEntries(
+        race.entries.map((e) => [e.entryId, e.horseId])
+      );
+      for (const item of race.officialRaceResult.finalResults) {
+        const horseId = entryToHorse[item.entryId];
+        if (horseId == null) continue;
+        finishPositions[horseId] = item.rank;
+      }
+    }
 
     // Định hình cấu trúc mảng Entries chính xác theo đặc tả Frontend mong muốn
     const mappedEntries = race.entries.map((e) => ({
@@ -73,7 +114,8 @@ class AdminRacesService {
       ownerName: e.horse.owner?.fullName || 'N/A',
       gate: e.entryId, // Sử dụng mã định danh làm số cổng xuất phát mặc định
       status: e.status,
-      submittedAt: e.createdAt
+      submittedAt: e.createdAt,
+      finishPosition: finishPositions[e.horseId] || null
     }));
 
     // Tính toán các thông số thống kê dòng tiền
@@ -95,6 +137,24 @@ class AdminRacesService {
       refereeA: race.refereeA,
       refereeB: race.refereeB,
       entries: mappedEntries,
+      officialRaceResult: race.officialRaceResult ? {
+        id: race.officialRaceResult.officialResultId,
+        matchStatus: race.officialRaceResult.matchStatus,
+        finalResults: race.officialRaceResult.finalResults,
+        publishedAt: race.officialRaceResult.updatedAt,
+        resolvedById: race.officialRaceResult.resolvedById,
+        resolveReason: race.officialRaceResult.resolveReason,
+        refereeAResult: refereeAResult ? {
+          id: refereeAResult.submissionId,
+          submittedAt: refereeAResult.submittedAt,
+          finalResults: refereeAResult.rawResults
+        } : null,
+        refereeBResult: refereeBResult ? {
+          id: refereeBResult.submissionId,
+          submittedAt: refereeBResult.submittedAt,
+          finalResults: refereeBResult.rawResults
+        } : null
+      } : null,
       statistics: {
         totalPool,
         totalBets,

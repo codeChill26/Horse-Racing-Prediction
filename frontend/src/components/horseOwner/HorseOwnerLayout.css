@@ -169,3 +169,24 @@
   flex-direction: column;
   background: var(--ho-bg);
 }
+
+/* Topbar with notification bell */
+.owner-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--ho-surface-lowest);
+  border-bottom: 1px solid var(--ho-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.owner-topbar__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ho-text-muted);
+}

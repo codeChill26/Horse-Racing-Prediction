@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, RefreshCw, Play, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, Play, Info, UserCog, Flag } from "lucide-react";
 import { tournamentService } from "../../services/tournamentService";
 import { formatDate } from "../../utils/formatter";
 import {
@@ -17,7 +17,12 @@ import {
 import { useToast } from "../../hooks/useToast";
 import AdminTournamentFormModal from "./AdminTournamentFormModal";
 import TournamentCancelModal from "./TournamentCancelModal";
+import TournamentRefereesModal from "./TournamentRefereesModal";
+import RaceCreateFormModal from "./RaceCreateFormModal";
 import "./AdminTournamentsPage.css";
+
+// Tournament status cho phép tạo race / phân công trọng tài ở cấp tournament.
+const ASSIGNABLE_TOURNAMENT_STATUSES = new Set(["OPEN", "ONGOING"]);
 
 export default function AdminTournamentsPage() {
   const toastify = useToast();
@@ -29,7 +34,11 @@ export default function AdminTournamentsPage() {
   const [busyId, setBusyId] = useState(null);
   const [modal, setModal] = useState(null);
   const [cancelModal, setCancelModal] = useState(null);
+  const [refereesModal, setRefereesModal] = useState(null);
+  const [raceModal, setRaceModal] = useState(null);
   // cancelModal: { tournament, mode: 'status'|'delete', targetStatus? }
+  // refereesModal: tournament
+  // raceModal: tournament
 
   const loadTournaments = useCallback(async () => {
     setLoading(true);
@@ -333,6 +342,28 @@ export default function AdminTournamentsPage() {
                       </td>
                       <td>
                         <div className="adm-t-actions">
+                          {ASSIGNABLE_TOURNAMENT_STATUSES.has(t.status) && (
+                            <>
+                              <button
+                                type="button"
+                                className="adm-t-icon-btn"
+                                title="Phân công 2 trọng tài cho tất cả race trong giải"
+                                disabled={isBusy}
+                                onClick={() => setRefereesModal(t)}
+                              >
+                                <UserCog size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="adm-t-icon-btn"
+                                title="Tạo chặng đua trong giải này"
+                                disabled={isBusy}
+                                onClick={() => setRaceModal(t)}
+                              >
+                                <Flag size={14} />
+                              </button>
+                            </>
+                          )}
                           <button
                             type="button"
                             className="adm-t-icon-btn"
@@ -372,9 +403,11 @@ export default function AdminTournamentsPage() {
             if (feedback?.warnings?.length > 0) {
               toastify?.error?.(feedback.warnings.join("\n"));
             }
+            if (!feedback) {
+              toastify?.success?.("Đã tạo giải đấu mới");
+            }
             await loadTournaments();
           }}
-          onCreatedToast={() => toastify?.success?.("Đã tạo giải đấu mới")}
         />
       )}
       {modal?.mode === "edit" && (
@@ -388,9 +421,11 @@ export default function AdminTournamentsPage() {
             if (feedback?.warnings?.length > 0) {
               toastify?.error?.(feedback.warnings.join("\n"));
             }
+            if (!feedback) {
+              toastify?.success?.("Đã cập nhật giải đấu");
+            }
             await loadTournaments();
           }}
-          onCreatedToast={() => toastify?.success?.("Đã cập nhật giải đấu")}
         />
       )}
 
@@ -402,6 +437,39 @@ export default function AdminTournamentsPage() {
           busy={busyId === cancelModal.tournament.tournamentId}
           onClose={() => setCancelModal(null)}
           onConfirm={handleConfirmCancel}
+        />
+      ) : null}
+
+      {refereesModal ? (
+        <TournamentRefereesModal
+          tournament={refereesModal}
+          onClose={() => setRefereesModal(null)}
+          onAssigned={(result) => {
+            setRefereesModal(null);
+            toastify?.success?.(
+              `Đã phân công trọng tài cho giải "${refereesModal.name}" (${result?.succeeded ?? 0}/${result?.totalRaces ?? 0} chặng)`
+            );
+            if (result?.preAssignment?.sent) {
+              toastify?.info?.(
+                `Đã gửi thông báo pre-assignment cho ${result.preAssignment.sent} trọng tài.`
+              );
+            }
+          }}
+        />
+      ) : null}
+
+      {raceModal ? (
+        <RaceCreateFormModal
+          tournaments={[raceModal]}
+          defaultTournamentId={raceModal.tournamentId}
+          onClose={() => setRaceModal(null)}
+          onCreated={async (created) => {
+            setRaceModal(null);
+            if (created) {
+              toastify?.success?.(`Đã tạo chặng đua "${created.name}" trong giải "${raceModal.name}"`);
+              await loadTournaments();
+            }
+          }}
         />
       ) : null}
     </div>

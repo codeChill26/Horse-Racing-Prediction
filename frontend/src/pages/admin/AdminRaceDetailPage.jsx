@@ -23,11 +23,18 @@ import { ArrowLeft, AlertTriangle, XCircle, Sparkles, SlidersHorizontal } from "
 import { raceDetailService } from "../../services/raceDetailService";
 import { raceEntryService } from "../../services/raceEntryService";
 import { settlementService } from "../../services/settlementService";
+import { adminRaceRefereeService } from "../../services/adminRaceRefereeService";
+import { adminRaceConflictService } from "../../services/adminRaceConflictService";
 import { RaceInfoCard } from "../../components/admin/race/RaceInfoCard";
 import { EntryReviewTable } from "../../components/admin/race/EntryReviewTable";
 import EntryRejectModal from "../../components/admin/race/EntryRejectModal";
 import { RaceStatisticsCard } from "../../components/admin/race/RaceStatisticsCard";
+import { RefereeResultsCard } from "../../components/admin/race/RefereeResultsCard";
 import { RaceActionBar } from "../../components/admin/race/RaceActionBar";
+import RaceBetsTab from "../../components/admin/race/RaceBetsTab";
+import AdminAssignRefereesModal from "../../components/admin/race/AdminAssignRefereesModal";
+import AdminResolveConflictModal from "../../components/admin/race/AdminResolveConflictModal";
+import { PublishNotifyModal } from "../../components/admin/race/PublishNotifyModal";
 import {
   ConfirmModal,
   CancelReasonModal,
@@ -37,6 +44,7 @@ import AiAdvisoryModal from "../../components/admin/race/AiAdvisoryModal";
 import ManualOddsModal from "../../components/admin/race/ManualOddsModal";
 import { useSettlementActions } from "../../hooks/useSettlementActions";
 import "./AdminRaceDetailPage.css";
+import "../../components/admin/race/RefereeResultsCard.css";
 
 // Toast Component
 function Toast({ message, type, onClose }) {
@@ -71,12 +79,18 @@ export default function AdminRaceDetailPage() {
   const [rollbackModal, setRollbackModal] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [oddsModalOpen, setOddsModalOpen] = useState(false);
+  const [assignRefereesModalOpen, setAssignRefereesModalOpen] = useState(false);
+  const [resolveConflictModalOpen, setResolveConflictModalOpen] = useState(false);
+  const [publishNotifyModalOpen, setPublishNotifyModalOpen] = useState(false);
   const [entryBusyId, setEntryBusyId] = useState(null);
   const [entryError, setEntryError] = useState("");
   const [approveConfirmModal, setApproveConfirmModal] = useState(null);
 
   // Filter entries theo status
   const [entryStatusFilter, setEntryStatusFilter] = useState("ALL");
+
+  // Tab navigation: overview (default) | entries | bets
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -216,6 +230,43 @@ export default function AdminRaceDetailPage() {
     showToast("Chức năng đang phát triển", "info");
   };
 
+  // === Flow 4: Phân công trọng tài (mobile parity) ===
+  const openAssignRefereesModal = () => {
+    if (!adminRaceRefereeService.canAssignReferees(race)) {
+      showToast("Chỉ phân công trọng tài khi race ở trạng thái SCHEDULED.", "error");
+      return;
+    }
+    setAssignRefereesModalOpen(true);
+  };
+
+  const handleAssignRefereesConfirm = (updatedRace) => {
+    setAssignRefereesModalOpen(false);
+    if (updatedRace) onRaceUpdated(updatedRace);
+    showToast("Đã phân công 2 trọng tài.", "success");
+  };
+
+  // === Flow 4: Xử lý tranh chấp kết quả (mobile parity) ===
+  const openResolveConflictModal = () => {
+    if (!adminRaceConflictService.canResolveConflict(race)) {
+      showToast("Chỉ xử lý tranh chấp khi race ở trạng thái PAUSED.", "error");
+      return;
+    }
+    setResolveConflictModalOpen(true);
+  };
+
+  const handleResolveConflictConfirm = (updatedRace) => {
+    setResolveConflictModalOpen(false);
+    // resolve-conflict → race FINISHED. Merge state để UI bám theo
+    // (action bar ẩn Publish/Unpublish, settlement panel hiện lên).
+    if (updatedRace) {
+      onRaceUpdated({ ...updatedRace, status: "FINISHED" });
+    } else {
+      onRaceUpdated({ status: "FINISHED" });
+    }
+    showToast("Đã ghi đè kết quả · race chuyển sang FINISHED.", "success");
+    loadData();
+  };
+
   // === Flow 8: Publish (settle bets) ===
   const askPublish = () => {
     setConfirmModal({
@@ -245,6 +296,32 @@ export default function AdminRaceDetailPage() {
       closeConfirmModal();
     } catch (_e) {
       // publishRace already shows toast on error
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // === Flow 8 + Option B: Publish & Notify (race Auto-Match FINISHED, chưa settle) ===
+  // Mở PublishNotifyModal xem breakdown per-spectator trước khi xác nhận.
+  const openPublishNotifyModal = () => {
+    if (!race) return;
+    setPublishNotifyModalOpen(true);
+  };
+  const closePublishNotifyModal = () => {
+    if (publishBusy) return; // không đóng khi đang xử lý
+    setPublishNotifyModalOpen(false);
+  };
+  const handlePublishAndNotifyConfirm = async () => {
+    setBusy(true);
+    try {
+      const ok = await publishRace(true);
+      if (ok !== null) {
+        // publishRace thành công → đóng modal, refresh data.
+        setPublishNotifyModalOpen(false);
+        await loadData();
+      }
+      // Nếu ok === null → publishRace đã show toast error, giữ modal mở
+      // để admin xem lại / retry.
     } finally {
       setBusy(false);
     }
@@ -335,6 +412,7 @@ export default function AdminRaceDetailPage() {
   const canUnpublish = settlementService.canUnpublish(race);
   const raceStatus = String(race?.status || "").toUpperCase();
   const isRaceCancellable = raceStatus !== "CANCELLED" && raceStatus !== "FINISHED";
+  const isRegistrationOpen = Boolean(race?.registrationOpen);
 
   return (
     <div className="ard-page">
@@ -379,18 +457,94 @@ export default function AdminRaceDetailPage() {
         onOpenRegistration={openRegistrationConfirm}
         onCloseRegistration={closeRegistrationConfirm}
         onPublish={canPublish ? askPublish : undefined}
+        onPublishAndNotify={
+          canPublish && settlementService.publishVariant(race) === "AUTO_MATCHED_SETTLE"
+            ? openPublishNotifyModal
+            : undefined
+        }
         onUnpublish={canUnpublish ? askRollback : undefined}
+        onAssignReferees={
+          adminRaceRefereeService.canAssignReferees(race)
+            ? openAssignRefereesModal
+            : undefined
+        }
+        onResolveConflict={
+          adminRaceConflictService.canResolveConflict(race)
+            ? openResolveConflictModal
+            : undefined
+        }
         onRefresh={loadData}
         loading={loading}
         busy={busy || publishBusy || rollbackBusy}
       />
 
-      <div className="ard-content">
+      <nav className="ard-tabs" role="tablist" aria-label="Tabs chi tiết chặng đua">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "overview"}
+          className={
+            activeTab === "overview"
+              ? "ard-tab-btn ard-tab-btn--active"
+              : "ard-tab-btn"
+          }
+          onClick={() => setActiveTab("overview")}
+        >
+          <ScrollText size={14} aria-hidden="true" />
+          Tổng quan
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "entries"}
+          className={
+            activeTab === "entries"
+              ? "ard-tab-btn ard-tab-btn--active"
+              : "ard-tab-btn"
+          }
+          onClick={() => setActiveTab("entries")}
+        >
+          <ListChecks size={14} aria-hidden="true" />
+          Đơn đăng ký
+          {!loading && entries.length > 0 && (
+            <span className="ard-tab-btn__count">{entries.length}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "bets"}
+          className={
+            activeTab === "bets"
+              ? "ard-tab-btn ard-tab-btn--active"
+              : "ard-tab-btn"
+          }
+          onClick={() => setActiveTab("bets")}
+          title={
+            isRegistrationOpen
+              ? "Đóng cổng đăng ký trước khi xem cược & ví"
+              : undefined
+          }
+        >
+          <Wallet size={14} aria-hidden="true" />
+          Cược & ví
+          {isRegistrationOpen && (
+            <span className="ard-tab-btn__badge">Đã khóa</span>
+          )}
+        </button>
+      </nav>
+
+      {activeTab === "bets" ? (
+        <RaceBetsTab raceId={raceId} registrationOpen={isRegistrationOpen} />
+      ) : (
+        <div className="ard-content">
         <div className="ard-content__main">
           <section className="ard-section">
             <h2 className="ard-section__title">Thông tin chặng đua</h2>
             <RaceInfoCard race={race} loading={loading} />
           </section>
+
+          <RefereeResultsCard race={race} loading={loading} />
 
           <section className="ard-section">
             <div className="ard-section__head">
@@ -468,7 +622,8 @@ export default function AdminRaceDetailPage() {
             </div>
           </section>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Confirm Modal (registration open/close + publish) */}
       {confirmModal && (
@@ -532,6 +687,36 @@ export default function AdminRaceDetailPage() {
           race={race}
           onClose={() => setOddsModalOpen(false)}
           onSaved={loadData}
+      {/* FLOW 4: Phân công trọng tài (mobile parity) */}
+      {assignRefereesModalOpen && race && (
+        <AdminAssignRefereesModal
+          key={`assign-${race.raceId ?? "x"}-${race.refereeAId ?? 0}-${race.refereeBId ?? 0}`}
+          race={race}
+          onConfirm={handleAssignRefereesConfirm}
+          onClose={() => setAssignRefereesModalOpen(false)}
+        />
+      )}
+
+      {/* FLOW 4: Xử lý tranh chấp kết quả (mobile parity) */}
+      {resolveConflictModalOpen && race && (
+        <AdminResolveConflictModal
+          key={`conflict-${race.raceId ?? "x"}`}
+          race={race}
+          onConfirm={handleResolveConflictConfirm}
+          onClose={() => setResolveConflictModalOpen(false)}
+        />
+      )}
+
+      {/* FLOW 8 + Option B: Gửi kết quả cược cho spectators
+          (preview breakdown trước khi settle). */}
+      {publishNotifyModalOpen && race && (
+        <PublishNotifyModal
+          key={`publish-notify-${race.raceId ?? "x"}`}
+          raceId={race.raceId}
+          raceName={race.name}
+          onConfirm={handlePublishAndNotifyConfirm}
+          onClose={closePublishNotifyModal}
+          busy={busy || publishBusy}
         />
       )}
 
