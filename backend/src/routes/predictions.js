@@ -18,6 +18,16 @@ router.post('/', authMiddleware, spectatorOnly, predictionsController.placeBet);
 // GET /api/predictions - List my predictions
 router.get('/', authMiddleware, predictionsController.listMyPredictions);
 
+// POST /api/predictions/races/:raceId/ai-suggestion - Spectator trả điểm xem gợi ý AI
+// (chỉ winProbability, ẩn fairOdds/suggestedOdds — đó là công cụ nội bộ của Admin).
+// Phải đặt TRƯỚC /:id để không bị nuốt nhầm "races".
+router.post(
+  '/races/:raceId/ai-suggestion',
+  authMiddleware,
+  spectatorOnly,
+  predictionsController.viewAiPrediction,
+);
+
 // GET /api/predictions/:id - Get prediction detail
 router.get('/:id', authMiddleware, predictionsController.getPredictionById);
 

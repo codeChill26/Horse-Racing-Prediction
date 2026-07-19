@@ -1941,6 +1941,30 @@ module.exports = {
       },
     },
 
+    '/api/predictions/races/{raceId}/ai-suggestion': {
+      post: {
+        tags: ['Predictions'],
+        summary: 'Spectator trả điểm để xem gợi ý AI (CHỈ tỉ lệ thắng)',
+        description:
+          'Trừ 15 điểm từ ví Spectator và trả về gợi ý từ AI cho từng ngựa ' +
+          'trong race. CHỈ bao gồm winProbability (%) — không lộ fairOdds hay ' +
+          'suggestedOdds (đó là công cụ định giá nội bộ của Admin). Mỗi lần ' +
+          'xem đều trừ điểm, không cache. AI lỗi/timeout thì KHÔNG tính phí.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'raceId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': { description: 'Gợi ý AI (chỉ winProbability)' },
+          '400': { description: 'Không đủ điểm / Bad Request' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Ví bị đóng băng hoặc không phải Spectator' },
+          '404': { description: 'Race không tồn tại' },
+          '502': { description: 'AI service lỗi/timeout' },
+        },
+      },
+    },
+
     // ---- Admin Race Publish/Unpublish ----
 
     '/api/admin/races/{raceId}/publish': {
