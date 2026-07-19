@@ -224,8 +224,12 @@ async function applyOddsSuggestions(raceId, entries) {
   });
   if (!race) throw httpError('Race not found', 404);
 
-  if (race.status !== 'SCHEDULED') {
-    throw httpError('Chỉ có thể sửa odds khi race đang ở trạng thái SCHEDULED', 409);
+  // SCHEDULED: đặt odds ban đầu (trước/đang mở cược).
+  // IN_PROGRESS: điều chỉnh odds CUỐI CÙNG sau khi đã đóng cược — quyết toán tính thưởng
+  // theo bộ odds này (xem settlement.resolveSettlementOdds). Không mở PENDING_RESULT để
+  // admin không thể sửa odds SAU KHI đã biết kết quả.
+  if (race.status !== 'SCHEDULED' && race.status !== 'IN_PROGRESS') {
+    throw httpError('Chỉ có thể sửa odds khi race đang ở trạng thái SCHEDULED hoặc IN_PROGRESS', 409);
   }
   if (race.registrationOpen) {
     throw httpError(
@@ -259,37 +263,57 @@ async function applyOddsSuggestions(raceId, entries) {
     }
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const results = [];
-    for (const e of entries) {
-      const row = await tx.odds.upsert({
-        where: { entryId: e.entryId },
-        update: {
-          oddsRaw: round2(e.oddsFinal),
-          oddsFinal: round2(e.oddsFinal),
-        },
-        create: {
-          raceId,
-          entryId: e.entryId,
-          horseStrength: 0,
-          jockeyStrength: null,
-          totalStrength: 0,
-          oddsRaw: round2(e.oddsFinal),
-          oddsFinal: round2(e.oddsFinal),
-        },
-        include: {
-          entry: {
-            include: {
-              horse: { select: { horseId: true, name: true } },
-              jockey: { select: { fullName: true } },
+  // Chặn rủi ro arbitrage: nếu tổng xác suất ngầm định (Σ 1/oddsFinal) tụt dưới
+  // 100% + HOUSE_MARGIN, nghĩa là odds bị đặt quá hào phóng — spectator cược đều
+  // vào tất cả các cửa sẽ CHẮC CHẮN lời, nhà cái CHẮC CHẮN lỗ bất kể ai thắng.
+  // Chỉ chặn chiều thấp; tổng cao hơn margin dự kiến không gây rủi ro tài chính,
+  // chỉ là kém hấp dẫn hơn cho người chơi nên không cần chặn.
+  const impliedSum = entries.reduce((sum, e) => sum + 1 / e.oddsFinal, 0);
+  const minRequired = 1 + HOUSE_MARGIN;
+  if (impliedSum < minRequired) {
+    throw httpError(
+      `Tổng xác suất ngầm định (Σ 1/odds) hiện là ${round2(impliedSum * 100)}%, ` +
+        `thấp hơn mức tối thiểu ${round2(minRequired * 100)}% (100% + margin ${round2(HOUSE_MARGIN * 100)}%). ` +
+        `Odds đang quá hào phóng, sẽ khiến nhà cái chắc chắn lỗ nếu spectator cược đều vào tất cả cửa — hãy tăng odds một vài cửa lên.`,
+      400
+    );
+  }
+
+  // Chạy song song (Promise.all) thay vì tuần tự từng entry — với race nhiều ngựa,
+  // await tuần tự dễ vượt timeout mặc định của interactive transaction (5s) khi DB ở xa
+  // (Supabase pooler). Tăng thêm `timeout` làm lớp phòng vệ thứ 2.
+  const updated = await prisma.$transaction(
+    async (tx) =>
+      Promise.all(
+        entries.map((e) =>
+          tx.odds.upsert({
+            where: { entryId: e.entryId },
+            update: {
+              oddsRaw: round2(e.oddsFinal),
+              oddsFinal: round2(e.oddsFinal),
             },
-          },
-        },
-      });
-      results.push(row);
-    }
-    return results;
-  });
+            create: {
+              raceId,
+              entryId: e.entryId,
+              horseStrength: 0,
+              jockeyStrength: null,
+              totalStrength: 0,
+              oddsRaw: round2(e.oddsFinal),
+              oddsFinal: round2(e.oddsFinal),
+            },
+            include: {
+              entry: {
+                include: {
+                  horse: { select: { horseId: true, name: true } },
+                  jockey: { select: { fullName: true } },
+                },
+              },
+            },
+          })
+        )
+      ),
+    { timeout: 20000 }
+  );
 
   emitToRace(raceId, 'odds:updated', { raceId, odds: updated });
 

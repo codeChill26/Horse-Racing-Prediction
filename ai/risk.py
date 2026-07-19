@@ -1,18 +1,3 @@
-"""
-BƯỚC 4 (AI_Feature.md) — AGENT 2: RISK MANAGEMENT ENGINE (RULE-BASED)
-====================================================================
-KHÔNG dùng Machine Learning. Vì sao? App còn mới, CHƯA có lịch sử cược để train.
-Agent 2 vốn được định nghĩa bằng CÔNG THỨC nghiệp vụ (liability, treasury, risk).
-=> Đây là "AI luật" (rule-based / expert system), không phải model học từ dữ liệu.
-
-Ý tưởng nhà cái:
-  - Người chơi cược vào từng con. Tổng tiền thu về = pool.
-  - Nếu con X thắng: nhà cái phải TRẢ = tiền_cược_X * odds_X, và GIỮ tiền cược các con khác.
-  - liability(X) = payout(X) - pool  (dương = nhà cái LỖ nếu X thắng)
-  - Rủi ro = kịch bản xấu nhất (liability lớn nhất) so với treasury (vốn nhà cái).
-  - Nếu 1 cửa bị cược quá nhiều -> hạ odds cửa đó để giảm khoản phải trả.
-"""
-
 # Ngưỡng phân mức rủi ro theo tỉ lệ (max liability / treasury).
 RISK_LEVELS = [
     (0.10, "LOW"),       # <=10% treasury: an toàn

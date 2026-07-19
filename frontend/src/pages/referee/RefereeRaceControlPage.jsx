@@ -734,7 +734,10 @@ export default function RefereeRaceControlPage() {
   // Toast auto dismiss
 
   // Handle leg selection
-  const handleSelectLeg = (leg) => {
+  // Function declaration (được hoist) để useEffect auto-select ở trên có thể tham
+  // chiếu trước khi khai báo — tránh lỗi "Cannot access variable before it is declared"
+  // của plugin react-hooks (const arrow function bị TDZ).
+  function handleSelectLeg(leg) {
     // BUG-REF-017: Warn if user has unsaved changes
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
@@ -775,7 +778,7 @@ export default function RefereeRaceControlPage() {
     // BUG-REF-017: Store original for change detection
     setOriginalResults(isAlreadySubmitted ? initialResults : []);
     setRefereeNote(isAlreadySubmitted ? (leg.refereeNote || "") : "");
-  };
+  }
 
   // Start race via API (BUG-REF-002) — FLOW 4 Step 1
   // Sau khi BE confirm status chuyển sang InProgress, ta gọi lại loadRace() để

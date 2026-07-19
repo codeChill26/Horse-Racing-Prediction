@@ -1,0 +1,180 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Push liên tiếp lên cùng một nhánh: huỷ run cũ, chỉ giữ run mới nhất.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build React App
+        run: npm run build
+
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    # Test tầng route/service là integration test thật: cần Postgres + Redis sống.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: horse_racing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d horse_racing_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # DIRECT_URL: prisma.config.ts đọc biến này cho datasource (không phải DATABASE_URL).
+      # DATABASE_URL: runtime của app (config/prisma.js) đọc biến này.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/horse_racing_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/horse_racing_test
+      # .env của dự án trỏ redis://horse_racing_redis:6379 — DNS nội bộ Docker,
+      # ngoài Docker không resolve được. Trên runner phải là localhost.
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-secret-not-for-production
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # npm ci KHÔNG tự sinh Prisma Client — backend/Dockerfile cũng phải gọi tay bước này.
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # db push thay vì migrate deploy: DB của CI là DB dùng một lần, dựng thẳng từ
+      # schema.prisma nên không phụ thuộc lịch sử migration (đang lệch so với Supabase).
+      # Prisma 7 đã bỏ cờ --skip-generate (db push không tự generate nữa; bước generate
+      # đã chạy riêng ở trên). --accept-data-loss để không kẹt prompt trên DB rỗng của CI.
+      - name: Create database schema
+        run: npx prisma db push --accept-data-loss
+
+      - name: Run Unit + Integration Tests
+        run: npm test
+
+  ai:
+    name: AI CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ai
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        run: pytest
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    # Không tốn runner build image khi code đã hỏng.
+    needs:
+      - backend
+      - ai
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # backend/Dockerfile chạy `npx prisma generate` lúc build nên cần 2 build-arg này.
+      # Giá trị giả là đủ: generate chỉ đọc chuỗi kết nối, không kết nối thật.
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          build-args: |
+            DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+            DIRECT_URL=postgresql://postgres:postgres@localhost:5432/postgres
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build AI image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai
+          push: false
+          cache-from: type=gha,scope=ai
+          cache-to: type=gha,mode=max,scope=ai

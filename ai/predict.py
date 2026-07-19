@@ -1,18 +1,3 @@
-"""
-BƯỚC 5 — TỪ XÁC SUẤT -> ODDS (Agent 1: Prediction Engine, phần dùng chung)
-=========================================================================
-Model cho ra xác suất thắng RỜI RẠC của từng con (cộng lại KHÔNG = 1).
-File này biến nó thành output đúng yêu cầu AI_Feature.md:
-  - win_probability : chuẩn hóa theo từng đua cho tổng = 100%
-  - fair_odds       : 1 / xác_suất  (odds "công bằng", không lãi nhà cái)
-  - suggested_odds  : fair_odds có trừ biên lợi nhuận nhà cái (overround)
-  - rank            : xếp hạng theo xác suất
-
-File này KHÔNG chạy web. Nó được:
-  - gọi trực tiếp để demo:  python ai/predict.py
-  - import bởi FastAPI service ở bước 7.
-"""
-
 from pathlib import Path
 import pandas as pd
 import joblib

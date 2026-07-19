@@ -38,7 +38,9 @@ class _AdminShellState extends State<AdminShell> {
       });
     }
     // Lắng nghe notification stream để show SnackBar.
-    _notificationSubscription = NotificationCenter.instance.stream.listen((notifications) {
+    _notificationSubscription = NotificationCenter.instance.stream.listen((
+      notifications,
+    ) {
       if (!mounted || notifications.isEmpty) return;
       final latest = notifications.first;
       if (latest.isRead) return;
@@ -67,7 +69,8 @@ class _AdminShellState extends State<AdminShell> {
     super.dispose();
   }
 
-  late final StreamSubscription<List<AppNotification>> _notificationSubscription;
+  late final StreamSubscription<List<AppNotification>>
+  _notificationSubscription;
 
   Future<void> _logout() async {
     await AuthService().logout();
@@ -172,7 +175,10 @@ class _AdminAppBar extends StatelessWidget {
                         color: Colors.red,
                         shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
                       child: Text(
                         unread > 99 ? '99+' : '$unread',
                         style: const TextStyle(
@@ -204,7 +210,9 @@ class _AdminAppBar extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      context.findAncestorStateOfType<_AdminShellState>()?._logout();
+                      context
+                          .findAncestorStateOfType<_AdminShellState>()
+                          ?._logout();
                     },
                     child: const Text('Đăng xuất'),
                   ),

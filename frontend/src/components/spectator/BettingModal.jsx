@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { X, Coins, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { X, Coins, AlertCircle, CheckCircle2, Sparkles, Loader2 } from 'lucide-react'
 import { bettingService } from '../../services/bettingService'
 import { formatPoints } from '../../utils/formatter'
 import { showToast } from '../../hooks/showToast'
@@ -19,6 +19,9 @@ const BET_TYPES = [
 
 const MIN_BET = 10
 const QUICK_AMOUNTS = [100, 500, 1000, 5000]
+// Khớp AI_PREDICTION_COST ở backend/src/services/predictions.js — chỉ để hiện giá
+// trước cho user biết, số tiền thật trừ luôn do backend quyết định.
+const AI_PREDICTION_COST = 15
 
 // Những status mà modal vẫn cho phép đặt cược. Theo spec, chỉ SCHEDULED.
 // Tuy nhiên, BE đôi khi trả BETTING_OPEN — cũng chấp nhận để tránh false negative.
@@ -61,6 +64,36 @@ export default function BettingModal({
   // không thuộc BETTABLE_STATUSES (race đã start).
   const [raceChangedDuringOpen, setRaceChangedDuringOpen] = useState(false)
   const closeRef = useRef(null)
+
+  // Gợi ý % thắng AI (tính năng trả điểm) — map horseId -> winProbability.
+  // Không cache giữa các lần mở modal; mỗi lần bấm "Xem gợi ý AI" đều gọi lại API
+  // và bị trừ điểm mới (theo đúng thiết kế: không mua 1 lần dùng mãi).
+  const [aiPredictions, setAiPredictions] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+
+  const handleViewAiPrediction = async () => {
+    if (!race?.raceId) return
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const data = await bettingService.viewAiPrediction(race.raceId)
+      const map = {}
+      for (const p of data.predictions || []) {
+        map[p.horseId] = p.winProbability
+      }
+      setAiPredictions(map)
+      onRefreshBalance?.()
+      showToast.success(
+        `Đã trừ ${data.pointsCharged} điểm. Số dư còn ${formatPoints(data.walletBalance)} PTS.`,
+        'Gợi ý AI'
+      )
+    } catch (err) {
+      setAiError(err.message || 'Không xem được gợi ý AI')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   // Đồng bộ entries prop → state khi parent truyền entries mới (race detail load)
   useEffect(() => {
@@ -277,8 +310,30 @@ export default function BettingModal({
 
         <div className="bet-modal__notice">
           <AlertCircle size={14} />
-          <span>Odds hiển thị là tỷ lệ tại thời điểm bạn bấm "Xác nhận". Sau đó không thay đổi dù Admin điều chỉnh.</span>
+          <span>Odds hiển thị chỉ là <strong>tạm tính</strong>. Odds có thể thay đổi theo lượng cược dồn vào từng cửa (cửa càng nhiều người cược càng có thể bị hạ). Tiền thưởng cuối cùng được tính theo <strong>odds cuối cùng</strong> khi chốt sổ, nên số thực nhận có thể khác odds lúc bạn đặt.</span>
         </div>
+
+        <div className="bet-modal__notice">
+          <Sparkles size={14} />
+          <span style={{ flex: 1 }}>
+            Xem gợi ý % thắng từ AI cho từng ngựa (tốn {AI_PREDICTION_COST} điểm mỗi lần xem,
+            chỉ mang tính tham khảo).
+          </span>
+          <button
+            type="button"
+            className="bet-ai-btn"
+            onClick={handleViewAiPrediction}
+            disabled={aiLoading || !race?.raceId}
+          >
+            {aiLoading ? <Loader2 size={14} className="bet-spin" /> : `Xem gợi ý AI (${AI_PREDICTION_COST} điểm)`}
+          </button>
+        </div>
+        {aiError && (
+          <div className="bet-modal__notice bet-modal__notice--error" role="alert">
+            <AlertCircle size={14} />
+            <span>{aiError}</span>
+          </div>
+        )}
 
         {walletFrozen && (
           <div className="bet-modal__notice bet-modal__notice--error" role="alert">
@@ -382,6 +437,11 @@ export default function BettingModal({
                         {entry.pairCareerStats && (
                           <div className="bet-horse__pair">
                             Cặp đôi: {entry.pairCareerStats.totalStarts} trận · Thắng {entry.pairCareerStats.winRate ?? 0}%
+                          </div>
+                        )}
+                        {aiPredictions && horse?.horseId != null && aiPredictions[horse.horseId] != null && (
+                          <div className="bet-horse__ai">
+                            <Sparkles size={11} /> AI dự đoán thắng: {aiPredictions[horse.horseId]}%
                           </div>
                         )}
                       </div>

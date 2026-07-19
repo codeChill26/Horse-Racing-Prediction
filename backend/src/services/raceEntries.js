@@ -257,6 +257,9 @@ class RaceEntriesService {
 
     emitToAll('race:gate_closed', { raceId, autoRejectedCount: result.autoRejectedCount });
 
+    // Không tự tính odds ở đây nữa — Admin toàn quyền set/sửa odds thủ công qua
+    // PATCH /api/admin/races/:id/entries/:entryId/odds (có thể tham khảo gợi ý AI
+    // trước, nhưng quyết định cuối luôn là Admin). Xem odds.js -> overrideOdds().
     return result;
   }
 }

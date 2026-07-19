@@ -50,6 +50,10 @@ class PredictionDtoValidator {
     return parsePositiveInt(params?.id, 'prediction id');
   }
 
+  parseRaceId(params) {
+    return parsePositiveInt(params?.raceId, 'race id');
+  }
+
 }
 
 module.exports = new PredictionDtoValidator();

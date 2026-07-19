@@ -19,7 +19,7 @@ async function buildEntriesAppWithRole(roleCode) {
     };
   });
 
-  const router = require('../src/routes/entries');
+  const router = require('../src/routes/raceEntries');
   const raceEntriesService = require('../src/services/raceEntries');
 
   const app = express();
