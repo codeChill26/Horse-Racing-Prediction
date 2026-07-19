@@ -1773,6 +1773,51 @@ module.exports = {
       },
     },
 
+    '/api/races/{raceId}/ai-prediction': {
+      post: {
+        tags: ['Races'],
+        summary: 'AI win-probability prediction for spectators (paid — 15 điểm)',
+        description:
+          'Spectator TRẢ PHÍ 15 điểm để xem gợi ý % thắng của từng ngựa (Agent 1). ' +
+          'Là POST (không phải GET) vì mỗi lần gọi TRỪ 15 điểm ví + ghi WalletTransaction — ' +
+          'có side effect, không idempotent (GET có thể bị trình duyệt/proxy cache/prefetch ' +
+          'gây trừ điểm oan). CHỈ trả winProbability — KHÔNG lộ fairOdds/suggestedOdds (đó là ' +
+          'công cụ định giá của Admin). Gọi AI TRƯỚC khi trừ điểm: nếu AI lỗi (502/409/404) ' +
+          'thì KHÔNG trừ điểm.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'raceId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Win probability của từng ngựa (đã trừ 15 điểm)',
+            content: {
+              'application/json': {
+                example: {
+                  raceId: 1,
+                  raceName: 'Race 1',
+                  source: 'AI_PREDICTION_ENGINE',
+                  note: 'Gợi ý tham khảo từ AI, không đảm bảo kết quả thực tế.',
+                  predictions: [
+                    { horseId: 12, horseName: 'Thunderbolt', rank: 1, winProbability: 34.5 },
+                    { horseId: 18, horseName: 'Silver Arrow', rank: 2, winProbability: 21.0 },
+                  ],
+                  pointsCharged: 15,
+                  walletBalance: 985,
+                },
+              },
+            },
+          },
+          '400': { description: 'Invalid race id / Không đủ điểm để xem (cần 15 điểm)' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — cần role SPECTATOR, hoặc ví đang bị đóng băng' },
+          '404': { description: 'Race not found / Wallet not found' },
+          '409': { description: 'Race chưa có entry APPROVED để dự đoán' },
+          '502': { description: 'AI service không kết nối được' },
+        },
+      },
+    },
+
     // ---- Race Entries (Horse Owner registration + Admin review) ----
 
     '/api/races/{raceId}/entries': {
