@@ -4,12 +4,23 @@ import '../../models/referee_race.dart';
 import '../../services/referee_service.dart';
 import '../../theme/app_theme.dart';
 
-Future<List<Map<String, dynamic>>?> showRefereeSubmitResultSheet(
+/// Mở bottom sheet cho trọng tài nhập kết quả trận đấu.
+///
+/// Trả về `Map` chứa response body từ backend khi trọng tài nhấn
+/// "Xác nhận nộp" thành công (gồm các key `success`, `status`, `message`).
+/// Trả về `null` nếu user đóng sheet mà không submit (bấm Huỷ, bấm Close,
+/// back…).
+///
+/// Lưu ý: backend vẫn nhận và lưu `RefereeSubmission` ngay khi request POST
+/// tới endpoint submit đến server. Lỗi runtime cũ trước đây là do generic
+/// sai ở `showModalBottomSheet` khiến `Navigator.pop` với `Map` bị Flutter
+/// cast thất bại.
+Future<Map<String, dynamic>?> showRefereeSubmitResultSheet(
   BuildContext context, {
   required int raceId,
   required List<RefereeHorse> horses,
 }) {
-  return showModalBottomSheet<List<Map<String, dynamic>>>(
+  return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.white,

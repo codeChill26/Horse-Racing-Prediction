@@ -6,6 +6,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { logoutUser } from '../../api/auth'
 import { clearAuthTokens, getAccessToken, getRefreshToken } from '../../utils/token'
+import { useSpectatorSocket } from '../../hooks/useSpectatorSocket'
+import { spectatorNotificationCenter } from '../../services/spectatorNotificationCenter'
+import SpectatorNotificationBell from './SpectatorNotificationBell'
 import './SpectatorLayout.css'
 
 const NAV_ITEMS = [
@@ -18,6 +21,10 @@ const NAV_ITEMS = [
 
 export default function SpectatorLayout() {
   const navigate = useNavigate()
+  const token = getAccessToken()
+
+  // Connect Socket.IO for spectator notifications.
+  useSpectatorSocket({ token })
 
   const onLogout = async () => {
     try {
@@ -27,6 +34,7 @@ export default function SpectatorLayout() {
     } catch {
       // clear local anyway
     }
+    spectatorNotificationCenter.reset()
     clearAuthTokens()
     navigate('/login', { replace: true })
   }
@@ -70,6 +78,10 @@ export default function SpectatorLayout() {
       </aside>
 
       <div className="spectator-shell-content">
+        <div className="spectator-topbar">
+          <div className="spectator-topbar__title">Khu vực Khán giả</div>
+          <SpectatorNotificationBell />
+        </div>
         <Outlet />
       </div>
     </div>

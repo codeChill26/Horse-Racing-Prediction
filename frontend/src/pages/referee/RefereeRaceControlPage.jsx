@@ -13,7 +13,9 @@
  * - View comparison status (Waiting, Matched, Conflict)
  *
  * FIXES:
- * - BUG-REF-002: handleStartRace & confirmSubmit gọi API thật qua service
+ * - BUG-REF-002: handleStartRace & confirmSubmit gọi API thật qua service;
+ *   handleStartRace gọi lại loadRace() 1 lần sau khi start thành công để đồng bộ
+ *   race.legs + leg.status (BE chỉ trả race cha trong response startRace).
  * - BUG-REF-003: validateResults block modal confirmation khi form lỗi
  * - BUG-REF-008: Pre-fill rank/status từ mock → khởi tạo rỗng khi leg chưa submit
  * - A11y: aria-describedby, aria-invalid, role=alert, keyboard nav
@@ -698,10 +700,44 @@ export default function RefereeRaceControlPage() {
     return () => clearTimeout(t);
   }, [loading, searchParams]);
 
+  // Sau khi loadRace() reload (vd: sau handleStartRace), nếu selectedLegId không
+  // còn trong race.legs mới → reset state để UI không tham chiếu leg rỗng.
+  useEffect(() => {
+    if (!selectedLegId || !race?.legs) return;
+    const stillExists = race.legs.some(
+      (l) => (l.id || l.legId) === selectedLegId,
+    );
+    if (stillExists) return;
+    setSelectedLegId(null);
+    setResults([]);
+    setOriginalResults([]);
+    setRefereeNote("");
+    setErrors({});
+    setSubmissionStatus(null);
+  }, [race?.legs, selectedLegId]);
+
+  // Nếu race chỉ có 1 leg (hoặc 0 leg) → ẩn panel "Chọn Leg" và auto-select
+  // leg duy nhất để ResultsPanel hiển thị ngay khi user mở trang.
+  const hasMultipleLegs = (race?.legs?.length || 0) > 1;
+  useEffect(() => {
+    if (hasMultipleLegs || !race?.legs || race.legs.length === 0) return;
+    if (selectedLegId) return;
+    const onlyLeg = race.legs[0];
+    if (!onlyLeg) return;
+    // Tận dụng handleSelectLeg để khởi tạo đầy đủ state (results/originalResults/
+    // submissionStatus/refereeNote). handleSelectLeg có guard `hasUnsavedChanges`
+    // nhưng khi chưa có dữ liệu (selectedLegId === null) thì guard không kích hoạt.
+    handleSelectLeg(onlyLeg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [race?.legs, hasMultipleLegs]);
+
   // Toast auto dismiss
 
   // Handle leg selection
-  const handleSelectLeg = (leg) => {
+  // Function declaration (được hoist) để useEffect auto-select ở trên có thể tham
+  // chiếu trước khi khai báo — tránh lỗi "Cannot access variable before it is declared"
+  // của plugin react-hooks (const arrow function bị TDZ).
+  function handleSelectLeg(leg) {
     // BUG-REF-017: Warn if user has unsaved changes
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
@@ -742,24 +778,32 @@ export default function RefereeRaceControlPage() {
     // BUG-REF-017: Store original for change detection
     setOriginalResults(isAlreadySubmitted ? initialResults : []);
     setRefereeNote(isAlreadySubmitted ? (leg.refereeNote || "") : "");
-  };
+  }
 
   // Start race via API (BUG-REF-002) — FLOW 4 Step 1
+  // Sau khi BE confirm status chuyển sang InProgress, ta gọi lại loadRace() để
+  // làm mới TOÀN BỘ (race.legs, leg.status, mySubmissionStatus, bettingStatus...)
+  // vì response startRace chỉ trả race cha, không refresh các quan hệ con.
+  // Không reset selectedLegId cứng — giữ leg user đang chọn nếu vẫn còn; tự động
+  // rỗng nếu BE loại bỏ (handled trong useEffect dưới).
   const handleStartRace = async () => {
     setIsStarting(true);
     setStartError("");
     try {
       const updated = await refereeRaceService.startRace(raceId);
-      // BE trả về race mới với status chính xác — dùng trực tiếp, không ép cứng.
-      // Trước đây code ép status='InProgress' gây desync với BE khi race chuyển
-      // trạng thái khác (PendingResult / Paused / v.v.).
       if (updated) {
         setRace((prev) => ({ ...(prev || {}), ...updated }));
       }
       toastify.success(
-        "Race đã bắt đầu! Cược mới đã bị khóa. Bạn có thể nộp kết quả."
+        "Race đã bắt đầu! Cược mới đã bị khóa. Đang tải lại dữ liệu..."
       );
       setShowStartModal(false);
+
+      // Reload race 1 lần để UI đồng bộ hoàn toàn với BE (status + legs +
+      // bettingStatus). Trước đây chỉ patch race từ response startRace → các
+      // leg.submissionStatus vẫn là snapshot cũ lúc race còn Scheduled, khiến
+      // trạng thái leg hiển thị không phản ánh "đang diễn ra".
+      await loadRace();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Không thể bắt đầu race.";
       setStartError(msg);
@@ -1051,36 +1095,62 @@ export default function RefereeRaceControlPage() {
           isStarting={isStarting}
         />
 
-        {/* Main Content Grid */}
-        <div className="race-control-grid">
-          {/* Leg Selector */}
-          <div className="race-control-grid__legs">
-            <LegSelector
-              legs={race.legs || []}
-              selectedLegId={selectedLegId}
-              onSelectLeg={handleSelectLeg}
-            />
-          </div>
+        {/* Main Content Grid — chỉ 2 cột khi có nhiều leg. Race 1 leg ẩn panel Chọn Leg. */}
+        <div
+          className={`race-control-grid${hasMultipleLegs ? "" : " race-control-grid--single"}`}
+        >
+          {/* Leg Selector — chỉ render khi race có nhiều leg */}
+          {hasMultipleLegs && (
+            <div className="race-control-grid__legs">
+              <LegSelector
+                legs={race.legs || []}
+                selectedLegId={selectedLegId}
+                onSelectLeg={handleSelectLeg}
+              />
+            </div>
+          )}
 
           {/* Results Panel */}
-          <div className="race-control-grid__results">
+          <div
+            className={`race-control-grid__results${hasMultipleLegs ? "" : " race-control-grid__results--full"}`}
+          >
             {!selectedLeg ? (
-              <EmptyLegState />
+              hasMultipleLegs ? (
+                <EmptyLegState />
+              ) : (
+                // Race 0 leg (bất thường) — báo nhẹ thay vì empty state
+                <div className="race-control-empty">
+                  <Hash size={48} />
+                  <h3>Chưa có leg nào</h3>
+                  <p>Race chưa được cấu hình leg. Vui lòng liên hệ admin.</p>
+                </div>
+              )
             ) : (
               <div className="results-panel">
                 {/* Submission Status Banner */}
                 <SubmissionStatusBanner status={submissionStatus} />
 
-                {/* Leg Title */}
-                <div className="results-panel__header">
-                  <h2>{selectedLeg.name}</h2>
-                  <span
-                    className={`leg-status-badge leg-status-badge--${LEG_STATUS_CONFIG[submissionStatus]?.variant || "muted"}`}
-                    aria-label={`Trạng thái: ${LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}`}
-                  >
-                    {LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}
-                  </span>
-                </div>
+                {/* Leg Title — race nhiều leg mới hiện h2 tên leg, race 1 leg thì header gọn lại */}
+                {hasMultipleLegs ? (
+                  <div className="results-panel__header">
+                    <h2>{selectedLeg.name}</h2>
+                    <span
+                      className={`leg-status-badge leg-status-badge--${LEG_STATUS_CONFIG[submissionStatus]?.variant || "muted"}`}
+                      aria-label={`Trạng thái: ${LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}`}
+                    >
+                      {LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="results-panel__status-row">
+                    <span
+                      className={`leg-status-badge leg-status-badge--${LEG_STATUS_CONFIG[submissionStatus]?.variant || "muted"}`}
+                      aria-label={`Trạng thái leg: ${LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}`}
+                    >
+                      {LEG_STATUS_CONFIG[submissionStatus]?.label || "—"}
+                    </span>
+                  </div>
+                )}
 
                 {/* Horse Result Table */}
                 <HorseResultTable

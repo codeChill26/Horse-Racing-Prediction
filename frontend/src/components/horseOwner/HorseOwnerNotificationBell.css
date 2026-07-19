@@ -1,0 +1,327 @@
+/* === HorseOwnerNotificationBell === */
+
+.ho-notif-toast {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: #1a2e1a;
+  border: 1px solid rgba(141, 214, 166, 0.35);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  min-width: 280px;
+  max-width: 380px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  animation: ho-toast-in 0.2s ease-out;
+}
+
+@keyframes ho-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ho-notif-toast__icon {
+  flex-shrink: 0;
+  color: #e6c364;
+  margin-top: 2px;
+}
+
+.ho-notif-toast__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ho-notif-toast__body strong {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e6c364;
+  margin-bottom: 0.2rem;
+}
+
+.ho-notif-toast__body p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8dd6a6;
+  line-height: 1.4;
+}
+
+.ho-notif-toast__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #6e7681;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.ho-notif-toast__close:hover {
+  color: #dae3ee;
+}
+
+/* Bell button */
+.ho-notif-bell-wrapper {
+  position: relative;
+}
+
+.ho-notif-bell-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid rgba(141, 214, 166, 0.2);
+  color: rgba(141, 214, 166, 0.7);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ho-notif-bell-btn:hover,
+.ho-notif-bell-btn.has-unread {
+  background: rgba(141, 214, 166, 0.1);
+  color: #8dd6a6;
+  border-color: rgba(141, 214, 166, 0.45);
+}
+
+.ho-notif-bell-btn.has-unread {
+  color: #e6c364;
+  border-color: rgba(230, 195, 100, 0.45);
+}
+
+.ho-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #e6c364;
+  color: #0d1117;
+  font-size: 0.6rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+/* Dropdown */
+.ho-notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 200;
+  width: 340px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  animation: ho-dropdown-in 0.15s ease-out;
+  overflow: hidden;
+}
+
+@keyframes ho-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ho-notif-dropdown__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #30363d;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8dd6a6;
+  flex-shrink: 0;
+}
+
+.ho-notif-mark-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ho-notif-mark-all:hover {
+  color: #8dd6a6;
+  background: rgba(141, 214, 166, 0.08);
+}
+
+.ho-notif-dropdown__body {
+  max-height: 380px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ho-notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  color: #484f58;
+  text-align: center;
+}
+
+.ho-notif-empty p {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.ho-notif-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.ho-notif-item:last-child {
+  border-bottom: none;
+}
+
+.ho-notif-item:hover {
+  background: rgba(141, 214, 166, 0.05);
+}
+
+.ho-notif-item.is-unread {
+  background: rgba(230, 195, 100, 0.04);
+}
+
+.ho-notif-item.is-unread:hover {
+  background: rgba(230, 195, 100, 0.08);
+}
+
+.ho-notif-item__icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(141, 214, 166, 0.1);
+  border: 1px solid rgba(141, 214, 166, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8dd6a6;
+  margin-top: 1px;
+}
+
+.ho-notif-item__icon.icon-gold {
+  background: rgba(230, 195, 100, 0.12);
+  border-color: rgba(230, 195, 100, 0.3);
+  color: #e6c364;
+}
+
+.ho-notif-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ho-notif-item__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #dae3ee;
+  line-height: 1.3;
+  margin-bottom: 0.2rem;
+}
+
+.ho-notif-item__message {
+  font-size: 0.72rem;
+  color: #8b949e;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ho-notif-item__time {
+  font-size: 0.65rem;
+  color: #6e7681;
+}
+
+.ho-notif-item__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e6c364;
+  margin-top: 6px;
+}
+
+.ho-notif-item__arrow {
+  flex-shrink: 0;
+  color: #484f58;
+  margin-top: 8px;
+}
+
+.ho-notif-dropdown__footer {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #30363d;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.ho-notif-close-btn {
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #8b949e;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.ho-notif-close-btn:hover {
+  color: #dae3ee;
+  border-color: #484f58;
+}

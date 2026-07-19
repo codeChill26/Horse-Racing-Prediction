@@ -68,7 +68,13 @@ class RefereeService {
       const hasSubmitted = race.refereeSubmissions.some(s => s.refereeId === refereeUserId);
       if (hasSubmitted) throw httpError('Bạn đã nộp kết quả trước đó. Hệ thống cấm chỉnh sửa.', 409);
 
-      // Lấy entries để enrich rawResults với horse/jockey info
+      // Lấy entries để enrich rawResults với horse/jockey info.
+      // Map 2 chiều: entryId↔horseId, vì FE referee cũ (FD-002) gửi horseId
+      // thay vì entryId. Nếu FE gửi horseId mà ta không map lại, kết quả lưu
+      // vào OfficialRaceResult.finalResults sẽ có entryId = horseId, làm FE
+      // admin khi lookup entries theo entryId bị miss → hiển thị "Entry #..."
+      // mất tên ngựa + jockey, đồng thời RaceResult không ghi được (vì
+      // map ngược horseId cũng miss).
       const raceEntries = await tx.raceEntry.findMany({
         where: { raceId: parseInt(raceId) },
         include: {
@@ -76,17 +82,29 @@ class RefereeService {
           jockey: { select: { userId: true, fullName: true } }
         }
       });
+      const entryByEntryId = new Map(raceEntries.map((e) => [e.entryId, e]));
+      const entryByHorseId = new Map(
+        raceEntries
+          .filter((e) => e.horse?.horseId != null)
+          .map((e) => [e.horse.horseId, e])
+      );
 
-      // Enrich rawResults với horse/jockey info
-      const enrichedRawResults = rawResults.map(r => {
-        const entry = raceEntries.find(e => e.entryId === r.entryId);
+      // Enrich rawResults với horse/jockey info. Nếu entryId submit lên thực
+      // chất là horseId (do FE cũ) → map lại entryId đúng trước khi enrich.
+      const enrichedRawResults = rawResults.map((r) => {
+        const looksLikeHorseId = entryByEntryId.get(r.entryId) == null
+          && entryByHorseId.get(r.entryId) != null;
+        const realEntry = entryByEntryId.get(r.entryId)
+          || (looksLikeHorseId ? entryByHorseId.get(r.entryId) : null);
+        const realEntryId = realEntry?.entryId ?? r.entryId;
         return {
           ...r,
-          horseId: entry?.horse?.horseId || null,
-          horseName: entry?.horse?.name || null,
-          jockeyId: entry?.jockey?.userId || null,
-          jockeyName: entry?.jockey?.fullName || null,
-          gateNumber: entry?.gateNumber || null,
+          entryId: realEntryId,
+          horseId: realEntry?.horse?.horseId || null,
+          horseName: realEntry?.horse?.name || null,
+          jockeyId: realEntry?.jockey?.userId || null,
+          jockeyName: realEntry?.jockey?.fullName || null,
+          gateNumber: realEntry?.gateNumber || null,
         };
       });
 

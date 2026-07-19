@@ -19,6 +19,26 @@ class SettlementController {
     }
   }
 
+  /**
+   * GET /api/admin/settlement/:raceId/preview-publish
+   * Trả về breakdown per-spectator (won/lost/payout) DỰ KIẾN
+   * trước khi admin xác nhận publish.
+   * Idempotent — chỉ đọc, không ghi.
+   */
+  async previewPublish(req, res) {
+    const raceId = Number(req.params.raceId);
+    if (!Number.isInteger(raceId) || raceId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid raceId' });
+    }
+    try {
+      const preview = await settlementService.previewPublish(raceId);
+      return res.status(200).json({ success: true, preview });
+    } catch (error) {
+      const status = error.status || 500;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  }
+
   async publishResult(req, res) {
     const raceId = parseInt(req.params.raceId);
 
@@ -35,21 +55,40 @@ class SettlementController {
 
       // 3. PHÁT THÔNG BÁO REAL-TIME QUA SOCKET.IO
       try {
-        // Cộng điểm cho từng người thắng cược -> chỉ người đó cần nhận (room riêng theo userId)
-        Object.entries(report.walletIncrements).forEach(([spectatorId, amount]) => {
-          const messageData = {
-            type: 'BET_WON',
-            message: `Trận đấu mã số ${raceId} đã công bố kết quả! Tài khoản của bạn được cộng +${amount} điểm.`,
-            addedAmount: amount
-          };
+        // Gửi thông báo cho TẤT CẢ spectator đã đặt cược (thắng + thua)
+        // Mô hình GROSS: addedAmount = tổng trả thưởng (stake + lãi) cộng vào ví.
+        //                grossPayout = tổng gross (admin thấy ở Prediction.payout).
+        Object.entries(report.spectatorBetDetails).forEach(([spectatorId, details]) => {
+          const isWinner = details.won;
 
-          socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', messageData);
+          if (isWinner) {
+            const grossPayout = details.totalPayout || 0;
+            const messageData = {
+              type: 'BET_WON',
+              raceId: raceId,
+              addedAmount: grossPayout,    // ví cộng GROSS (stake + lãi)
+              grossPayout: grossPayout,    // tổng gross (cho FE hiển thị breakdown)
+              payoutModel: 'GROSS',
+              betAmount: details.totalBetAmount,
+              message: `Trận #${raceId}: Đặt ${details.totalBetAmount} điểm × odd → nhận +${grossPayout} điểm (gồm ${details.totalBetAmount} gốc + ${Math.max(0, grossPayout - details.totalBetAmount)} lãi).`
+            };
+            socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', messageData);
+          } else {
+            // Người thua: không nhận gì, nhưng vẫn thông báo để họ biết
+            const messageData = {
+              type: 'BET_LOST',
+              raceId: raceId,
+              betAmount: details.totalBetAmount,
+              message: `Trận #${raceId}: Đặt ${details.totalBetAmount} điểm → không trúng.`
+            };
+            socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', messageData);
+          }
         });
 
         // Phát thông báo đổi trạng thái trận đấu cho toàn sàn UI
         socketEmitter.emitToAll('RACE_FINISHED', {
           raceId: raceId,
-          message: `Trận đua ${raceId} đã hoàn tất công bố kết quả.`
+          message: `Trận đua #${raceId} đã hoàn tất công bố kết quả.`
         });
       } catch (socketErr) {
         console.warn('[SOCKET WARNING] Không thể phát tín hiệu real-time, nhưng dữ liệu DB đã lưu an toàn:', socketErr.message);
@@ -83,14 +122,17 @@ class SettlementController {
 
       // HOÀN TÁC PHÁT THÔNG BÁO SOCKET
       try {
-        Object.entries(report.walletDecrements).forEach(([spectatorId, amount]) => {
-          const recallData = {
+        // Gửi thông báo cho TẤT CẢ spectator (winners + losers đều thông báo)
+        Object.entries(report.spectatorBetDetails).forEach(([spectatorId, details]) => {
+          const messageData = {
             type: 'BET_WIN_REVERSAL',
-            message: `Kết quả trận đấu số ${raceId} đã bị Admin thu hồi để đối soát lại. Tài khoản bị trừ -${amount} điểm.`,
-            recalledAmount: amount
+            raceId: raceId,
+            recalledAmount: details.recallPayout || 0,
+            betAmount: details.totalBetAmount,
+            wasWinner: details.won,
+            message: `Kết quả trận #${raceId} đã bị Admin thu hồi để đối soát lại.`
           };
-
-          socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', recallData);
+          socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', messageData);
         });
 
         socketEmitter.emitToAll('RACE_UNPUBLISHED', { raceId: raceId });

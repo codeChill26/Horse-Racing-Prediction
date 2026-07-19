@@ -1,6 +1,7 @@
 // backend/src/controllers/adminRaces.controller.js
 
 const adminRacesService = require('../services/adminRaces');
+const adminRaceBetsService = require('../services/adminRaceBets');
 const aiPredictionService = require('../services/aiPrediction');
 const aiRiskService = require('../services/aiRisk');
 const oddsService = require('../services/odds');
@@ -213,4 +214,28 @@ module.exports = {
   handleRaceList,
   updateRegistrationGate,
   assignReferees,
+  listRacePredictions,
+  listRaceWalletActivity,
 };
+
+async function listRacePredictions(req, res) {
+  try {
+    const raceId = validator.parseRaceId(req.params);
+    const result = await adminRaceBetsService.listPredictionsByRace(raceId);
+    return res.status(200).json(result);
+  } catch (error) {
+    const status = error.status || 400;
+    return res.status(status).json({ error: error.message });
+  }
+}
+
+async function listRaceWalletActivity(req, res) {
+  try {
+    const raceId = validator.parseRaceId(req.params);
+    const result = await adminRaceBetsService.listWalletActivityByRace(raceId);
+    return res.status(200).json(result);
+  } catch (error) {
+    const status = error.status || 400;
+    return res.status(status).json({ error: error.message });
+  }
+}

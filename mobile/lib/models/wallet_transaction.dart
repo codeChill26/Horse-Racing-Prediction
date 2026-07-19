@@ -40,12 +40,23 @@ class WalletTransaction {
     this.balanceAfter = 0,
     this.type,
     this.referenceType,
+    this.referenceId,
     this.description,
     this.createdAt,
     this.wallet,
   });
 
   factory WalletTransaction.fromJson(Map<String, dynamic> json) {
+    final refIdRaw = json['referenceId'];
+    String? referenceId;
+    if (refIdRaw != null) {
+      if (refIdRaw is num) {
+        referenceId = refIdRaw.toString();
+      } else if (refIdRaw is String) {
+        referenceId = refIdRaw;
+      }
+    }
+
     return WalletTransaction(
       transactionId: json['transactionId'] is num
           ? (json['transactionId'] as num).toInt()
@@ -57,6 +68,7 @@ class WalletTransaction {
       balanceAfter: _asNum(json['balanceAfter']),
       type: json['type']?.toString(),
       referenceType: json['referenceType']?.toString(),
+      referenceId: referenceId,
       description: json['description']?.toString(),
       createdAt: json['createdAt']?.toString(),
       wallet: WalletLite.fromJson(
@@ -71,6 +83,11 @@ class WalletTransaction {
   final num balanceAfter;
   final String? type;
   final String? referenceType;
+
+  /// ID tham chiếu ngoại bảng (vd `raceId`). Backend trả về dưới dạng string
+  /// vì cột gốc là `BIGINT` (Prisma → JS BigInt), đã được serialize thành
+  /// string trong `backend/app.js` để tránh `JSON.stringify` throw.
+  final String? referenceId;
   final String? description;
   final String? createdAt;
   final WalletLite? wallet;

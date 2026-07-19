@@ -11,12 +11,25 @@
  *   - Open / Close registration gate (Flow 2)
  *   - Refresh
  *   - Publish / Unpublish (Flow 8) — Result Publication
+ *   - Phân công trọng tài (Flow 4) — chỉ khi SCHEDULED
+ *   - Xử lý tranh chấp (Flow 4) — chỉ khi PAUSED
  *
  * Status guard cho Publish/Unpublish được nhận qua prop `canPublish` / `canUnpublish`
  * (client-side) — service sẽ double-check ở backend.
  */
 
-import { Edit, XCircle, Lock, Unlock, RefreshCw, CheckCircle2, Undo2 } from "lucide-react";
+import {
+  Edit,
+  XCircle,
+  Lock,
+  Unlock,
+  RefreshCw,
+  CheckCircle2,
+  Undo2,
+  ShieldCheck,
+  Gavel,
+  Send,
+} from "lucide-react";
 
 function RaceActionBarSkeleton() {
   return (
@@ -42,7 +55,10 @@ export function RaceActionBar({
   onOpenRegistration,
   onCloseRegistration,
   onPublish,
+  onPublishAndNotify,
   onUnpublish,
+  onAssignReferees,
+  onResolveConflict,
   onRefresh,
   loading = false,
   busy = false,
@@ -57,15 +73,29 @@ export function RaceActionBar({
   const isScheduled = status === "SCHEDULED";
   const isOngoing = status === "ONGOING";
   const isPendingResult = status === "PENDING_RESULT";
+  const isPaused = status === "PAUSED";
   const isFinished = status === "FINISHED";
   const isCancelled = status === "CANCELLED";
+  const isAutoMatchedUnsettled = isFinished && !race.publishedAt;
   const canModify = isScheduled || isOngoing;
   const isRegOpen = race.registrationOpen || race.isRegistrationOpen;
 
   // Flow 8: status guard cho publish/unpublish.
   // Service sẽ validate lại — đây chỉ là UI affordance.
-  const showPublish   = isPendingResult; // PENDING_RESULT → FINISHED
-  const showUnpublish = isFinished;      // FINISHED     → PENDING_RESULT
+  // - PENDING_RESULT: race đã có OfficialRaceResult nhưng chưa FINISHED → dùng
+  //   ConfirmModal cũ (Flow 8).
+  // - FINISHED + !publishedAt: race Auto-Match đã hoàn tất nhưng admin chưa
+  //   gửi kết quả cược cho spectators → dùng PublishNotifyModal (Option B)
+  //   với breakdown per-spectator.
+  const showPublish = isPendingResult;
+  const showPublishAndNotify = isAutoMatchedUnsettled;
+  const showUnpublish = isFinished && Boolean(race.publishedAt);
+
+  // Flow 4 (mobile parity):
+  // - Assign referees: chỉ khi SCHEDULED (BE throw 409 nếu khác).
+  // - Resolve conflict: chỉ khi PAUSED (2 referee submit lệch).
+  const showAssignReferees = Boolean(onAssignReferees) && isScheduled;
+  const showResolveConflict = Boolean(onResolveConflict) && isPaused;
 
   return (
     <div className="rab-bar">
@@ -127,6 +157,32 @@ export function RaceActionBar({
             </button>
           )}
 
+          {showAssignReferees && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--info"
+              onClick={onAssignReferees}
+              disabled={busy}
+              title="Phân công 2 trọng tài (chỉ khi SCHEDULED)"
+            >
+              <ShieldCheck size={16} />
+              Phân công TT
+            </button>
+          )}
+
+          {showResolveConflict && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--danger"
+              onClick={onResolveConflict}
+              disabled={busy}
+              title="Xử lý tranh chấp khi 2 trọng tài nộp lệch (chỉ khi PAUSED)"
+            >
+              <Gavel size={16} />
+              Xử lý tranh chấp
+            </button>
+          )}
+
           {/* Flow 8: Publish race → settle bets */}
           {showPublish && (
             <button
@@ -138,6 +194,21 @@ export function RaceActionBar({
             >
               <CheckCircle2 size={16} />
               Publish kết quả
+            </button>
+          )}
+
+          {/* Option B: Race Auto-Match FINISHED nhưng chưa settle
+              → mở PublishNotifyModal xem breakdown trước khi gửi. */}
+          {showPublishAndNotify && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--primary"
+              onClick={onPublishAndNotify}
+              disabled={busy}
+              title="Xem trước breakdown rồi gửi kết quả cược cho spectators"
+            >
+              <Send size={16} />
+              Gửi kết quả cược
             </button>
           )}
 

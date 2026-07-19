@@ -156,4 +156,23 @@ export const settlementRepository = {
       `getSettlement(${raceId})`
     );
   },
+
+  /**
+   * GET /api/admin/races/:raceId/preview-publish
+   * Trả về breakdown per-spectator dự kiến trước khi admin xác nhận publish.
+   * Idempotent — chỉ đọc.
+   */
+  async previewPublish(raceId) {
+    if (!raceId) throw new Error("ID chặng đua là bắt buộc");
+    const res = await fetch(
+      `/api/admin/races/${raceId}/preview-publish`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) await readError(res, "Không tải được preview publish");
+    const data = await res.json();
+    if (!data?.success) {
+      throw new Error(data?.message || "Preview publish thất bại");
+    }
+    return data.preview;
+  },
 };

@@ -21,6 +21,7 @@ import {
   refereeConflictRepository,
   refereeProfileRepository,
   refereeNotificationRepository,
+  refereeViolationRepository,
 } from "../repositories/refereeRepository";
 
 /* --------------------------------- Race --------------------------------- */
@@ -177,5 +178,30 @@ export const refereeNotificationService = {
       response,
       reason,
     });
+  },
+};
+
+/* ----------------------------- Violation ----------------------------- */
+
+/**
+ * Service báo cáo vi phạm trong trận đấu.
+ * BE: POST /api/referee/violations
+ *      body: { raceId, entryId?, type, severity, description }
+ *      resp: { violation: { violationId, raceId, entryId, type, severity,
+ *            description, status, createdAt } }
+ *
+ * Server chỉ chấp nhận khi race đang ở trạng thái IN_PROGRESS / PAUSED /
+ * PENDING_RESULT (xem RefereeService.reportViolation).
+ *
+ * @param {Object} payload
+ * @param {string|number} payload.raceId
+ * @param {string|number} [payload.entryId]
+ * @param {string} payload.type        // enum do BE định nghĩa, vd 'JOCKEY_FOUL'
+ * @param {string} payload.severity    // 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+ * @param {string} payload.description
+ */
+export const refereeViolationService = {
+  async reportViolation(payload) {
+    return refereeViolationRepository.reportViolation(payload);
   },
 };

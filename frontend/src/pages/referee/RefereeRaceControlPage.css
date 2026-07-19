@@ -350,6 +350,11 @@
   gap: 1.5rem;
 }
 
+/* Race chỉ có 1 leg → ẩn panel Chọn Leg, ResultsPanel chiếm full width */
+.race-control-grid--single {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 1024px) {
   .race-control-grid {
     grid-template-columns: 1fr;
@@ -466,6 +471,13 @@
   font-weight: 700;
   color: var(--ho-text-primary, #dae3ee);
   font-family: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
+}
+
+/* Race 1 leg: header gọn chỉ còn badge trạng thái */
+.results-panel__status-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
 }
 
 .results-panel__actions {

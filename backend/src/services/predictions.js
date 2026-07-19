@@ -60,7 +60,7 @@ class PredictionsService {
       throw httpError(`Minimum bet amount is ${MIN_BET} points`, 400);
     }
     if (betAmount > maxBet) {
-      throw httpError(`Bet amount exceeds 50% of current balance. Max allowed: ${maxBet}`, 400);
+      throw httpError(`Số điểm đặt cược vượt quá 50% số dư hiện tại. Tối đa cho phép: ${maxBet} điểm`, 400);
     }
 
     const oddsRecords = await prisma.odds.findMany({

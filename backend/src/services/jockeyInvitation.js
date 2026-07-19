@@ -165,6 +165,11 @@ class JockeyInvitationService {
 
   // Helper: Tạo RaceEntry cho tất cả race trong tournament mà jockey có thể tham gia.
   // Idempotent: bỏ qua race nếu cổng đóng / status không hợp lệ / entry đã tồn tại.
+  //
+  // Sau khi tạo được ít nhất 1 entry, tự động CANCEL các invitation ACCEPTED
+  // khác của cùng (horseId, tournamentId) để đảm bảo 1 ngựa chỉ gắn với 1 jockey
+  // trong toàn giải — tránh tình trạng admin mở race chỉ thấy 1 jockey trong khi
+  // các invitation còn lại vẫn nằm ACCEPTED trong hộp thư owner.
   async _createEntriesForInvitation(invitation) {
     const racesInTournament = await prisma.race.findMany({
       where: { tournamentId: invitation.tournamentId },
@@ -174,14 +179,19 @@ class JockeyInvitationService {
     if (racesInTournament.length === 0) return [];
 
     const createdEntries = [];
+    const skipReasons = [];
 
     for (const race of racesInTournament) {
       if (!race.registrationOpen) {
-        console.warn(`[auto-entry] Race ${race.raceId} gate closed, skip`);
+        const reason = `[auto-entry] Race ${race.raceId} gate closed, skip`;
+        console.warn(reason);
+        skipReasons.push({ raceId: race.raceId, reason: 'GATE_CLOSED' });
         continue;
       }
       if (race.status !== 'SCHEDULED' && race.status !== 'PENDING_RESULT') {
-        console.warn(`[auto-entry] Race ${race.raceId} not registrable (${race.status}), skip`);
+        const reason = `[auto-entry] Race ${race.raceId} not registrable (${race.status}), skip`;
+        console.warn(reason);
+        skipReasons.push({ raceId: race.raceId, reason: `STATUS_${race.status}` });
         continue;
       }
 
@@ -189,12 +199,18 @@ class JockeyInvitationService {
       const existingByHorse = await prisma.raceEntry.findUnique({
         where: { raceId_horseId: { raceId: race.raceId, horseId: invitation.horseId } }
       });
-      if (existingByHorse) continue;
+      if (existingByHorse) {
+        skipReasons.push({ raceId: race.raceId, reason: 'HORSE_ALREADY_REGISTERED' });
+        continue;
+      }
 
       const existingByJockey = await prisma.raceEntry.findUnique({
         where: { raceId_jockeyId: { raceId: race.raceId, jockeyId: invitation.jockeyId } }
       });
-      if (existingByJockey) continue;
+      if (existingByJockey) {
+        skipReasons.push({ raceId: race.raceId, reason: 'JOCKEY_ALREADY_BOOKED' });
+        continue;
+      }
 
       try {
         const entry = await prisma.raceEntry.create({
@@ -208,8 +224,43 @@ class JockeyInvitationService {
         createdEntries.push(entry);
         emitToAdmin('entry:created', { entry, tournamentId: invitation.tournamentId });
       } catch (err) {
-        // Unique constraint conflict -> entry đã tồn tại, bỏ qua
-        console.warn(`[auto-entry] Race ${race.raceId} entry may exist:`, err.message);
+        // Unique constraint conflict (raceId_horseId / raceId_jockeyId) -> race đó
+        // đã được tạo entry bởi request khác chạy song song. Bỏ qua, không fail.
+        if (err.code === 'P2002') {
+          console.warn(`[auto-entry] Race ${race.raceId} unique conflict, skip:`, err.message);
+          skipReasons.push({ raceId: race.raceId, reason: 'UNIQUE_CONFLICT' });
+          continue;
+        }
+        // Bất kỳ lỗi nào khác -> throw lên để respondInvitation/confirmJockey
+        // nhận biết và báo lại cho FE (trước đây lỗi này bị nuốt, dẫn đến
+        // jockey đã accept nhưng entry không hề được tạo).
+        console.error(`[auto-entry] Race ${race.raceId} unexpected error:`, err);
+        throw err;
+      }
+    }
+
+    // Khi đã tạo được ít nhất 1 entry cho ngựa này, cancel các invitation ACCEPTED
+    // còn lại của cùng (horseId, tournamentId) nhưng của jockey khác — vì schema
+    // @@unique([raceId, horseId]) chỉ cho phép 1 jockey / ngựa / race.
+    if (createdEntries.length > 0) {
+      try {
+        const cancelled = await prisma.jockeyInvitation.updateMany({
+          where: {
+            tournamentId: invitation.tournamentId,
+            horseId: invitation.horseId,
+            jockeyId: { not: invitation.jockeyId },
+            status: { in: ['PENDING', 'ACCEPTED'] },
+          },
+          data: { status: 'CANCELLED' },
+        });
+        if (cancelled.count > 0) {
+          console.log(
+            `[auto-entry] Cancelled ${cancelled.count} competing invitation(s) for horse ${invitation.horseId} in tournament ${invitation.tournamentId}`
+          );
+        }
+      } catch (err) {
+        // Không throw — cancel là best-effort, entry chính đã tạo thành công.
+        console.error('[auto-entry] Failed to cancel competing invitations:', err.message);
       }
     }
 
@@ -238,12 +289,11 @@ class JockeyInvitationService {
 
     let entries = [];
     if (data.status === 'ACCEPTED') {
-      try {
-        entries = await this._createEntriesForInvitation(updated);
-      } catch (err) {
-        console.error('[auto-entry] Failed to create entries on accept:', err.message);
-        // Không throw — vẫn trả về invitation đã accept, owner có thể bấm Xác nhận lại
-      }
+      // Không nuốt lỗi nữa — nếu _createEntriesForInvitation fail vì lý do
+      // không phải skip (cổng đóng / entry trùng), lỗi sẽ bubble lên controller
+      // và trả về FE với status 500. Trước đây lỗi bị nuốt khiến jockey đã
+      // accept nhưng entry không được tạo, mà FE tưởng thành công.
+      entries = await this._createEntriesForInvitation(updated);
     }
 
     return { ...updated, entries };

@@ -299,4 +299,32 @@ export const raceRepository = {
       status: verdict,
     };
   },
+
+  /**
+   * POST /api/admin/races/:raceId/publish
+   * Admin publish kết quả race và settle tất cả cược.
+   * Race phải ở trạng thái PENDING_RESULT và có OfficialRaceResult.
+   */
+  async publishRaceResult(raceId) {
+    const res = await fetch(`/api/admin/races/${raceId}/publish`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (!res.ok) await readError(res, "Publish kết quả thất bại");
+    return await res.json();
+  },
+
+  /**
+   * POST /api/admin/races/:raceId/unpublish
+   * Admin rollback kết quả race (thu hồi tiền thưởng, chuyển về PENDING_RESULT).
+   * Race phải ở trạng thái FINISHED và đã được publish.
+   */
+  async unpublishRaceResult(raceId) {
+    const res = await fetch(`/api/admin/races/${raceId}/unpublish`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (!res.ok) await readError(res, "Rollback kết quả thất bại");
+    return await res.json();
+  },
 };

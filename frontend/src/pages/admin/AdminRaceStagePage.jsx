@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, CheckCircle2, Undo2, ExternalLink } from "lucide-react";
+import { Search, RefreshCw, Lock, Unlock, Eye, Flag, Users, Clock, Plus, UserCog, CheckCircle2, Undo2, ExternalLink, Sparkles } from "lucide-react";
 import { raceService } from "../../services/raceService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceDetailService } from "../../services/raceDetailService";
@@ -13,6 +13,7 @@ import { formatDate, mapStatusToVietnamese } from "../../utils/formatter";
 import { useToast } from "../../hooks/useToast";
 import RaceCreateFormModal from "./RaceCreateFormModal";
 import AssignRefereesModal from "./AssignRefereesModal";
+import AiAdvisoryModal from "../../components/admin/race/AiAdvisoryModal";
 import "./AdminRaceStagePage.css";
 
 // Các status hợp lệ theo mainflow.md + openapi.js cho race:
@@ -257,6 +258,7 @@ export default function AdminRaceStagePage() {
   const [regModal, setRegModal] = useState(null);
   const [createModal, setCreateModal] = useState(null);
   const [assignModal, setAssignModal] = useState(null);
+  const [aiModal, setAiModal] = useState(null); // race được mở modal gợi ý AI
 
   // Toast local — hỗ trợ các flow chưa migrate sang useToast
   const [toast, setToast] = useState(null);
@@ -295,6 +297,7 @@ export default function AdminRaceStagePage() {
   }, []);
 
   const [entriesByRace, setEntriesByRace] = useState({});
+  const [entriesTotalByRace, setEntriesTotalByRace] = useState({});
   const [loadingEntries, setLoadingEntries] = useState(false);
 
   const loadEntriesCounts = useCallback(async () => {
@@ -303,13 +306,28 @@ export default function AdminRaceStagePage() {
     try {
       const results = await Promise.all(
         races.map((r) =>
-          raceDetailService
-            .getEntries(r.raceId)
-            .then((list) => [r.raceId, Array.isArray(list) ? list.length : 0])
-            .catch(() => [r.raceId, 0])
-        ),
+          Promise.all([
+            raceDetailService
+              .getEntries(r.raceId, { status: "APPROVED" })
+              .then((list) => [r.raceId, "approved", Array.isArray(list) ? list.length : 0])
+              .catch(() => [r.raceId, "approved", 0]),
+            raceDetailService
+              .getEntries(r.raceId)
+              .then((list) => [r.raceId, "total", Array.isArray(list) ? list.length : 0])
+              .catch(() => [r.raceId, "total", 0]),
+          ])
+        )
       );
-      setEntriesByRace(Object.fromEntries(results));
+      const approved = {};
+      const total = {};
+      for (const pair of results) {
+        for (const [raceId, kind, n] of pair) {
+          if (kind === "approved") approved[raceId] = n;
+          else total[raceId] = n;
+        }
+      }
+      setEntriesByRace(approved);
+      setEntriesTotalByRace(total);
     } catch {
       /* ignore */
     } finally {
@@ -320,6 +338,12 @@ export default function AdminRaceStagePage() {
   useEffect(() => {
     if (races.length > 0) loadEntriesCounts();
   }, [races.length, loadEntriesCounts]);
+
+  // === Polling entries: refresh every 30s để bắt entry mới từ HorseOwner ===
+  useEffect(() => {
+    const interval = setInterval(() => loadEntriesCounts(), 30000);
+    return () => clearInterval(interval);
+  }, [loadEntriesCounts]);
 
   const filtered = useMemo(() => {
     let list = races;
@@ -389,6 +413,8 @@ export default function AdminRaceStagePage() {
         registrationClosedAt: !isOpening ? new Date().toISOString() : race.registrationClosedAt,
       };
       replaceRace(updated);
+      // BE auto-reject PENDING entries khi đóng cổng — refresh entry counts ngay
+      if (!isOpening) await loadEntriesCounts();
       toastify?.success?.(
         isOpening
           ? `Đã mở cổng đăng ký cho "${race.name}"`
@@ -397,7 +423,7 @@ export default function AdminRaceStagePage() {
     } catch (e) {
       toastify?.error?.(e.message || "Không thể thay đổi trạng thái cổng đăng ký");
     } finally {
-      setBusyId(null);
+      setBusyId(busyId === race.raceId ? null : busyId);
     }
   };
 
@@ -552,7 +578,7 @@ export default function AdminRaceStagePage() {
                   <th>Trọng tài</th>
                   <th>Thời gian</th>
                   <th>Cổng ĐK</th>
-                  <th>Slots</th>
+                  <th>Đã ĐK</th>
                   <th>Trạng thái</th>
                   <th>Thao tác</th>
                 </tr>
@@ -606,11 +632,30 @@ export default function AdminRaceStagePage() {
                         <div className="ars-slots">
                           {loadingEntries && entriesByRace[r.raceId] === undefined ? (
                             <span className="ars-slots__count ars-slots__count--loading" aria-label="Đang tải">…</span>
-                          ) : (
-                            <span className={`ars-slots__count ${(entriesByRace[r.raceId] ?? 0) >= maxSlots ? "ars-slots__count--full" : ""}`}>
-                              {entriesByRace[r.raceId] ?? 0}/{maxSlots}
-                            </span>
-                          )}
+                          ) : (() => {
+                            const approved = entriesByRace[r.raceId] ?? 0;
+                            const total = entriesTotalByRace[r.raceId] ?? approved;
+                            const pending = Math.max(total - approved, 0);
+                            const fullClass = approved >= maxSlots ? "ars-slots__count--full" : "";
+                            return (
+                              <>
+                                <span
+                                  className={`ars-slots__count ${fullClass}`}
+                                  title={`${approved} entry APPROVED / tối đa ${maxSlots}`}
+                                >
+                                  {approved}/{maxSlots}
+                                </span>
+                                {pending > 0 && (
+                                  <span
+                                    className="ars-slots__pending"
+                                    title={`${pending} entry đang chờ duyệt`}
+                                  >
+                                    +{pending} PENDING
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td>
@@ -636,6 +681,15 @@ export default function AdminRaceStagePage() {
                             onClick={() => handleViewRegistrations(r)}
                           >
                             <Users size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="ars-icon-btn ars-icon-btn--primary"
+                            title="Gợi ý tỉ lệ cược & đánh giá rủi ro từ AI"
+                            disabled={r.status === "FINISHED" || r.status === "CANCELLED"}
+                            onClick={() => setAiModal(r)}
+                          >
+                            <Sparkles size={14} />
                           </button>
                           <button
                             type="button"
@@ -680,7 +734,8 @@ export default function AdminRaceStagePage() {
                           )}
 
                           {/* FLOW 8: nút publish / rollback inline */}
-                          {r.status === "PENDING_RESULT" && (
+                          {/* Publish: PENDING_RESULT HOẶC FINISHED nhưng chưa settle (chưa có publishedAt) */}
+                          {(r.status === "PENDING_RESULT" || (r.status === "FINISHED" && !r.publishedAt)) && (
                             <button
                               type="button"
                               className="ars-icon-btn ars-icon-btn--primary"
@@ -691,7 +746,8 @@ export default function AdminRaceStagePage() {
                               <CheckCircle2 size={14} />
                             </button>
                           )}
-                          {r.status === "FINISHED" && (
+                          {/* Rollback: chỉ khi FINISHED và đã settle (có publishedAt) */}
+                          {r.status === "FINISHED" && r.publishedAt && (
                             <button
                               type="button"
                               className="ars-icon-btn ars-icon-btn--warn"
@@ -750,8 +806,8 @@ export default function AdminRaceStagePage() {
                 }
               />
               <DetailRow
-                label="Slots"
-                value={`${entriesByRace[detail.raceId] ?? 0}/${detail.maxHorses || detail.maxEntries || 20}`}
+                label="Đã ĐK"
+                value={`${entriesByRace[detail.raceId] ?? 0} / ${detail.maxHorses || detail.maxEntries || 20}`}
               />
               <DetailRow
                 label="Trạng thái"
@@ -764,6 +820,63 @@ export default function AdminRaceStagePage() {
               <DetailRow label="Ngày công bố" value={formatDate(detail.publishedAt)} />
               <DetailRow label="Ngày tạo" value={formatDate(detail.createdAt)} />
             </div>
+            {/* Footer cho race FINISHED: hiện nút Publish hoặc Rollback */}
+            {detail.status === "FINISHED" && (
+              <div className="ars-modal__footer">
+                {!detail.publishedAt ? (
+                  <button
+                    type="button"
+                    className="ars-btn ars-btn--primary"
+                    onClick={async () => {
+                      setBusyId(detail.raceId);
+                      try {
+                        await raceService.publishRaceResult(detail.raceId);
+                        toastify?.success?.(`Đã publish kết quả và settle cược cho "${detail.name}"`);
+                        setDetail(null);
+                        await loadData();
+                      } catch (e) {
+                        toastify?.error?.(e.message || "Publish thất bại");
+                      } finally {
+                        setBusyId(null);
+                      }
+                    }}
+                    disabled={busyId === detail.raceId}
+                  >
+                    <CheckCircle2 size={14} />
+                    Publish kết quả & Settle cược
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ars-btn ars-btn--warn"
+                    onClick={async () => {
+                      setBusyId(detail.raceId);
+                      try {
+                        await raceService.unpublishRaceResult(detail.raceId);
+                        toastify?.success?.(`Đã rollback settlement cho "${detail.name}"`);
+                        setDetail(null);
+                        await loadData();
+                      } catch (e) {
+                        toastify?.error?.(e.message || "Rollback thất bại");
+                      } finally {
+                        setBusyId(null);
+                      }
+                    }}
+                    disabled={busyId === detail.raceId}
+                  >
+                    <Undo2 size={14} />
+                    Rollback Settlement
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="ars-btn ars-btn--ghost"
+                  onClick={() => setDetail(null)}
+                >
+                  Đóng
+                </button>
+              </div>
+            )}
             {detail.status !== "FINISHED" && detail.status !== "CANCELLED" && (
               <div className="ars-modal__footer">
                 {detail.registrationOpen || detail.isRegistrationOpen ? (
@@ -856,6 +969,11 @@ export default function AdminRaceStagePage() {
             );
           }}
         />
+      ) : null}
+
+      {/* AI Advisory Modal — Gợi ý odds + đánh giá rủi ro */}
+      {aiModal ? (
+        <AiAdvisoryModal race={aiModal} onClose={() => setAiModal(null)} />
       ) : null}
     </div>
   );
