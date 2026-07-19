@@ -5,6 +5,9 @@ const authMiddleware = require('../../middlewares/auth');
 const adminOnly = require('../../middlewares/adminOnly');
 const walletController = require('../../controllers/wallet.controller');
 
+// GET /api/admin/wallets - List all wallets with user info and balance
+router.get('/', authMiddleware, adminOnly, walletController.listAllWallets);
+
 // POST /api/admin/wallets/:userId/adjust - Admin deposit/withdraw points
 router.post('/:userId/adjust', authMiddleware, adminOnly, walletController.adminAdjustBalance);
 

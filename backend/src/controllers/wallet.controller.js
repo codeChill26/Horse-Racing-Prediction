@@ -1,5 +1,14 @@
 const walletService = require('../services/wallet');
 
+async function listAllWallets(req, res) {
+  try {
+    const wallets = await walletService.listAllWallets();
+    return res.status(200).json({ wallets });
+  } catch (error) {
+    return res.status(error.status || 500).json({ error: error.message });
+  }
+}
+
 async function getMyWallet(req, res) {
   try {
     const userId = Number(req.user.sub);
@@ -51,6 +60,7 @@ async function adminGetTransactionHistory(req, res) {
 }
 
 module.exports = {
+  listAllWallets,
   getMyWallet,
   getMyTransactions,
   adminAdjustBalance,

@@ -48,12 +48,14 @@ function mapDeviationResponse(v = {}) {
   const entries = raceData.entries || [];
 
   // Map entries với horse name và jockey name
+  // Backend trả về entries đã flatten: { entryId, horseId, horseName, jockeyId, jockeyName, ... }
+  // Không còn sub-object e.horse hay e.jockey
   const entriesMap = (entries || []).map(e => ({
     entryId: e.entryId,
-    horseId: e.horse?.horseId,
-    horseName: e.horse?.name || `Horse #${e.horse?.horseId || e.entryId}`,
-    jockeyName: e.jockey?.fullName || null,
-    jockeyId: e.jockey?.userId || null,
+    horseId: e.horseId ?? e.horse?.horseId,
+    horseName: e.horseName || e.horse?.name || `Entry #${e.entryId}`,
+    jockeyName: e.jockeyName || e.jockey?.fullName || null,
+    jockeyId: e.jockeyId ?? e.jockey?.userId ?? null,
   }));
 
   // Parse rawResults để lấy rank/status cho mỗi entry
