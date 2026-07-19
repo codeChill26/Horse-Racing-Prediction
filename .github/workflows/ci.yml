@@ -108,8 +108,10 @@ jobs:
 
       # db push thay vì migrate deploy: DB của CI là DB dùng một lần, dựng thẳng từ
       # schema.prisma nên không phụ thuộc lịch sử migration (đang lệch so với Supabase).
+      # Prisma 7 đã bỏ cờ --skip-generate (db push không tự generate nữa; bước generate
+      # đã chạy riêng ở trên). --accept-data-loss để không kẹt prompt trên DB rỗng của CI.
       - name: Create database schema
-        run: npx prisma db push --skip-generate
+        run: npx prisma db push --accept-data-loss
 
       - name: Run Unit + Integration Tests
         run: npm test

@@ -2,6 +2,32 @@
 
 const prisma = require('../config/prisma'); // Import prisma instance từ config hiện tại của bạn
 
+// Chỉ chấp nhận odds là số hữu hạn dương; ngược lại coi như "thiếu odds".
+function validOdds(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+// Chọn odds dùng để TÍNH THƯỞNG cho một vé tại thời điểm quyết toán.
+// Nguồn là ODDS CUỐI CÙNG trong bảng Odds (oddsMap: entryId -> Number(oddsFinal)),
+// KHÔNG phải Prediction.lockedOdds — nhờ vậy odds admin chỉnh sau khi đóng cược mới
+// quyết định payout. Vé 2 cửa (QUINELLA/EXACTA) lấy trung bình odds 2 cửa, làm tròn 2
+// chữ số (khớp cách tính lockedOdds ở predictions.js). Thiếu odds cuối cho cửa cần dùng
+// -> fallback về lockedOdds của vé để không làm hỏng cả luồng quyết toán.
+function resolveSettlementOdds(pred, oddsMap) {
+  const fallback = Number(pred.lockedOdds);
+  const isTwoLeg = pred.betType === 'QUINELLA' || pred.betType === 'EXACTA';
+
+  if (isTwoLeg) {
+    const o1 = validOdds(oddsMap.get(pred.entryId1));
+    const o2 = validOdds(oddsMap.get(pred.entryId2));
+    if (o1 === null || o2 === null) return fallback;
+    return Math.round(((o1 + o2) / 2) * 100) / 100;
+  }
+
+  const o1 = validOdds(oddsMap.get(pred.entryId1));
+  return o1 === null ? fallback : o1;
+}
+
 class SettlementService {
   /**
    * Tính toán và quyết toán vé cược, cập nhật ví tiền, cân đối quỹ dự phòng.
@@ -55,6 +81,14 @@ class SettlementService {
       const walletIncrements = {};
       const predictionUpdates = [];
 
+      // Nạp ODDS CUỐI CÙNG của mọi cửa trong race -> map entryId -> Number(oddsFinal).
+      // Quyết toán tính thưởng theo bộ odds này (không theo lockedOdds từng vé).
+      const oddsRows = await tx.odds.findMany({
+        where: { raceId: raceId },
+        select: { entryId: true, oddsFinal: true },
+      });
+      const oddsMap = new Map(oddsRows.map((o) => [o.entryId, Number(o.oddsFinal)]));
+
       // 3. Quét danh sách vé cược & Đối chiếu Thắng / Thua (Settlement Engine)
       for (const pred of race.predictions) {
         let isWon = false;
@@ -64,7 +98,7 @@ class SettlementService {
         const pick1 = pred.entryId1;
         const pick2 = pred.entryId2;
         const stake = pred.betAmount;
-        const odds = Number(pred.lockedOdds);
+        const odds = resolveSettlementOdds(pred, oddsMap);
 
         if (type === 'WIN') {
           if (pick1 === entry1) {
@@ -430,3 +464,5 @@ class SettlementService {
 }
 
 module.exports = new SettlementService();
+// Xuất kèm hàm thuần để unit test (không cần dựng cả transaction quyết toán).
+module.exports.resolveSettlementOdds = resolveSettlementOdds;

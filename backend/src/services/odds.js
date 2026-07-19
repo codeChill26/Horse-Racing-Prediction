@@ -224,8 +224,12 @@ async function applyOddsSuggestions(raceId, entries) {
   });
   if (!race) throw httpError('Race not found', 404);
 
-  if (race.status !== 'SCHEDULED') {
-    throw httpError('Chỉ có thể sửa odds khi race đang ở trạng thái SCHEDULED', 409);
+  // SCHEDULED: đặt odds ban đầu (trước/đang mở cược).
+  // IN_PROGRESS: điều chỉnh odds CUỐI CÙNG sau khi đã đóng cược — quyết toán tính thưởng
+  // theo bộ odds này (xem settlement.resolveSettlementOdds). Không mở PENDING_RESULT để
+  // admin không thể sửa odds SAU KHI đã biết kết quả.
+  if (race.status !== 'SCHEDULED' && race.status !== 'IN_PROGRESS') {
+    throw httpError('Chỉ có thể sửa odds khi race đang ở trạng thái SCHEDULED hoặc IN_PROGRESS', 409);
   }
   if (race.registrationOpen) {
     throw httpError(
