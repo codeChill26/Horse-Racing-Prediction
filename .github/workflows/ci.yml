@@ -106,6 +106,13 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      # schema.prisma dùng gen_random_bytes() (pgcrypto) cho PointWallet.rowVersion.
+      # Supabase bật sẵn pgcrypto; Postgres mặc định của CI thì chưa -> phải bật tay
+      # trước khi db push, nếu không CREATE TABLE PointWallet sẽ lỗi "function
+      # gen_random_bytes does not exist". psql có sẵn trên runner ubuntu-latest.
+      - name: Enable pgcrypto extension
+        run: psql "postgresql://postgres:postgres@localhost:5432/horse_racing_test" -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
       # db push thay vì migrate deploy: DB của CI là DB dùng một lần, dựng thẳng từ
       # schema.prisma nên không phụ thuộc lịch sử migration (đang lệch so với Supabase).
       # Prisma 7 đã bỏ cờ --skip-generate (db push không tự generate nữa; bước generate
