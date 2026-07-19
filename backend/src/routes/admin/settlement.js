@@ -20,6 +20,14 @@ router.post('/:raceId/publish', auth, adminOnly, settlementController.publishRes
  */
 router.get('/:id/settlement', auth, adminOnly, settlementController.getSettlementSummary);
 
+/**
+ * @route   GET /api/admin/settlement/:raceId/preview-publish
+ * @desc    Preview breakdown spectator (won/lost/payout) trước khi publish.
+ *          Idempotent — chỉ đọc, không ghi DB.
+ * @access  Chỉ dành riêng cho nhóm Admin bảo mật
+ */
+router.get('/:raceId/preview-publish', auth, adminOnly, settlementController.previewPublish);
+
 router.post('/:raceId/unpublish', auth, adminOnly, settlementController.unpublishResult);
 
 module.exports = router;

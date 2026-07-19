@@ -34,6 +34,7 @@ import { RaceActionBar } from "../../components/admin/race/RaceActionBar";
 import RaceBetsTab from "../../components/admin/race/RaceBetsTab";
 import AdminAssignRefereesModal from "../../components/admin/race/AdminAssignRefereesModal";
 import AdminResolveConflictModal from "../../components/admin/race/AdminResolveConflictModal";
+import { PublishNotifyModal } from "../../components/admin/race/PublishNotifyModal";
 import {
   ConfirmModal,
   CancelReasonModal,
@@ -78,6 +79,7 @@ export default function AdminRaceDetailPage() {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [assignRefereesModalOpen, setAssignRefereesModalOpen] = useState(false);
   const [resolveConflictModalOpen, setResolveConflictModalOpen] = useState(false);
+  const [publishNotifyModalOpen, setPublishNotifyModalOpen] = useState(false);
   const [entryBusyId, setEntryBusyId] = useState(null);
   const [entryError, setEntryError] = useState("");
   const [approveConfirmModal, setApproveConfirmModal] = useState(null);
@@ -297,6 +299,32 @@ export default function AdminRaceDetailPage() {
     }
   };
 
+  // === Flow 8 + Option B: Publish & Notify (race Auto-Match FINISHED, chưa settle) ===
+  // Mở PublishNotifyModal xem breakdown per-spectator trước khi xác nhận.
+  const openPublishNotifyModal = () => {
+    if (!race) return;
+    setPublishNotifyModalOpen(true);
+  };
+  const closePublishNotifyModal = () => {
+    if (publishBusy) return; // không đóng khi đang xử lý
+    setPublishNotifyModalOpen(false);
+  };
+  const handlePublishAndNotifyConfirm = async () => {
+    setBusy(true);
+    try {
+      const ok = await publishRace(true);
+      if (ok !== null) {
+        // publishRace thành công → đóng modal, refresh data.
+        setPublishNotifyModalOpen(false);
+        await loadData();
+      }
+      // Nếu ok === null → publishRace đã show toast error, giữ modal mở
+      // để admin xem lại / retry.
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // === Flow 8: Unpublish / Rollback ===
   const askRollback = () => {
     setRollbackModal(true);
@@ -427,6 +455,11 @@ export default function AdminRaceDetailPage() {
         onOpenRegistration={openRegistrationConfirm}
         onCloseRegistration={closeRegistrationConfirm}
         onPublish={canPublish ? askPublish : undefined}
+        onPublishAndNotify={
+          canPublish && settlementService.publishVariant(race) === "AUTO_MATCHED_SETTLE"
+            ? openPublishNotifyModal
+            : undefined
+        }
         onUnpublish={canUnpublish ? askRollback : undefined}
         onAssignReferees={
           adminRaceRefereeService.canAssignReferees(race)
@@ -663,6 +696,19 @@ export default function AdminRaceDetailPage() {
           race={race}
           onConfirm={handleResolveConflictConfirm}
           onClose={() => setResolveConflictModalOpen(false)}
+        />
+      )}
+
+      {/* FLOW 8 + Option B: Gửi kết quả cược cho spectators
+          (preview breakdown trước khi settle). */}
+      {publishNotifyModalOpen && race && (
+        <PublishNotifyModal
+          key={`publish-notify-${race.raceId ?? "x"}`}
+          raceId={race.raceId}
+          raceName={race.name}
+          onConfirm={handlePublishAndNotifyConfirm}
+          onClose={closePublishNotifyModal}
+          busy={busy || publishBusy}
         />
       )}
 

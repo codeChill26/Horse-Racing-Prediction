@@ -249,6 +249,13 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
       _showError('Vui lòng chọn ngựa #1');
       return;
     }
+    if (pick1.oddsFinal == null) {
+      _showError(
+        'Ngựa "${pick1.displayLabel}" chưa có odds. Vui lòng đợi hệ thống tính '
+        'odds hoặc bấm "Tải lại" để cập nhật.',
+      );
+      return;
+    }
     final entryIds = <int>[pick1.entryId];
     if (_needsSecondPick) {
       final pick2 = _pick2;
@@ -258,6 +265,13 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
       }
       if (pick2.entryId == pick1.entryId) {
         _showError('QUINELLA/EXACTA cần chọn 2 ngựa khác nhau');
+        return;
+      }
+      if (pick2.oddsFinal == null) {
+        _showError(
+          'Ngựa "${pick2.displayLabel}" chưa có odds. Vui lòng đợi hệ thống '
+          'tính odds hoặc bấm "Tải lại" để cập nhật.',
+        );
         return;
       }
       entryIds.add(pick2.entryId);
@@ -285,7 +299,19 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.errorText),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.errorText,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Tải lại',
+          textColor: Colors.white,
+          onPressed: () {
+            final id = _selectedRace?.raceId ?? widget.args?.raceId;
+            if (id != null) _loadRaceDetail(id);
+          },
+        ),
+      ),
     );
   }
 
@@ -322,6 +348,7 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
                   ),
                 const _HelpText(),
                 const SizedBox(height: 12),
+                _buildOddsNotReadyBanner(),
                 _buildTournamentDropdown(),
                 const SizedBox(height: 16),
                 _buildRaceDropdown(),
@@ -416,6 +443,48 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOddsNotReadyBanner() {
+    final detail = _raceDetail;
+    if (detail == null) return const SizedBox.shrink();
+    final hasAnyOdds = detail.entries.any((e) => e.oddsFinal != null);
+    if (hasAnyOdds) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF3C7),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.hourglass_top, color: Color(0xFF854D0E), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Hệ thống chưa tính odds cho chặng đua này. Bấm "Tải lại" sau vài giây để cập nhật.',
+                style: TextStyle(
+                  color: const Color(0xFF713F12).withValues(alpha: 0.95),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final id = _selectedRace?.raceId ?? widget.args?.raceId;
+                if (id != null) _loadRaceDetail(id);
+              },
+              child: const Text('Tải lại'),
+            ),
+          ],
         ),
       ),
     );
@@ -654,14 +723,26 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
               child: Text(
                 e.oddsLabel != null
                     ? '${e.displayLabel}  ·  Odds ${e.oddsLabel}'
-                    : e.displayLabel,
+                    : '${e.displayLabel}  ·  Chưa có odds',
                 overflow: TextOverflow.ellipsis,
+                style: e.oddsFinal == null
+                    ? const TextStyle(
+                        color: AppColors.textMuted,
+                        fontStyle: FontStyle.italic,
+                      )
+                    : null,
               ),
             ),
           )
           .toList(),
       onChanged: onChanged,
-      validator: (v) => v == null ? 'Vui lòng chọn ngựa' : null,
+      validator: (v) {
+        if (v == null) return 'Vui lòng chọn ngựa';
+        if (v.oddsFinal == null) {
+          return 'Ngựa này chưa có odds — hãy đợi hoặc chọn ngựa khác';
+        }
+        return null;
+      },
     );
   }
 

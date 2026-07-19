@@ -94,14 +94,12 @@ function MatchStatusBadge({ status }) {
 }
 
 /**
- * Bảng xếp hạng đầy đủ cho race FINISHED
+ * Bảng xếp hạng đầy đủ cho race FINISHED.
+ * Nhận ranked entries (đã có finishPosition, đã sort) — việc lấy dữ liệu từ
+ * entries[] hay từ officialRaceResult.finalResults (fallback) do component
+ * cha xử lý, để bảng này chỉ phụ trách render.
  */
-function FinalRankingTable({ entries }) {
-  // Lọc entries có finishPosition và sắp xếp theo thứ tự
-  const rankedEntries = entries
-    .filter(e => e.finishPosition != null)
-    .sort((a, b) => a.finishPosition - b.finishPosition);
-
+function FinalRankingTable({ rankedEntries }) {
   if (rankedEntries.length === 0) {
     return (
       <div className="rrc-empty-message">
@@ -198,9 +196,59 @@ export function RefereeResultsCard({ race, loading }) {
   const officialResult = race?.officialRaceResult;
   const entries = race?.entries || [];
 
-  // Khi FINISHED: hiển thị bảng xếp hạng đầy đủ
+  // Khi FINISHED: hiển thị bảng xếp hạng đầy đủ.
+  // Nguồn dữ liệu ưu tiên:
+  //   1) entries[].finishPosition (do RaceResult set — schema mới)
+  //   2) officialRaceResult.finalResults (fallback cho race FINISHED cũ chưa
+  //      từng có RaceResult — trước đây chỉ set status FINISHED mà không tạo
+  //      bản ghi RaceResult, khiến admin FE hiển thị "Kết quả đang được cập
+  //      nhật..." mặc dù DB đã có kết quả chính thức ở finalResults).
   if (raceStatus === "FINISHED") {
-    const hasResults = entries.some(e => e.finishPosition != null);
+    const fromEntries = entries.filter((e) => e.finishPosition != null);
+    let rankedEntries = fromEntries
+      .slice()
+      .sort((a, b) => a.finishPosition - b.finishPosition);
+
+    if (rankedEntries.length === 0 && officialResult?.finalResults?.length) {
+      // Build nhiều map lookup để robust với data cũ:
+      //   - entryById:   entryId → entry (chuẩn)
+      //   - entryByHorse: horseId → entry (finalResults cũ có thể lưu horseId)
+      //   - entryByGate:  gate (mặc định BE set = entryId) → entry
+      const entryById = new Map(entries.map((e) => [e.entryId, e]));
+      const entryByHorse = new Map(
+        entries.filter((e) => e.horseId != null).map((e) => [e.horseId, e])
+      );
+      const entryByGate = new Map(
+        entries.filter((e) => e.gate != null).map((e) => [e.gate, e])
+      );
+      const resolveEntry = (item) =>
+        entryById.get(item.entryId) ||
+        entryByHorse.get(item.entryId) ||
+        entryByGate.get(item.entryId) ||
+        null;
+
+      rankedEntries = officialResult.finalResults
+        .filter((item) => item && item.rank != null)
+        .map((item) => {
+          const entry = resolveEntry(item);
+          return {
+            entryId: entry?.entryId ?? item.entryId,
+            finishPosition: item.rank,
+            // Ưu tiên horseName từ finalResults (TT đã nhập) → entry lookup → "—"
+            horseName:
+              item.horseName ||
+              entry?.horseName ||
+              entry?.horse?.name ||
+              `Entry #${item.entryId}`,
+            jockeyName:
+              item.jockeyName ||
+              entry?.jockeyName ||
+              entry?.jockey?.fullName ||
+              "—",
+          };
+        })
+        .sort((a, b) => a.finishPosition - b.finishPosition);
+    }
 
     return (
       <div className="rrc-card">
@@ -213,13 +261,13 @@ export function RefereeResultsCard({ race, loading }) {
         </div>
 
         <div className="rrc-card__body">
-          {hasResults ? (
+          {rankedEntries.length > 0 ? (
             <>
               <div className="rrc-final__label">
                 <Medal size={16} />
                 <span>Bảng xếp hạng chung cuộc</span>
               </div>
-              <FinalRankingTable entries={entries} />
+              <FinalRankingTable rankedEntries={rankedEntries} />
             </>
           ) : (
             <div className="rrc-empty-message">

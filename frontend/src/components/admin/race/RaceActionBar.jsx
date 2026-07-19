@@ -28,6 +28,7 @@ import {
   Undo2,
   ShieldCheck,
   Gavel,
+  Send,
 } from "lucide-react";
 
 function RaceActionBarSkeleton() {
@@ -54,6 +55,7 @@ export function RaceActionBar({
   onOpenRegistration,
   onCloseRegistration,
   onPublish,
+  onPublishAndNotify,
   onUnpublish,
   onAssignReferees,
   onResolveConflict,
@@ -74,13 +76,20 @@ export function RaceActionBar({
   const isPaused = status === "PAUSED";
   const isFinished = status === "FINISHED";
   const isCancelled = status === "CANCELLED";
+  const isAutoMatchedUnsettled = isFinished && !race.publishedAt;
   const canModify = isScheduled || isOngoing;
   const isRegOpen = race.registrationOpen || race.isRegistrationOpen;
 
   // Flow 8: status guard cho publish/unpublish.
   // Service sẽ validate lại — đây chỉ là UI affordance.
-  const showPublish   = isPendingResult; // PENDING_RESULT → FINISHED
-  const showUnpublish = isFinished;      // FINISHED     → PENDING_RESULT
+  // - PENDING_RESULT: race đã có OfficialRaceResult nhưng chưa FINISHED → dùng
+  //   ConfirmModal cũ (Flow 8).
+  // - FINISHED + !publishedAt: race Auto-Match đã hoàn tất nhưng admin chưa
+  //   gửi kết quả cược cho spectators → dùng PublishNotifyModal (Option B)
+  //   với breakdown per-spectator.
+  const showPublish = isPendingResult;
+  const showPublishAndNotify = isAutoMatchedUnsettled;
+  const showUnpublish = isFinished && Boolean(race.publishedAt);
 
   // Flow 4 (mobile parity):
   // - Assign referees: chỉ khi SCHEDULED (BE throw 409 nếu khác).
@@ -185,6 +194,21 @@ export function RaceActionBar({
             >
               <CheckCircle2 size={16} />
               Publish kết quả
+            </button>
+          )}
+
+          {/* Option B: Race Auto-Match FINISHED nhưng chưa settle
+              → mở PublishNotifyModal xem breakdown trước khi gửi. */}
+          {showPublishAndNotify && (
+            <button
+              type="button"
+              className="rab-btn rab-btn--primary"
+              onClick={onPublishAndNotify}
+              disabled={busy}
+              title="Xem trước breakdown rồi gửi kết quả cược cho spectators"
+            >
+              <Send size={16} />
+              Gửi kết quả cược
             </button>
           )}
 

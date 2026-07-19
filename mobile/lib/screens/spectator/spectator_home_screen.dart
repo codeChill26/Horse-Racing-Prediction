@@ -107,7 +107,7 @@ class SpectatorHomeScreenState extends State<SpectatorHomeScreen> {
                     fit: BoxFit.cover,
                   ),
                   Container(
-                    decoration: const BoxDecoration(s
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,

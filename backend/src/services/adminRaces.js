@@ -75,11 +75,32 @@ class AdminRacesService {
 
     const approvedEntriesCount = race.entries.filter((e) => e.status === 'APPROVED').length;
 
-    // Map results (finishPosition) theo horseId
+    // Map results (finishPosition) theo horseId. Hai nguồn dữ liệu cùng tồn tại:
+    //  - race.results (bảng RaceResult — schema mới, do flow Auto-finish ghi)
+    //  - race.officialRaceResult.finalResults (bảng OfficialRaceResult —
+    //    JSON finalResults, có thể có khi race cũ set FINISHED trước khi flow
+    //    RaceResult được implement, hoặc admin publish manual).
+    // Fallback: nếu race.results rỗng nhưng có officialRaceResult.finalResults
+    // → map ngược entryId → horseId qua raceEntries để suy ra finishPosition.
+    // Trước đây thiếu fallback này làm race FINISHED cũ hiển thị "Kết quả đang
+    // được cập nhật..." trong admin UI dù DB đã có kết quả chính thức.
     const finishPositions = {};
     if (race.results && race.results.length > 0) {
       for (const r of race.results) {
         finishPositions[r.horseId] = r.finishPosition;
+      }
+    } else if (
+      race.officialRaceResult &&
+      Array.isArray(race.officialRaceResult.finalResults) &&
+      race.officialRaceResult.finalResults.length > 0
+    ) {
+      const entryToHorse = Object.fromEntries(
+        race.entries.map((e) => [e.entryId, e.horseId])
+      );
+      for (const item of race.officialRaceResult.finalResults) {
+        const horseId = entryToHorse[item.entryId];
+        if (horseId == null) continue;
+        finishPositions[horseId] = item.rank;
       }
     }
 
