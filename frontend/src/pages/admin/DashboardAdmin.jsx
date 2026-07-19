@@ -8,12 +8,15 @@ import { horseService } from "../../services/horseService";
 import { tournamentService } from "../../services/tournamentService";
 import { raceService } from "../../services/raceService";
 import { userService } from "../../services/userService";
+import { houseRevenueService } from "../../services/houseRevenueService";
 import { formatPoints } from "../../utils/formatter";
+import HouseRevenueLedgerModal from "../../components/admin/HouseRevenueLedgerModal";
 import {
   Award,
   AlertTriangle,
   Gavel,
-  Wallet
+  Wallet,
+  Landmark
 } from "lucide-react";
 import "./DashboardAdmin.css";
 import {
@@ -37,10 +40,13 @@ export default function Dashboard() {
     pendingDiscrepancies: 0,
     activeViolations: 0,
     totalUsers: 0,
-    walletBalance: 0
+    walletBalance: 0,
+    houseRevenue: 0,
+    treasurePool: 0
   });
 
   const [loading, setLoading] = useState(true);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
@@ -66,6 +72,18 @@ export default function Dashboard() {
         console.error(e);
       } finally {
         setLoading(false);
+      }
+
+      // Doanh thu nhà cái — fetch riêng để lỗi ở đây không kéo sập các số khác.
+      try {
+        const hr = await houseRevenueService.getHouseRevenue();
+        setStats((prev) => ({
+          ...prev,
+          houseRevenue: hr?.houseRevenue ?? 0,
+          treasurePool: hr?.treasurePool ?? 0,
+        }));
+      } catch (e) {
+        console.warn("House revenue load failed:", e.message);
       }
     }
     loadStats();
@@ -216,6 +234,41 @@ export default function Dashboard() {
                 Tổng lưu lượng hạch toán ban điều hành
               </p>
             </div>
+
+            {/* Stat Card 5: House Revenue (tiền nhà cái thu về) — bấm mở sổ cái */}
+            <div
+              className="bg-[#161B22] p-5 rounded-2xl border border-[#30363D] relative overflow-hidden group select-none cursor-pointer hover:border-primary/40 transition-colors"
+              onClick={() => setLedgerOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setLedgerOpen(true);
+              }}
+            >
+              <div className="absolute right-0 bottom-0 translate-y-4 translate-x-4 opacity-[0.03] text-primary transition-transform duration-300 group-hover:scale-110">
+                <Landmark className="w-32 h-32" />
+              </div>
+              <div className="flex justify-between items-start">
+                <span className="text-[10px] font-sans text-on-surface-variant font-bold tracking-wider uppercase">
+                  Lãi Nhà Cái
+                </span>
+                <span className="p-1.5 bg-primary/10 text-primary rounded-lg border border-primary/20">
+                  <Landmark className="w-4.5 h-4.5" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="font-serif text-2xl font-black text-primary tracking-tight">
+                  {formatPoints(stats.houseRevenue)}
+                </span>
+                <span className="text-[10px] text-primary font-mono font-bold tracking-wider">PTS</span>
+              </div>
+              <p className="text-[10px] text-on-surface-variant mt-3 font-sans font-medium">
+                Phí vận hành 10% tích lũy · Quỹ dự phòng: {formatPoints(stats.treasurePool)}
+              </p>
+              <p className="text-[10px] text-primary/70 mt-1 font-sans font-semibold">
+                Bấm để xem sổ cái cộng/trừ →
+              </p>
+            </div>
           </div>
 
           {/* Visual Charts Section using Recharts */}
@@ -354,6 +407,8 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {ledgerOpen && <HouseRevenueLedgerModal onClose={() => setLedgerOpen(false)} />}
     </>
   );
 }

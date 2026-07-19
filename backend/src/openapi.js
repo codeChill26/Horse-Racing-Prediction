@@ -2238,6 +2238,80 @@ module.exports = {
       },
     },
 
+    '/api/admin/house-revenue': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Xem tổng tiền nhà cái thu về (house revenue + treasury)',
+        description:
+          'Trả về HOUSE_REVENUE (tổng phí vận hành 10% tích lũy qua các lần settle — lãi ' +
+          'nhà cái) và TREASURE_POOL (quỹ dự phòng). Nguồn: SystemSetting. Chỉ đọc, không ' +
+          'gắn với race cụ thể. Đây là "tài khoản hệ thống" — nhà cái không có PointWallet riêng.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Tổng tiền nhà cái',
+            content: {
+              'application/json': {
+                example: {
+                  houseRevenue: 15000,
+                  treasurePool: 3200,
+                  totalHouseFunds: 18200,
+                  updatedAt: {
+                    houseRevenue: '2026-07-20T10:00:00.000Z',
+                    treasurePool: '2026-07-20T10:00:00.000Z',
+                  },
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — cần role ADMIN' },
+        },
+      },
+    },
+
+    '/api/admin/house-revenue/transactions': {
+      get: {
+        tags: ['Admin Races'],
+        summary: 'Sổ cái cộng/trừ của nhà cái (chi tiết theo từng trận)',
+        description:
+          'Liệt kê các giao dịch hệ thống (walletId=null): HOUSE_MARGIN (+10% mỗi trận), ' +
+          'TREASURE_IN (+ nạp quỹ dự phòng), TREASURE_OUT (- quỹ bù lỗ). Sắp theo thời gian ' +
+          'giảm dần, có phân trang.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'limit', in: 'query', required: false,
+            schema: { type: 'integer', default: 50 }, description: '1–200',
+          },
+          {
+            name: 'offset', in: 'query', required: false,
+            schema: { type: 'integer', default: 0 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Danh sách giao dịch hệ thống',
+            content: {
+              'application/json': {
+                example: {
+                  total: 2,
+                  limit: 50,
+                  offset: 0,
+                  transactions: [
+                    { transactionId: 12, amount: 1500, type: 'HOUSE_MARGIN', raceId: 7, description: 'Trích 10% phí vận hành sàn từ trận đua số 7', createdAt: '2026-07-20T10:00:00.000Z' },
+                    { transactionId: 13, amount: -300, type: 'TREASURE_OUT', raceId: 7, description: 'Trích xuất quỹ dự phòng bù lỗ thâm hụt chi trả thưởng trận 7.', createdAt: '2026-07-20T10:00:00.000Z' },
+                  ],
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden — cần role ADMIN' },
+        },
+      },
+    },
+
     '/api/admin/races/{id}/ai-odds': {
       get: {
         tags: ['Admin Races'],
