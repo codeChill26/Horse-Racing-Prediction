@@ -13,13 +13,16 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Kiểm tra kết nối SMTP khi server khởi động
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ Mailer Connection Error:', error.message);
-  } else {
-    console.log('✔ Connected successfully to SMTP Mail Server');
-  }
-});
+// Kiểm tra kết nối SMTP khi server khởi động — BỎ QUA trong test/CI: runner không có
+// SMTP nên verify() sẽ log ECONNREFUSED gây nhiễu, và không test nào gửi mail thật.
+if (process.env.NODE_ENV !== 'test') {
+  transporter.verify((error) => {
+    if (error) {
+      console.error('❌ Mailer Connection Error:', error.message);
+    } else {
+      console.log('✔ Connected successfully to SMTP Mail Server');
+    }
+  });
+}
 
 module.exports = transporter;
