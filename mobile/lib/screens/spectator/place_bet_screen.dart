@@ -78,6 +78,11 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
 
   bool _submitting = false;
 
+  // Gợi ý AI: button ở parent chỉ track loading để disable + show spinner.
+  // State thật (result/error) do _AiSuggestionSheet tự quản lý trong route
+  // modal — parent setState không rebuild được modal route.
+  bool _aiLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -148,6 +153,7 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
       _raceDetail = null;
       _pick1 = null;
       _pick2 = null;
+      _aiLoading = false;
     });
     if (tournament == null || tournament.tournamentId == null) return;
 
@@ -211,6 +217,7 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
       _raceDetail = null;
       _pick1 = null;
       _pick2 = null;
+      _aiLoading = false;
     });
     try {
       final detail = await _tournamentsService.getRaceDetail(raceId);
@@ -233,8 +240,77 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
     if (race == null) return;
     setState(() {
       _selectedRace = race;
+      _aiLoading = false;
     });
     await _loadRaceDetail(race.raceId);
+  }
+
+  Future<void> _openAiSheet() async {
+    final raceId = _selectedRace?.raceId ?? widget.args?.raceId;
+    if (raceId == null) {
+      _showError('Vui lòng chọn chặng đua trước');
+      return;
+    }
+    // Hỏi xác nhận trước khi trừ điểm. Nếu user bấm "Huỷ" thì không mở sheet,
+    // không gọi API, không tốn 15 điểm.
+    final confirmed = await _confirmAiCharge();
+    if (!mounted || confirmed != true) return;
+
+    // Sheet tự quản lý state (loading/result/error) và tự gọi API trong
+    // initState. Parent setState không rebuild được modal route — đó là lý do
+    // trước đây sheet kẹt spinner. Cách này: _AiSuggestionSheet là
+    // StatefulWidget với state nội bộ, không phụ thuộc parent.
+    setState(() => _aiLoading = true);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AiSuggestionSheet(
+        raceId: raceId,
+        api: widget.api,
+      ),
+    );
+    if (mounted) setState(() => _aiLoading = false);
+  }
+
+  /// Dialog xác nhận trước khi gọi API AI — mỗi lần xem tốn [15] điểm.
+  /// Trả về `true` nếu user bấm "Xem", `false`/`null` nếu huỷ.
+  Future<bool?> _confirmAiCharge() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: AppColors.green, size: 22),
+            const SizedBox(width: 8),
+            const Text('Xem gợi ý AI'),
+          ],
+        ),
+        content: const Text(
+          'Bạn có muốn xem gợi ý từ AI không?\n\n'
+          'Mỗi lần xem sẽ mất 15 điểm trong ví. '
+          'Chỉ hiển thị tỉ lệ thắng tham khảo.',
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.green,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Xem'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -346,7 +422,6 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
                       ),
                     ),
                   ),
-                const _HelpText(),
                 const SizedBox(height: 12),
                 _buildOddsNotReadyBanner(),
                 _buildTournamentDropdown(),
@@ -369,6 +444,8 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
                       .toList(),
                   onChanged: (v) => setState(() => _betType = v),
                 ),
+                const SizedBox(height: 12),
+                _buildAiSuggestionButton(),
                 const SizedBox(height: 16),
                 _buildHorsePicker(
                   label: _needsSecondPick ? 'Ngựa #1' : 'Chọn ngựa',
@@ -431,13 +508,6 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
                       ),
                       elevation: 0,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _HintBox(
-                  text: _submitHint(
-                    _betType,
-                    needsSecondPick: _needsSecondPick,
                   ),
                 ),
               ],
@@ -550,7 +620,6 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
               value: t,
               child: Text(
                 t.name ?? 'Giải đấu #${t.tournamentId}',
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           )
@@ -633,7 +702,6 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
               value: r,
               child: Text(
                 '${r.name} · ${raceStatusLabelVi(r.status)}',
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           )
@@ -724,7 +792,6 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
                 e.oddsLabel != null
                     ? '${e.displayLabel}  ·  Odds ${e.oddsLabel}'
                     : '${e.displayLabel}  ·  Chưa có odds',
-                overflow: TextOverflow.ellipsis,
                 style: e.oddsFinal == null
                     ? const TextStyle(
                         color: AppColors.textMuted,
@@ -763,80 +830,223 @@ class _PlaceBetScreenState extends State<PlaceBetScreen> {
     }
   }
 
-  String _submitHint(String? type, {required bool needsSecondPick}) {
-    if (type == null) return '';
-    if (needsSecondPick) {
-      return 'Bạn cần chọn 2 ngựa khác nhau. Tối đa cược = 50% số dư ví. Odds sẽ được khóa khi backend chấp nhận.';
-    }
-    return 'WIN/PLACE/SHOW chỉ cần chọn 1 ngựa. Tối đa cược = 50% số dư ví. Odds sẽ được khóa khi backend chấp nhận.';
-  }
-}
-
-class _HelpText extends StatelessWidget {
-  const _HelpText();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE0F2FE),
-        border: Border.all(color: const Color(0xFFBAE6FD)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Icon(Icons.info_outline, color: AppColors.green, size: 20),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Chọn giải đấu → chọn chặng đua (chỉ hiện chặng SCHEDULED) → '
-              'chọn ngựa (chỉ hiện entry đã được admin duyệt — APPROVED).',
-              style: TextStyle(color: AppColors.heading, fontSize: 13, height: 1.4),
-            ),
-          ),
-        ],
+  Widget _buildAiSuggestionButton() {
+    final raceId = _selectedRace?.raceId ?? widget.args?.raceId;
+    final enabled = raceId != null && !_aiLoading;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: enabled ? _openAiSheet : null,
+        icon: _aiLoading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.auto_awesome, size: 18),
+        label: const Text('Gợi ý AI'),
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.green,
+        ),
       ),
     );
   }
 }
 
-class _HintBox extends StatelessWidget {
-  const _HintBox({required this.text});
+/// Bottom sheet hiển thị gợi ý AI cho spectator — chỉ winProbability, không odds.
+///
+/// Tự quản lý state (loading/result/error) và tự gọi API trong `initState`.
+/// Trước đây sheet là route độc lập nên setState của parent không rebuild nó —
+/// dẫn đến kẹt loading spinner. Cách này giải quyết bằng cách để sheet là
+/// StatefulWidget với state nội bộ.
+class _AiSuggestionSheet extends StatefulWidget {
+  const _AiSuggestionSheet({
+    required this.raceId,
+    required this.api,
+  });
 
-  final String text;
+  final int raceId;
+  final SpectatorApi api;
+
+  @override
+  State<_AiSuggestionSheet> createState() => _AiSuggestionSheetState();
+}
+
+class _AiSuggestionSheetState extends State<_AiSuggestionSheet> {
+  AiSuggestionResult? _result;
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Tự gọi API khi sheet mở — không phụ thuộc parent state.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetch());
+  }
+
+  Future<void> _fetch() async {
+    if (_loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await widget.api.viewAiSuggestion(widget.raceId);
+      if (!mounted) return;
+      setState(() {
+        _result = result;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString().replaceFirst('Exception: ', '');
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (text.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF9C3),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.tips_and_updates_outlined,
-            color: Color(0xFF854D0E),
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Color(0xFF713F12),
-                fontSize: 12.5,
-                height: 1.4,
-              ),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome, color: AppColors.green, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Gợi ý từ AI',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.heading,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
             ),
-          ),
-        ],
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: AppColors.errorText),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(onPressed: _fetch, child: const Text('Thử lại')),
+                  ],
+                ),
+              )
+            else if (_result != null) ...[
+              Text(
+                _result!.raceName,
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.45,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _result!.predictions.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) {
+                    final p = _result!.predictions[i];
+                    final pct = p.winProbability;
+                    final highlight = i == 0;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: highlight
+                            ? const Color(0xFFE8F5E9)
+                            : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: highlight
+                              ? AppColors.green.withValues(alpha: 0.4)
+                              : const Color(0xFFE0E0E0),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: highlight
+                                ? AppColors.green
+                                : AppColors.textMuted,
+                            foregroundColor: Colors.white,
+                            child: Text(
+                              '#${p.rank}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              p.horseName,
+                              style: TextStyle(
+                                fontWeight: highlight
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: AppColors.heading,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${pct.toStringAsFixed(2)}%',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: highlight
+                                  ? AppColors.green
+                                  : AppColors.heading,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Số dư ví sau khi trừ phí: ${_result!.walletBalance} điểm',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
