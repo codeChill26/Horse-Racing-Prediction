@@ -55,8 +55,8 @@ function PreviewSkeleton() {
 function SpectatorRow({ row }) {
   const isWinner = row.won;
   const stake = Number(row.totalBetAmount || 0);
-  const gross = Number(row.payout || 0);                  // tổng gross trả thưởng (BE lưu Prediction.payout)
-  const netProfit = Number(row.netProfit ?? Math.max(0, gross - stake)); // chỉ phần lãi — số cộng vào ví
+  const gross = Number(row.payout || 0);                  // GROSS = tổng trả thưởng (stake + lãi)
+  const profit = Math.max(0, gross - stake);               // phần lãi (chỉ để hiển thị breakdown)
   return (
     <div className={`ard-pnm-row ard-pnm-row--${isWinner ? "win" : "lose"}`}>
       <div className="ard-pnm-row__name">
@@ -65,7 +65,7 @@ function SpectatorRow({ row }) {
       </div>
       <div className="ard-pnm-row__bets">
         <span className="ard-pnm-row__betcount">{row.betCount} vé</span>
-        <span className="ard-pnm-row__betamount" title="Tổng stake đã đặt (KHÔNG hoàn lại)">
+        <span className="ard-pnm-row__betamount" title="Tổng stake đã đặt (KHÔNG hoàn lại khi thua)">
           {formatPoints(stake)}
         </span>
       </div>
@@ -76,12 +76,12 @@ function SpectatorRow({ row }) {
             <div className="ard-pnm-row__payout-stack">
               <span
                 className="ard-pnm-row__payout-value ard-pnm-row__payout-value--win"
-                title={`NET (cộng vào ví) = gross ${formatPoints(gross)} − stake ${formatPoints(stake)}`}
+                title={`GROSS = cộng vào ví = ${formatPoints(stake)} gốc + ${formatPoints(profit)} lãi`}
               >
-                +{formatPoints(netProfit)}
+                +{formatPoints(gross)}
               </span>
-              <span className="ard-pnm-row__payout-profit" title={`Gross trả thưởng (Prediction.payout) = ${formatPoints(gross)}`}>
-                gross {formatPoints(gross)}
+              <span className="ard-pnm-row__payout-profit" title={`Phân tách: ${formatPoints(stake)} gốc + ${formatPoints(profit)} lãi`}>
+                {formatPoints(stake)} gốc + {formatPoints(profit)} lãi
               </span>
             </div>
           </>
@@ -180,9 +180,9 @@ export function PublishNotifyModal({ raceId, raceName, onConfirm, onClose, busy 
               gửi thông báo realtime (socket + notification bell).
               <br />
               <span style={{ fontSize: 11, opacity: 0.9 }}>
-                💡 Mô hình <strong>NET</strong>: stake đã trừ lúc đặt cược, người
-                thắng chỉ nhận <strong>lãi</strong> (= gross − stake). Đặt {formatPoints(1000)}
-                × odd 2,53 → gross 2.530, lãi <strong>+1.530</strong> cộng vào ví.
+                💡 Mô hình <strong>GROSS</strong>: stake đã trừ lúc đặt cược, người
+                thắng nhận <strong>tổng trả thưởng</strong> (gồm cả gốc + lãi). Đặt {formatPoints(1000)}
+                × odd 1,93 → nhận <strong>+1.930</strong> (1.000 gốc + 930 lãi).
               </span>
             </div>
 
@@ -228,24 +228,11 @@ export function PublishNotifyModal({ raceId, raceName, onConfirm, onClose, busy 
                 </span>
               </div>
               <div className="ard-pnm-stat ard-pnm-stat--highlight">
-                <span className="ard-pnm-stat__label" title="Tổng gross trả thưởng (= sum(stake × odds) của các vé thắng). Lưu vào Prediction.payout.">
+                <span className="ard-pnm-stat__label" title="Mô hình GROSS: tổng cộng vào ví các vé thắng (= sum(stake × odds)). Prediction.payout lưu gross.">
                   Tổng gross trả thưởng
                 </span>
                 <span className="ard-pnm-stat__value">
-                  {formatPoints(preview.totalPayout)}
-                </span>
-              </div>
-              <div className="ard-pnm-stat">
-                <span className="ard-pnm-stat__label" title="Mô hình NET: chỉ phần lãi (= gross − stake) cộng vào ví. Stake không hoàn.">
-                  Tổng lãi cộng ví
-                </span>
-                <span className="ard-pnm-stat__value" style={{ color: '#047857' }}>
-                  +{formatPoints(
-                    Math.max(
-                      0,
-                      (preview.totalPayout || 0) - (preview.totalPool || 0)
-                    )
-                  )}
+                  +{formatPoints(preview.totalPayout)}
                 </span>
               </div>
               <div className="ard-pnm-stat">

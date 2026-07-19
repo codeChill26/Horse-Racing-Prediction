@@ -56,23 +56,21 @@ class SettlementController {
       // 3. PHÁT THÔNG BÁO REAL-TIME QUA SOCKET.IO
       try {
         // Gửi thông báo cho TẤT CẢ spectator đã đặt cược (thắng + thua)
-        // Mô hình NET: addedAmount = chỉ phần LÃI (gross − stake).
+        // Mô hình GROSS: addedAmount = tổng trả thưởng (stake + lãi) cộng vào ví.
         //                grossPayout = tổng gross (admin thấy ở Prediction.payout).
         Object.entries(report.spectatorBetDetails).forEach(([spectatorId, details]) => {
           const isWinner = details.won;
 
           if (isWinner) {
-            // Người thắng: ví cộng NET (chỉ lãi). Tránh cộng stake 2 lần.
-            const netProfit = details.totalNetProfit ?? Math.max(0, (details.totalPayout || 0) - (details.totalBetAmount || 0));
             const grossPayout = details.totalPayout || 0;
             const messageData = {
               type: 'BET_WON',
               raceId: raceId,
-              addedAmount: netProfit,        // ví cộng (NET)
-              grossPayout: grossPayout,      // tổng gross (cho FE hiển thị breakdown)
-              payoutModel: 'NET',
+              addedAmount: grossPayout,    // ví cộng GROSS (stake + lãi)
+              grossPayout: grossPayout,    // tổng gross (cho FE hiển thị breakdown)
+              payoutModel: 'GROSS',
               betAmount: details.totalBetAmount,
-              message: `Trận #${raceId}: Đặt ${details.totalBetAmount} điểm × odd → nhận lãi +${netProfit} điểm (gồm ${grossPayout} gross − ${details.totalBetAmount} stake).`
+              message: `Trận #${raceId}: Đặt ${details.totalBetAmount} điểm × odd → nhận +${grossPayout} điểm (gồm ${details.totalBetAmount} gốc + ${Math.max(0, grossPayout - details.totalBetAmount)} lãi).`
             };
             socketEmitter.emitToUser(parseInt(spectatorId), 'WALLET_UPDATED', messageData);
           } else {

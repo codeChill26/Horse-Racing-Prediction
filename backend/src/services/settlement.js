@@ -61,20 +61,16 @@ class SettlementService {
       const predictionUpdates = [];
 
       // 3. Quét danh sách vé cược & Đối chiếu Thắng / Thua (Settlement Engine)
-      // Mô hình trả thưởng: NET (chỉ cộng phần LÃI, KHÔNG hoàn stake gốc).
+      // Mô hình trả thưởng: GROSS (cộng cả stake gốc + lãi vào ví).
       //   - Stake đã bị trừ vào ví spectator ngay khi đặt cược (BET_PLACED).
-      //   - Khi thắng: payout_gross = stake × odds, profit = payout_gross − stake
-      //     → wallet cộng `profit`, Prediction.payout vẫn lưu `payout_gross`
-      //     (admin cần xem tổng gross trả thưởng cho từng vé).
-      //   - Lý do stake cố định không hoàn: đồng nhất với UX mobile hiển thị
-      //     "+1.530 điểm lãi" (thay vì "+2.530 điểm gồm gốc").
-      //   - Ví dụ: đặt 1.000 × odd 2,53 → gross 2.530, profit 1.530
-      //     → ví cộng +1.530, Prediction.payout = 2.530.
-      const NET_PAYOUT_MODEL = true;
+      //   - Khi thắng: payout_gross = stake × odds
+      //     → wallet cộng `payout_gross` (gồm 1.000 gốc + lãi)
+      //     → Prediction.payout lưu `payout_gross` (admin xem tổng gross).
+      //   - Ví dụ: đặt 1.000 × odd 1,93 → gross 1.930
+      //     → ví cộng +1.930 (1.000 gốc + 930 lãi), Prediction.payout = 1.930.
       for (const pred of race.predictions) {
         let isWon = false;
         let payoutGross = 0; // gross = stake × odds × multiplier(theo BetType)
-        let payoutNet = 0;   // net   = gross − stake (chỉ phần lãi)
 
         const type = pred.betType;
         const pick1 = pred.entryId1;
@@ -114,7 +110,6 @@ class SettlementService {
         }
 
         if (isWon) {
-          payoutNet = Math.max(0, payoutGross - stake); // chỉ cộng phần lãi
           actualTotalPayout += payoutGross;             // cân đối dòng tiền vẫn dùng gross
           predictionUpdates.push({
             predictionId: pred.predictionId,
@@ -122,7 +117,7 @@ class SettlementService {
           });
 
           if (!walletIncrements[pred.spectatorId]) walletIncrements[pred.spectatorId] = 0;
-          walletIncrements[pred.spectatorId] += payoutNet;
+          walletIncrements[pred.spectatorId] += payoutGross; // GROSS: cộng cả stake + lãi
         } else {
           predictionUpdates.push({
             predictionId: pred.predictionId,
@@ -136,15 +131,12 @@ class SettlementService {
             totalBetAmount: 0,
             won: false,
             totalPayout: 0,
-            totalNetProfit: 0,
-            netModel: NET_PAYOUT_MODEL,
           };
         }
         spectatorBetDetails[pred.spectatorId].totalBetAmount += stake;
         if (isWon) {
           spectatorBetDetails[pred.spectatorId].won = true;
           spectatorBetDetails[pred.spectatorId].totalPayout += payoutGross;
-          spectatorBetDetails[pred.spectatorId].totalNetProfit += payoutNet;
         }
       }
 
@@ -561,9 +553,7 @@ class SettlementService {
         if (pick1 === entry1 && pick2 === entry2) { isWon = true; payout = Math.floor(stake * odds * 2.0); }
       }
 
-      // Mô hình NET: admin thấy `payout` = gross (tổng trả cho vé);
-      //                `netProfit` = gross − stake (số dương cộng vào ví).
-      const netProfit = isWon ? Math.max(0, payout - stake) : 0;
+      // Mô hình GROSS: payout = tổng trả thưởng (gồm stake + lãi) → cộng vào ví.
       if (isWon) totalPayout += payout;
 
       const sid = pred.spectatorId;
@@ -574,8 +564,7 @@ class SettlementService {
           email: pred.spectator?.email || null,
           totalBetAmount: 0,
           won: false,
-          payout: 0,        // gross
-          netProfit: 0,     // chỉ phần lãi (cộng vào ví trong NET model)
+          payout: 0,        // gross — số sẽ cộng vào ví
           betCount: 0,
           wonBetCount: 0,
         });
@@ -586,7 +575,6 @@ class SettlementService {
       if (isWon) {
         entry.won = true;
         entry.payout += payout;
-        entry.netProfit += netProfit;
         entry.wonBetCount += 1;
       }
     }
@@ -604,8 +592,8 @@ class SettlementService {
       .map((s) => ({
         ...s,
         currentBalance: balanceMap.get(s.spectatorId) ?? 0,
-        // Ví cộng NET (chỉ lãi); gross chỉ là tổng trả thưởng lưu trong Prediction.payout
-        balanceAfter: (balanceMap.get(s.spectatorId) ?? 0) + s.netProfit,
+        // Ví cộng GROSS (stake + lãi). Prediction.payout cũng lưu gross.
+        balanceAfter: (balanceMap.get(s.spectatorId) ?? 0) + s.payout,
       }))
       .sort((a, b) => b.totalBetAmount - a.totalBetAmount);
 
