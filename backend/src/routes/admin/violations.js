@@ -36,6 +36,12 @@ router.post('/:id/resolve', adminUsersController.resolveViolation);
  * POST /api/admin/violations/:id/dismiss (CRITICAL-15)
  * Admin bác bỏ vi phạm
  */
-router.post('/:id/dismiss', adminUsersController.dismissViolation); // Chú ý: Cần định nghĩa hàm này
+router.post('/:id/dismiss', adminUsersController.dismissViolation);
+
+/**
+ * POST /api/admin/violations/direct-penalty
+ * Admin xử phạt trực tiếp (tạo và resolve)
+ */
+router.post('/direct-penalty', adminUsersController.directPenaltyViolation);
 
 module.exports = router;
