@@ -2,6 +2,32 @@
 
 const prisma = require('../config/prisma'); // Import prisma instance từ config hiện tại của bạn
 
+// Chỉ chấp nhận odds là số hữu hạn dương; ngược lại coi như "thiếu odds".
+function validOdds(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+// Chọn odds dùng để TÍNH THƯỞNG cho một vé tại thời điểm quyết toán.
+// Nguồn là ODDS CUỐI CÙNG trong bảng Odds (oddsMap: entryId -> Number(oddsFinal)),
+// KHÔNG phải Prediction.lockedOdds — nhờ vậy odds admin chỉnh sau khi đóng cược mới
+// quyết định payout. Vé 2 cửa (QUINELLA/EXACTA) lấy trung bình odds 2 cửa, làm tròn 2
+// chữ số (khớp cách tính lockedOdds ở predictions.js). Thiếu odds cuối cho cửa cần dùng
+// -> fallback về lockedOdds của vé để không làm hỏng cả luồng quyết toán.
+function resolveSettlementOdds(pred, oddsMap) {
+  const fallback = Number(pred.lockedOdds);
+  const isTwoLeg = pred.betType === 'QUINELLA' || pred.betType === 'EXACTA';
+
+  if (isTwoLeg) {
+    const o1 = validOdds(oddsMap.get(pred.entryId1));
+    const o2 = validOdds(oddsMap.get(pred.entryId2));
+    if (o1 === null || o2 === null) return fallback;
+    return Math.round(((o1 + o2) / 2) * 100) / 100;
+  }
+
+  const o1 = validOdds(oddsMap.get(pred.entryId1));
+  return o1 === null ? fallback : o1;
+}
+
 class SettlementService {
   /**
    * Tính toán và quyết toán vé cược, cập nhật ví tiền, cân đối quỹ dự phòng.
@@ -60,6 +86,14 @@ class SettlementService {
       const spectatorBetDetails = {}; // { [spectatorId]: { betAmount, won, payout } }
       const predictionUpdates = [];
 
+      // Nạp ODDS CUỐI CÙNG của mọi cửa trong race -> map entryId -> Number(oddsFinal).
+      // Quyết toán tính thưởng theo bộ odds này (không theo lockedOdds từng vé).
+      const oddsRows = await tx.odds.findMany({
+        where: { raceId: raceId },
+        select: { entryId: true, oddsFinal: true },
+      });
+      const oddsMap = new Map(oddsRows.map((o) => [o.entryId, Number(o.oddsFinal)]));
+
       // 3. Quét danh sách vé cược & Đối chiếu Thắng / Thua (Settlement Engine)
       // Mô hình trả thưởng: GROSS (cộng cả stake gốc + lãi vào ví).
       //   - Stake đã bị trừ vào ví spectator ngay khi đặt cược (BET_PLACED).
@@ -76,7 +110,7 @@ class SettlementService {
         const pick1 = pred.entryId1;
         const pick2 = pred.entryId2;
         const stake = pred.betAmount;
-        const odds = Number(pred.lockedOdds);
+        const odds = resolveSettlementOdds(pred, oddsMap);
 
         if (type === 'WIN') {
           if (pick1 === entry1) {
@@ -468,6 +502,81 @@ class SettlementService {
   }
 
   /**
+   * Xem tổng tiền nhà cái thu về (chỉ đọc, idempotent). Nguồn là SystemSetting:
+   *   - HOUSE_REVENUE: tổng phí vận hành 10% tích lũy qua các lần settle (lãi nhà cái).
+   *   - TREASURE_POOL: quỹ dự phòng (thặng dư nạp vào / bù lỗ khi chi trả thưởng vượt netPool).
+   * value là Decimal -> ép về Number cho JSON. Chưa có key nào (chưa settle trận nào) -> 0.
+   */
+  async getHouseRevenue() {
+    const rows = await prisma.systemSetting.findMany({
+      where: { key: { in: ['HOUSE_REVENUE', 'TREASURE_POOL'] } },
+      select: { key: true, value: true, updatedAt: true },
+    });
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r]));
+    const num = (r) => (r ? Number(r.value) : 0);
+
+    const houseRevenue = num(byKey.HOUSE_REVENUE);
+    const treasurePool = num(byKey.TREASURE_POOL);
+
+    return {
+      houseRevenue, // tổng lãi 10% tích lũy
+      treasurePool, // quỹ dự phòng
+      totalHouseFunds: houseRevenue + treasurePool,
+      updatedAt: {
+        houseRevenue: byKey.HOUSE_REVENUE?.updatedAt ?? null,
+        treasurePool: byKey.TREASURE_POOL?.updatedAt ?? null,
+      },
+    };
+  }
+
+  /**
+   * Sổ cái hệ thống của nhà cái (chỉ đọc, có phân trang). Liệt kê các WalletTransaction
+   * KHÔNG gắn ví người dùng (walletId = null) thuộc 3 loại cộng/trừ của nhà cái:
+   *   - HOUSE_MARGIN (+): 10% phí mỗi trận
+   *   - TREASURE_IN  (+): thặng dư nạp quỹ dự phòng
+   *   - TREASURE_OUT (-): quỹ bù lỗ khi chi trả thưởng vượt netPool
+   * referenceId (BigInt) là raceId -> ép Number cho JSON gọn.
+   */
+  async getHouseRevenueTransactions({ limit = 50, offset = 0 } = {}) {
+    const where = {
+      walletId: null,
+      type: { in: ['HOUSE_MARGIN', 'TREASURE_IN', 'TREASURE_OUT'] },
+    };
+
+    const [rows, total] = await Promise.all([
+      prisma.walletTransaction.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          transactionId: true,
+          amount: true,
+          type: true,
+          referenceId: true,
+          description: true,
+          createdAt: true,
+        },
+      }),
+      prisma.walletTransaction.count({ where }),
+    ]);
+
+    return {
+      total,
+      limit,
+      offset,
+      transactions: rows.map((r) => ({
+        transactionId: r.transactionId,
+        amount: r.amount, // Int, có thể âm (TREASURE_OUT)
+        type: r.type,
+        raceId: r.referenceId != null ? Number(r.referenceId) : null,
+        description: r.description,
+        createdAt: r.createdAt,
+      })),
+    };
+  }
+
+  /**
    * Preview breakdown — tính toán trước kết quả settle (WON/LOST/payout) cho từng
    * spectator dựa trên finalResults + predictions hiện tại, KHÔNG ghi DB.
    * Dùng để admin xác nhận trước khi bấm "Gửi kết quả cược".
@@ -626,3 +735,5 @@ class SettlementService {
 }
 
 module.exports = new SettlementService();
+// Xuất kèm hàm thuần để unit test (không cần dựng cả transaction quyết toán).
+module.exports.resolveSettlementOdds = resolveSettlementOdds;

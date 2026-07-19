@@ -57,4 +57,10 @@ export const bettingService = {
   async cancelBet(predictionId) {
     return bettingRepository.cancelBet(predictionId)
   },
+
+  /** Xem gợi ý % thắng từ AI cho 1 race — tốn điểm mỗi lần gọi (không cache). */
+  async viewAiPrediction(raceId) {
+    if (!raceId) throw new Error('Thiếu ID chặng đua')
+    return bettingRepository.viewAiPrediction(raceId)
+  },
 }

@@ -211,6 +211,90 @@ Ví dụ minh họa (dựng lại từ demo trong [`ai/risk.py`](../ai/risk.py),
 
 ---
 
+## 3. Áp dụng odds mới (Admin toàn quyền quyết định)
+
+### `PATCH /api/admin/races/:id/odds`
+
+- **Auth:** `Bearer <accessToken>`, role `ADMIN`
+- **Mô tả:** Admin ghi đè odds thật cho **TOÀN BỘ** entry `APPROVED` của race trong 1 lần gọi
+  duy nhất (không cho sửa từng entry riêng lẻ). Có thể dùng số AI gợi ý (`ai-odds`) làm giá trị
+  khởi tạo rồi admin tự sửa tay trước khi gửi — quyết định cuối luôn là Admin.
+- **Vì sao bắt buộc gửi đủ tất cả entry cùng lúc:** nếu chỉ sửa 1 con mà không đụng 4 con còn
+  lại, tổng xác suất ngầm định (`Σ 1/oddsFinal`) của cả race sẽ lệch khỏi mức `100% + margin`
+  ngay lập tức. Gửi cả bộ cùng lúc là cách duy nhất đảm bảo tính nhất quán.
+- **Nguồn:** [`adminRaces.controller.js`](../backend/src/controllers/adminRaces.controller.js) `applyOddsSuggestions` → [`odds.js`](../backend/src/services/odds.js) `applyOddsSuggestions`
+
+### Path params
+
+| Param | Kiểu | Bắt buộc | Ghi chú |
+|-------|------|----------|---------|
+| `id` | integer dương | ✅ | `raceId` |
+
+### Request body
+
+```json
+{
+  "entries": [
+    { "entryId": 6, "oddsFinal": 3.35 },
+    { "entryId": 9, "oddsFinal": 4.38 },
+    { "entryId": 10, "oddsFinal": 7.88 },
+    { "entryId": 8, "oddsFinal": 15.0 },
+    { "entryId": 7, "oddsFinal": 17.51 }
+  ]
+}
+```
+
+| Field | Kiểu | Bắt buộc | Ghi chú |
+|-------|------|----------|---------|
+| `entries` | array | ✅ | Phải chứa **đúng** tất cả entry đang `APPROVED` của race — thiếu/thừa đều bị từ chối |
+| `entries[].entryId` | integer dương | ✅ | Phải thuộc race này và đang `APPROVED` |
+| `entries[].oddsFinal` | float | ✅ | Trong khoảng `1.2` – `20.0` |
+
+### Điều kiện tiên quyết
+
+1. Race phải tồn tại và đang ở trạng thái `SCHEDULED`.
+2. Đã **đóng cổng đăng ký** (`registrationOpen = false`).
+3. `entries` phải khớp **chính xác** số lượng entry `APPROVED` hiện có của race (không thiếu, không thừa, không lẫn entry của race khác).
+
+### Response `200 OK`
+
+```json
+{
+  "message": "Áp dụng odds thành công",
+  "odds": [
+    {
+      "oddsId": 14,
+      "raceId": 2,
+      "entryId": 6,
+      "oddsFinal": "3.35",
+      "entry": { "horse": { "horseId": 18, "name": "Vautour" }, "jockey": { "fullName": "R Walsh" } }
+    }
+  ]
+}
+```
+
+### Errors
+
+| Status | Khi nào | Message |
+|--------|---------|---------|
+| 400 | `entryId`/`oddsFinal` sai kiểu hoặc thiếu | `Each entry must have a valid entryId` / `Odds phải là số dương (entry <id>)` |
+| 400 | Thiếu/thừa entry so với số `APPROVED` thực tế | `Phải áp dụng odds cho đủ tất cả N entry APPROVED của race (nhận được M)` |
+| 400 | `oddsFinal` ngoài khoảng `1.2`–`20.0` | `Odds phải trong khoảng 1.2 - 20 (entry <id>)` |
+| 404 | Race không tồn tại | `Race not found` |
+| 404 | Entry không thuộc race này | `Entry <id> không thuộc race này` |
+| 409 | Race không ở trạng thái `SCHEDULED` | `Chỉ có thể sửa odds khi race đang ở trạng thái SCHEDULED` |
+| 409 | Race đang mở đăng ký (chưa đóng cổng) | `Race đang mở đăng ký, chưa có odds để sửa. Đóng cổng đăng ký trước.` |
+
+### Lưu ý quan trọng — khác với trước đây
+
+Trước đây đóng cổng đăng ký (`PUT .../registration-gate`) sẽ **tự động** tính odds bằng công
+thức rule-based (dựa trên phong độ lịch sử). Giờ **không còn tự động tính nữa** — đóng cổng chỉ
+đổi trạng thái + auto-reject entry `PENDING`, **Admin phải tự áp odds** qua endpoint này (có thể
+tham khảo gợi ý AI trước). Đây là lý do `risk-score` (mục 2) đổi điều kiện tiên quyết: không còn
+nói "tự động tính khi đóng cổng" nữa, mà yêu cầu Admin đã áp odds thủ công trước đó.
+
+---
+
 ## Gọi từ Frontend (ví dụ)
 
 ```js

@@ -193,13 +193,13 @@ function OddsTab({ raceId }) {
             {impliedSumPct != null && (
               <span
                 className={`aia-apply-msg ${
-                  impliedSumPct >= 100 && impliedSumPct <= 130
+                  impliedSumPct >= 105
                     ? "aia-apply-msg--success"
                     : "aia-apply-msg--error"
                 }`}
               >
-                Tổng xác suất ngầm định hiện tại: {impliedSumPct.toFixed(2)}% (nên trong
-                khoảng 100%–130% tùy margin)
+                Tổng xác suất ngầm định hiện tại: {impliedSumPct.toFixed(2)}% (bắt buộc
+                ≥ 105% — dưới mức này backend sẽ từ chối vì nhà cái chắc chắn lỗ)
               </span>
             )}
             <button
@@ -233,10 +233,13 @@ function RiskTab({ raceId, registrationOpen }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [applyBusy, setApplyBusy] = useState(false);
+  const [applyMsg, setApplyMsg] = useState(null);
 
   const handleFetch = async () => {
     setLoading(true);
     setError("");
+    setApplyMsg(null);
     try {
       const data = await raceDetailService.getRiskScore(raceId, treasury);
       setResult(data);
@@ -245,6 +248,41 @@ function RiskTab({ raceId, registrationOpen }) {
       setError(translateAiError(e.message) || "Không lấy được đánh giá rủi ro từ AI");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Tổng xác suất ngầm định (Σ 1/odds) tính từ odds AI Risk ĐỀ XUẤT — cho admin thấy
+  // trước khi áp dụng. Risk chỉ HẠ odds cửa bị cược lệch (giữ nguyên phần còn lại) nên
+  // tổng thường TĂNG, hiếm khi tụt dưới 105%; vẫn hiển thị để minh bạch.
+  const impliedSumPct = (() => {
+    if (!result?.horses?.length) return null;
+    const values = result.horses
+      .map((h) => Number(h.suggestedOdds))
+      .filter((v) => Number.isFinite(v) && v > 0);
+    if (values.length === 0) return null;
+    return values.reduce((sum, o) => sum + 1 / o, 0) * 100;
+  })();
+
+  // Áp dụng thẳng odds AI Risk đề xuất cho TOÀN BỘ entry — dùng đúng endpoint như tab
+  // "Gợi ý Odds" (applyOddsSuggestions), nên mọi chốt chặn phía backend vẫn được giữ
+  // (đủ tất cả entry APPROVED, odds trong 1.2–20, Σ 1/odds ≥ 105%, race SCHEDULED +
+  // đã đóng cổng đăng ký). Lỗi vi phạm sẽ hiện ra applyMsg, không âm thầm ghi sai.
+  const handleApplyRisk = async () => {
+    setApplyBusy(true);
+    setApplyMsg(null);
+    try {
+      const entries = (result.horses || [])
+        .filter((h) => h.entryId != null)
+        .map((h) => ({ entryId: h.entryId, oddsFinal: h.suggestedOdds }));
+      await raceDetailService.applyOddsSuggestions(raceId, entries);
+      setApplyMsg({
+        type: "success",
+        text: "Đã áp dụng odds đề xuất từ AI Risk cho toàn bộ race.",
+      });
+    } catch (e) {
+      setApplyMsg({ type: "error", text: translateAiError(e.message) || e.message });
+    } finally {
+      setApplyBusy(false);
     }
   };
 
@@ -335,6 +373,44 @@ function RiskTab({ raceId, registrationOpen }) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="aia-apply-all">
+            {impliedSumPct != null && (
+              <span
+                className={`aia-apply-msg ${
+                  impliedSumPct >= 105
+                    ? "aia-apply-msg--success"
+                    : "aia-apply-msg--error"
+                }`}
+              >
+                Tổng xác suất ngầm định sau khi áp dụng: {impliedSumPct.toFixed(2)}%
+                (bắt buộc ≥ 105% — dưới mức này backend sẽ từ chối)
+              </span>
+            )}
+            <button
+              type="button"
+              className="ard-btn ard-btn--primary"
+              onClick={handleApplyRisk}
+              disabled={applyBusy}
+            >
+              {applyBusy ? (
+                <Loader2 size={16} className="rab-spin" />
+              ) : (
+                "Áp dụng odds đề xuất"
+              )}
+            </button>
+            {applyMsg && (
+              <div
+                className={
+                  applyMsg.type === "success"
+                    ? "ard-alert ard-alert--ok"
+                    : "ard-alert ard-alert--error"
+                }
+              >
+                {applyMsg.text}
+              </div>
+            )}
           </div>
         </>
       )}

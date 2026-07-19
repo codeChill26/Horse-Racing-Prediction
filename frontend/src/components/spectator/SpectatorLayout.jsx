@@ -3,7 +3,6 @@
  * Màu sắc đồng bộ với admin dashboard
  */
 
-import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { logoutUser } from '../../api/auth'
 import { clearAuthTokens, getAccessToken, getRefreshToken } from '../../utils/token'

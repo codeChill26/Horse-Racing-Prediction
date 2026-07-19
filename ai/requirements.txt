@@ -9,3 +9,7 @@ matplotlib      # vẽ biểu đồ khi khám phá & đánh giá
 fastapi         # framework tạo API service cho AI
 uvicorn         # web server chạy FastAPI
 pydantic        # kiểm tra kiểu dữ liệu request/response
+
+# Chỉ dùng để chạy test (CI + local): pytest ai/
+pytest          # chạy test
+httpx           # FastAPI TestClient cần, để gọi endpoint trong test

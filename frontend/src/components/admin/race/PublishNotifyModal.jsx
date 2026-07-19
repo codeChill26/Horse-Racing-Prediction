@@ -33,7 +33,7 @@
 import { useEffect, useId, useState } from "react";
 import { Send, AlertTriangle, Trophy, Wallet, Users, TrendingUp, TrendingDown } from "lucide-react";
 import { settlementService } from "../../../services/settlementService";
-import { formatPoints, formatDateTime } from "../../../utils/formatter";
+import { formatPoints } from "../../../utils/formatter";
 import { ModalShell } from "./AdminRaceDetailModals";
 import "./PublishNotifyModal.css";
 

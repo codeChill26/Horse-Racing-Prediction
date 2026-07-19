@@ -173,4 +173,92 @@ class SpectatorApi {
     }
     return Prediction.fromJson(map);
   }
+
+  /// POST /api/predictions/races/:raceId/ai-suggestion — Spectator trả điểm
+  /// để xem gợi ý AI (CHỈ tỉ lệ thắng `winProbability`, không lộ odds hay
+  /// các thông tin định giá nội bộ của Admin).
+  ///
+  /// Trả về map gồm: raceId, raceName, source, note, pointsCharged,
+  /// walletBalance, predictions[] (mỗi item có horseName, rank, winProbability).
+  Future<AiSuggestionResult> viewAiSuggestion(int raceId) async {
+    final res = await http.post(
+      ApiConfig.uri('/api/predictions/races/$raceId/ai-suggestion'),
+      headers: await _headers(needsBody: true),
+    );
+    final data = await _decode(res);
+    _throwIfError(res, data, 'Không tải được gợi ý AI');
+
+    if (data is! Map<String, dynamic>) {
+      throw SpectatorApiException('Phản hồi gợi ý AI không hợp lệ');
+    }
+    return AiSuggestionResult.fromJson(data);
+  }
+}
+
+/// Kết quả trả về từ `SpectatorApi.viewAiSuggestion` — chỉ chứa
+/// `winProbability` (ẩn mọi odds / fair odds để tránh lộ công cụ định giá
+/// nội bộ của Admin).
+class AiSuggestionResult {
+  const AiSuggestionResult({
+    required this.raceId,
+    required this.raceName,
+    required this.source,
+    required this.note,
+    required this.pointsCharged,
+    required this.walletBalance,
+    required this.predictions,
+  });
+
+  final int raceId;
+  final String raceName;
+  final String source;
+  final String note;
+  final int pointsCharged;
+  final int walletBalance;
+  final List<AiHorsePrediction> predictions;
+
+  factory AiSuggestionResult.fromJson(Map<String, dynamic> json) {
+    final raw = json['predictions'];
+    final list = raw is List
+        ? raw
+            .whereType<Map<String, dynamic>>()
+            .map(AiHorsePrediction.fromJson)
+            .toList()
+        : <AiHorsePrediction>[];
+    return AiSuggestionResult(
+      raceId: (json['raceId'] as num?)?.toInt() ?? 0,
+      raceName: json['raceName']?.toString() ?? '',
+      source: json['source']?.toString() ?? '',
+      note: json['note']?.toString() ?? '',
+      pointsCharged: (json['pointsCharged'] as num?)?.toInt() ?? 0,
+      walletBalance: (json['walletBalance'] as num?)?.toInt() ?? 0,
+      predictions: list,
+    );
+  }
+}
+
+/// 1 dòng gợi ý AI cho 1 ngựa (chỉ `winProbability`, không có odds).
+class AiHorsePrediction {
+  const AiHorsePrediction({
+    required this.horseId,
+    required this.horseName,
+    required this.rank,
+    required this.winProbability,
+  });
+
+  final int? horseId;
+  final String horseName;
+  final int rank;
+
+  /// Tỉ lệ thắng (%). Đã làm tròn 2 chữ số thập phân ở backend.
+  final double winProbability;
+
+  factory AiHorsePrediction.fromJson(Map<String, dynamic> json) {
+    return AiHorsePrediction(
+      horseId: (json['horseId'] as num?)?.toInt(),
+      horseName: json['horseName']?.toString() ?? '',
+      rank: (json['rank'] as num?)?.toInt() ?? 0,
+      winProbability: (json['winProbability'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
 }
