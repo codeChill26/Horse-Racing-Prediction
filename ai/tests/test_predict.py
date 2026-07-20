@@ -21,8 +21,7 @@ RACE = [
 
 def test_load_model_tra_ve_bundle_du_thanh_phan():
     bundle = load_model()
-    for key in ("pipeline", "feature_cols", "jockey_winrate", "jockey_global",
-                "trainer_global"):
+    for key in ("pipeline", "feature_cols", "jockey_winrate", "jockey_global"):
         assert key in bundle, f"bundle thiếu '{key}'"
 
 

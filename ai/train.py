@@ -70,9 +70,8 @@ def prepare(data):
     # Bỏ dòng không có nhãn hợp lệ.
     data = data[data[TARGET].isin([0, 1])].copy()
     data[TARGET] = data[TARGET].astype(int)
-    # Cần jockeyName / trainerName để tính winrate.
+    # Cần jockeyName để tính winrate.
     data["jockeyName"] = data["jockeyName"].fillna("UNKNOWN")
-    data["trainerName"] = data["trainerName"].fillna("UNKNOWN")
     return data
 
 
@@ -89,7 +88,7 @@ def split_by_year(data):
     return train_df, test_df
 
 # ---------------------------------------------------------------------------
-# 4) FEATURE ENGINEERING: winrate jockey & trainer (TÍNH TỪ TRAIN)
+# 4) FEATURE ENGINEERING: winrate jockey (TÍNH TỪ TRAIN)
 # ---------------------------------------------------------------------------
 # QUAN TRỌNG chống leakage: winrate CHỈ được học từ tập TRAIN, rồi "tra bảng" áp
 # sang test. Người/HLV chưa từng thấy -> gán winrate trung bình chung.
