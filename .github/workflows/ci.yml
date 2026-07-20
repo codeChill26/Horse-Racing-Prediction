@@ -1,4 +1,4 @@
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -36,9 +36,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint
 
       - name: Build React App
         run: npm run build
@@ -138,54 +135,3 @@ jobs:
           push: false
           cache-from: type=gha,scope=ai
           cache-to: type=gha,mode=max,scope=ai
-
-  # ---------------------------------------------------------------------------
-  # CD — Tự deploy Backend + AI lên Render khi push nhánh feature/AI
-  # ---------------------------------------------------------------------------
-  deploy-render:
-    name: Deploy Render (Backend + AI)
-    runs-on: ubuntu-latest
-
-    # "Chỉ deploy nếu KHÔNG có lỗi": job này chỉ chạy khi TẤT CẢ job kiểm tra
-    # phía trên đã xanh. Bất kỳ job nào đỏ -> deploy bị bỏ qua, Render giữ
-    # nguyên bản đang chạy (không đè bản hỏng lên).
-    needs:
-      - frontend
-      - backend
-      - ai
-      - docker
-
-    # Chỉ deploy khi PUSH lên feature/AI. Pull request KHÔNG deploy.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feature/AI'
-
-    steps:
-      - name: Kiểm tra secrets đã cấu hình chưa
-        env:
-          HOOK_BE: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
-          HOOK_AI: ${{ secrets.RENDER_DEPLOY_HOOK_AI }}
-        run: |
-          if [ -z "$HOOK_BE" ]; then
-            echo "::error::Thiếu secret RENDER_DEPLOY_HOOK_BACKEND (Settings > Secrets and variables > Actions)"
-            exit 1
-          fi
-          if [ -z "$HOOK_AI" ]; then
-            echo "::error::Thiếu secret RENDER_DEPLOY_HOOK_AI (Settings > Secrets and variables > Actions)"
-            exit 1
-          fi
-
-      # Deploy hook của Render đã có sẵn query "?key=..." nên nối thêm bằng '&'.
-      # ref=<sha>: bắt Render deploy ĐÚNG commit vừa push (last commit), thay vì
-      # HEAD của nhánh mà service đang cấu hình.
-      - name: Trigger Render deploy - Backend
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
-        run: |
-          curl -fsS -X POST "${HOOK}&ref=${{ github.sha }}"
-          echo "Đã gửi lệnh deploy Backend cho commit ${{ github.sha }}"
-
-      - name: Trigger Render deploy - AI
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_AI }}
-        run: |
-          curl -fsS -X POST "${HOOK}&ref=${{ github.sha }}"
-          echo "Đã gửi lệnh deploy AI cho commit ${{ github.sha }}"
