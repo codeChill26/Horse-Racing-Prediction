@@ -49,10 +49,6 @@ def predict_race(horses, margin=DEFAULT_MARGIN):
         df.get("jockeyName", pd.Series([None] * len(df)))
         .map(bundle["jockey_winrate"]).fillna(bundle["jockey_global"])
     )
-    # trainerName đã bỏ khỏi input (DB không lưu Trainer). Model vẫn cần feature
-    # trainer_winrate -> luôn dùng winrate trainer trung bình chung.
-    df["trainer_winrate"] = bundle["trainer_global"]
-
     # Đảm bảo đủ cột feature model cần (thiếu -> NaN để pipeline impute).
     for col in feature_cols:
         if col not in df.columns:

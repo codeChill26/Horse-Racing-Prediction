@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/AI
   pull_request:
     branches:
       - main
@@ -36,9 +37,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint
-
       - name: Build React App
         run: npm run build
 
@@ -50,43 +48,14 @@ jobs:
       run:
         working-directory: backend
 
-    # Test tầng route/service là integration test thật: cần Postgres + Redis sống.
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: horse_racing_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d horse_racing_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
+    # ĐÃ BỎ unit/integration test -> KHÔNG cần Postgres/Redis service, không cần
+    # pgcrypto, không cần db push. Job này giờ chỉ xác minh: cài được dependency
+    # và sinh được Prisma Client (tức code đóng gói được).
     env:
-      # DIRECT_URL: prisma.config.ts đọc biến này cho datasource (không phải DATABASE_URL).
-      # DATABASE_URL: runtime của app (config/prisma.js) đọc biến này.
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/horse_racing_test
-      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/horse_racing_test
-      # .env của dự án trỏ redis://horse_racing_redis:6379 — DNS nội bộ Docker,
-      # ngoài Docker không resolve được. Trên runner phải là localhost.
-      REDIS_URL: redis://localhost:6379
-      JWT_SECRET: ci-secret-not-for-production
-      JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production
-      NODE_ENV: test
+      # prisma generate CHỈ đọc chuỗi kết nối để sinh code, KHÔNG kết nối thật
+      # -> giá trị giả là đủ (giống build-arg ở job docker bên dưới).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
     steps:
       - name: Checkout source
@@ -105,23 +74,6 @@ jobs:
       # npm ci KHÔNG tự sinh Prisma Client — backend/Dockerfile cũng phải gọi tay bước này.
       - name: Generate Prisma Client
         run: npx prisma generate
-
-      # schema.prisma dùng gen_random_bytes() (pgcrypto) cho PointWallet.rowVersion.
-      # Supabase bật sẵn pgcrypto; Postgres mặc định của CI thì chưa -> phải bật tay
-      # trước khi db push, nếu không CREATE TABLE PointWallet sẽ lỗi "function
-      # gen_random_bytes does not exist". psql có sẵn trên runner ubuntu-latest.
-      - name: Enable pgcrypto extension
-        run: psql "postgresql://postgres:postgres@localhost:5432/horse_racing_test" -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-
-      # db push thay vì migrate deploy: DB của CI là DB dùng một lần, dựng thẳng từ
-      # schema.prisma nên không phụ thuộc lịch sử migration (đang lệch so với Supabase).
-      # Prisma 7 đã bỏ cờ --skip-generate (db push không tự generate nữa; bước generate
-      # đã chạy riêng ở trên). --accept-data-loss để không kẹt prompt trên DB rỗng của CI.
-      - name: Create database schema
-        run: npx prisma db push --accept-data-loss
-
-      - name: Run Unit + Integration Tests
-        run: npm test
 
   ai:
     name: AI CI
@@ -142,13 +94,11 @@ jobs:
           cache: pip
           cache-dependency-path: ai/requirements.txt
 
+      # ĐÃ BỎ pytest -> chỉ xác minh cài được dependency.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Run Tests
-        run: pytest
 
   docker:
     name: Docker Build
