@@ -36,13 +36,9 @@ export default function DirectPenaltyModal({ isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch Tournaments on mount
-  useEffect(() => {
-    if (isOpen) {
-      resetState();
-      loadTournaments();
-    }
-  }, [isOpen]);
+  // Khai báo các hàm TRƯỚC useEffect. Chúng là `const` (có Temporal Dead Zone) nên
+  // nếu useEffect nằm trên mà gọi xuống thì eslint react-hooks/immutability báo lỗi
+  // "Cannot access variable before it is declared".
 
   const loadTournaments = async () => {
     try {
@@ -55,16 +51,6 @@ export default function DirectPenaltyModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
-  // Fetch Races when Tournament changes
-  useEffect(() => {
-    if (selectedTournament) {
-      loadRaces(selectedTournament);
-    } else {
-      setRaces([]);
-      setSelectedRace("");
-    }
-  }, [selectedTournament]);
-
   const loadRaces = async (tournamentId) => {
     try {
       const list = await raceService.getRacesByTournament(tournamentId);
@@ -75,16 +61,6 @@ export default function DirectPenaltyModal({ isOpen, onClose, onSuccess }) {
       setError("Không thể tải danh sách chặng đua: " + err.message);
     }
   };
-
-  // Fetch Entries when Race changes
-  useEffect(() => {
-    if (selectedRace) {
-      loadEntries(selectedRace);
-    } else {
-      setEntries([]);
-      setSelectedEntry("");
-    }
-  }, [selectedRace]);
 
   const loadEntries = async (raceId) => {
     try {
@@ -106,6 +82,34 @@ export default function DirectPenaltyModal({ isOpen, onClose, onSuccess }) {
     setNote("");
     setError("");
   };
+
+  // Fetch Tournaments on mount
+  useEffect(() => {
+    if (isOpen) {
+      resetState();
+      loadTournaments();
+    }
+  }, [isOpen]);
+
+  // Fetch Races when Tournament changes
+  useEffect(() => {
+    if (selectedTournament) {
+      loadRaces(selectedTournament);
+    } else {
+      setRaces([]);
+      setSelectedRace("");
+    }
+  }, [selectedTournament]);
+
+  // Fetch Entries when Race changes
+  useEffect(() => {
+    if (selectedRace) {
+      loadEntries(selectedRace);
+    } else {
+      setEntries([]);
+      setSelectedEntry("");
+    }
+  }, [selectedRace]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

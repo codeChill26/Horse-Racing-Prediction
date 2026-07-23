@@ -1,5 +1,9 @@
 name: CI
 
+# Kiểm tra code trên 3 phần (frontend / backend / ai) + đóng gói Docker.
+#
+# CD (deploy) KHÔNG nằm ở đây — xem ghi chú cuối file.
+
 on:
   push:
     branches:
@@ -15,6 +19,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # FRONTEND — lint + build (chưa có unit test chạy trong CI)
+  # ---------------------------------------------------------------------------
   frontend:
     name: Frontend CI
     runs-on: ubuntu-latest
@@ -34,12 +41,30 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # npm ci (không phải npm install): cài ĐÚNG theo package-lock, lặp lại được.
+      # Lock lệch package.json -> fail ngay tại đây, không âm thầm sửa lock.
       - name: Install dependencies
         run: npm ci
 
+      # Bắt code bẩn / import thừa. eslint chỉ exit 1 khi có ERROR (warning không chặn).
+      - name: Run ESLint
+        run: npm run lint
+
+      # Chứng minh app build ra được (bắt lỗi cú pháp / import sai).
       - name: Build React App
         run: npm run build
 
+  # ---------------------------------------------------------------------------
+  # BACKEND — unit test (Jest, mock Prisma nên KHÔNG cần DB/Redis)
+  #
+  # Vì sao KHÔNG chạy integration test (tests/phase*.integration.test.js)?
+  #   Chúng đọc dữ liệu CÓ SẴN trong DB (race, entry...) chứ không tự tạo fixture.
+  #   Trên DB rỗng của CI -> 7 test fail (404 vì không tìm thấy race), kể cả sau khi
+  #   `prisma db seed` (seed chỉ tạo role + user, không tạo race/entry).
+  #   => Đã đo thực tế: unit 63/63 pass, integration 7 fail.
+  #   Muốn bật lại: sửa các test đó tự tạo dữ liệu của mình, rồi thêm lại
+  #   services postgres/redis + bước pgcrypto + `prisma db push` và đổi sang `npm test`.
+  # ---------------------------------------------------------------------------
   backend:
     name: Backend CI
     runs-on: ubuntu-latest
@@ -48,14 +73,13 @@ jobs:
       run:
         working-directory: backend
 
-    # ĐÃ BỎ unit/integration test -> KHÔNG cần Postgres/Redis service, không cần
-    # pgcrypto, không cần db push. Job này giờ chỉ xác minh: cài được dependency
-    # và sinh được Prisma Client (tức code đóng gói được).
     env:
       # prisma generate CHỈ đọc chuỗi kết nối để sinh code, KHÔNG kết nối thật
       # -> giá trị giả là đủ (giống build-arg ở job docker bên dưới).
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      # Cho code biết đang chạy ở môi trường test (Jest cũng tự set, khai báo cho rõ).
+      NODE_ENV: test
 
     steps:
       - name: Checkout source
@@ -75,6 +99,13 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      # test:ci = jest --testPathIgnorePatterns=integration (xem backend/package.json)
+      - name: Run Unit Tests
+        run: npm run test:ci
+
+  # ---------------------------------------------------------------------------
+  # AI — pytest (model ML + luật risk rule-based)
+  # ---------------------------------------------------------------------------
   ai:
     name: AI CI
     runs-on: ubuntu-latest
@@ -94,12 +125,18 @@ jobs:
           cache: pip
           cache-dependency-path: ai/requirements.txt
 
-      # ĐÃ BỎ pytest -> chỉ xác minh cài được dependency.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Bắt lệch giữa model.pkl và code serving (vd bundle thiếu key mà predict.py đọc).
+      - name: Run Tests
+        run: pytest
+
+  # ---------------------------------------------------------------------------
+  # DOCKER — chỉ BUILD để chứng minh Dockerfile không hỏng, KHÔNG push registry
+  # ---------------------------------------------------------------------------
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
@@ -116,7 +153,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # backend/Dockerfile chạy `npx prisma generate` lúc build nên cần 2 build-arg này.
-      # Giá trị giả là đủ: generate chỉ đọc chuỗi kết nối, không kết nối thật.
+      # Giá trị GIẢ là đủ: generate chỉ đọc chuỗi kết nối, không kết nối thật.
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
@@ -135,3 +172,18 @@ jobs:
           push: false
           cache-from: type=gha,scope=ai
           cache-to: type=gha,mode=max,scope=ai
+
+# -----------------------------------------------------------------------------
+# CD — CỐ Ý KHÔNG deploy trong workflow này.
+#
+# Deploy do nền tảng lo:
+#   - Render (Backend + AI): Settings > Build & Deploy > Auto-Deploy
+#       = "After CI Checks Pass"  -> Render CHỜ 4 job trên xanh rồi mới deploy.
+#       Nhớ trỏ Branch của service về đúng nhánh đang dùng (vd feature/AI).
+#   - Vercel (Frontend): tự deploy theo cấu hình riêng của Vercel.
+#
+# Nhánh `feature/AI` có trong `on: push` ở đầu file chính là để CI chạy trên nhánh
+# đó, tạo ra "checks" cho Render chờ. Bỏ nó đi thì "After CI Checks Pass" vô nghĩa.
+#
+# KHÔNG thêm job gọi Render deploy hook ở đây — sẽ bị deploy 2 lần.
+# -----------------------------------------------------------------------------
