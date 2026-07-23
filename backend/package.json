@@ -6,6 +6,7 @@
     "start": "node ./bin/www",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:ci": "jest --testPathIgnorePatterns=integration",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:push": "prisma db push"
